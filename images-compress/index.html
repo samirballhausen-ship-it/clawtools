@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilder komprimieren · CLAWBUIS Tools</title>
+  <meta name="description" content="Mehrere Bilder gleichzeitig komprimieren · JPG, PNG, WebP · Qualität wählbar · 100 % im Browser." />
+  <link rel="canonical" href="https://tools.clawbuis.com/images-compress" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <style>
+    .file-list { display: flex; flex-direction: column; }
+    .file-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto;
+      gap: 14px; align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: var(--surf); }
+    .file-pos {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surf-2); border: 1px solid var(--border);
+      color: var(--ink-2);
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 600;
+    }
+    .file-info { min-width: 0; }
+    .file-name {
+      font-size: 14px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-meta {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--ink-3);
+      letter-spacing: 0.04em;
+    }
+    .savings {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 7px;
+      letter-spacing: 0.04em;
+      background: var(--magic-soft); color: var(--magic);
+      border: 1px solid var(--magic);
+      white-space: nowrap;
+    }
+    .file-status {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg); color: var(--ink-2);
+      white-space: nowrap;
+    }
+    .file-status[data-state="working"] { color: var(--magic); border-color: var(--magic); background: var(--ok-soft); }
+    .file-status[data-state="done"] { color: var(--magic); border-color: var(--magic); }
+    .file-status[data-state="error"] { color: var(--risk); border-color: var(--risk); }
+    .file-remove {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-3);
+    }
+    .file-remove:hover { color: var(--risk); background: var(--surf-2); }
+    .file-remove svg { width: 14px; height: 14px; }
+
+    .quality-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .quality-row input[type="range"] { flex: 1; accent-color: var(--magic); }
+    .quality-val {
+      font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+      color: var(--magic); min-width: 40px; text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">BILD · <span class="num">·</span> Komprimieren</div>
+      <h1>Bilder komprimieren.<br><span class="accent">Batch. Sofort.</span></h1>
+      <p class="lede">
+        50 Fotos rein, 50 komprimierte raus. Optional Maximalbreite einstellen für Web/Mail.
+        Format-Erhaltung: JPG bleibt JPG, PNG bleibt PNG. Verarbeitung 100 % lokal.
+      </p>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <div class="card" id="dropCard">
+          <div class="card-head">
+            <h2>Bilder</h2>
+            <span class="meta" id="queueMeta">0 Dateien</span>
+          </div>
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+              <line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+            <div class="drop-title">Bilder hier ablegen</div>
+            <div class="drop-hint">JPG · PNG · WebP · bis 100 Dateien</div>
+            <input type="file" id="fileInput" accept="image/*" multiple class="hidden" />
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div class="card-head"><h2>Übersicht</h2></div>
+          <div class="card-body">
+            <div class="stat-row"><span class="lbl">Bilder</span><span class="val" id="statFiles">0</span></div>
+            <div class="stat-row"><span class="lbl">Original gesamt</span><span class="val" id="statSizeIn">—</span></div>
+            <div class="stat-row"><span class="lbl">Komprimiert</span><span class="val" id="statSizeOut">—</span></div>
+            <div class="stat-row"><span class="lbl">Ersparnis</span><span class="val" id="statSavings">—</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Optionen</h2></div>
+          <div class="card-body">
+            <div class="quality-row">
+              <span style="font-size: 12px; color: var(--ink-2); min-width: 70px;">Qualität</span>
+              <input type="range" id="optQuality" min="40" max="100" step="5" value="80" />
+              <span class="quality-val"><span id="optQualityVal">80</span>%</span>
+            </div>
+            <label class="option">
+              <input type="checkbox" id="optResize" />
+              <span class="option-text">
+                Maximalbreite begrenzen
+                <span class="option-sub" id="resizeSubLabel">Hochauflösende Fotos auf Web-tauglich verkleinern</span>
+              </span>
+            </label>
+            <div id="resizeWidthRow" style="display: none; padding: 8px 0 12px; gap: 10px; align-items: center; border-bottom: 1px solid var(--border);">
+              <span style="font-size: 12px; color: var(--ink-2); min-width: 70px;">Max. Breite</span>
+              <select id="optMaxWidth" style="flex:1; padding: 6px 8px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 13px;">
+                <option value="800">800 px (Mail)</option>
+                <option value="1280">1280 px (Web Standard)</option>
+                <option value="1920" selected>1920 px (Full HD)</option>
+                <option value="2560">2560 px (2K)</option>
+                <option value="3840">3840 px (4K)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+          </svg>
+          <span id="btnProcessLabel">Komprimieren</span>
+        </button>
+
+        <div class="global-progress" id="globalProgress">
+          <div class="global-progress-head">
+            <span class="lbl" id="globalStage">Verarbeite…</span>
+            <span class="num" id="globalCount">0 / 0</span>
+          </div>
+          <div class="global-progress-bar">
+            <div class="global-progress-fill" id="globalFill" style="right:100%"></div>
+          </div>
+        </div>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="result-info" id="resultInfo"></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span id="downloadLabel">Herunterladen</span>
+            </button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Bilder ablegen', text: 'Drag oder Klick. Auch ganze Foto-Sammlungen aus einem Ordner möglich.', side: 'bottom' },
+      { target: '#optQuality', title: 'Qualität wählen', text: '80% ist ein super Kompromiss zwischen Größe und Qualität. 60-70% für Mail, 90+ für Druck.', side: 'left' },
+      { target: '#optResize', title: 'Größe begrenzen', text: 'Optional: hochauflösende Fotos auf Web-Standard runterskalieren. Reduziert die Größe oft um 80-90%.', side: 'left' },
+      { target: '#btnProcess', title: 'Loslegen', text: 'Alle Bilder werden parallel im Browser komprimiert. Bei 50+ Bildern kann das ein paar Sekunden dauern.', side: 'top' }
+    ];
+
+    const state = { files: [], nextId: 1, processing: false, results: [] };
+    const MAX_FILE_SIZE = 100 * 1024 * 1024;
+    const MAX_FILES = 100;
+
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput'), fileListEl = $('fileList');
+    const queueMeta = $('queueMeta');
+    const statFiles = $('statFiles'), statSizeIn = $('statSizeIn'), statSizeOut = $('statSizeOut'), statSavings = $('statSavings');
+    const optQuality = $('optQuality'), optQualityVal = $('optQualityVal');
+    const optResize = $('optResize'), optMaxWidth = $('optMaxWidth'), resizeWidthRow = $('resizeWidthRow');
+    const btnProcess = $('btnProcess'), btnProcessLabel = $('btnProcessLabel');
+    const btnDownload = $('btnDownload'), btnReset = $('btnReset'), downloadLabel = $('downloadLabel');
+    const globalProgress = $('globalProgress'), globalStage = $('globalStage');
+    const globalCount = $('globalCount'), globalFill = $('globalFill');
+    const resultPanel = $('result'), resultInfo = $('resultInfo');
+
+    optQuality.addEventListener('input', () => { optQualityVal.textContent = optQuality.value; });
+    optResize.addEventListener('change', () => {
+      resizeWidthRow.style.display = optResize.checked ? 'flex' : 'none';
+    });
+
+    const fmtBytes = b => {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    function render() {
+      while (fileListEl.firstChild) fileListEl.removeChild(fileListEl.firstChild);
+      if (state.files.length === 0) {
+        dropzone.style.display = 'block';
+        btnProcess.disabled = true;
+        btnProcessLabel.textContent = 'Komprimieren';
+        updateStats();
+        return;
+      }
+      dropzone.style.display = 'none';
+      btnProcess.disabled = state.processing;
+      btnProcessLabel.textContent = state.processing
+        ? 'Verarbeite…'
+        : `${state.files.length} ${state.files.length === 1 ? 'Bild' : 'Bilder'} komprimieren`;
+      state.files.forEach((entry, idx) => fileListEl.appendChild(buildRow(entry, idx)));
+      queueMeta.textContent = state.files.length === 1 ? '1 Datei' : `${state.files.length} Dateien`;
+      updateStats();
+    }
+
+    function buildRow(entry, idx) {
+      const row = Shell.el('div', { class: 'file-row' });
+      row.appendChild(Shell.el('div', { class: 'file-pos', text: String(idx + 1).padStart(2, '0') }));
+
+      const info = Shell.el('div', { class: 'file-info' });
+      info.appendChild(Shell.el('div', { class: 'file-name', text: entry.name, title: entry.name }));
+      const meta = Shell.el('div', { class: 'file-meta' });
+      meta.appendChild(document.createTextNode(fmtBytes(entry.size)));
+      if (entry.outSize) {
+        meta.appendChild(document.createTextNode(` → ${fmtBytes(entry.outSize)}`));
+      }
+      if (entry.error) {
+        meta.appendChild(document.createTextNode(' · '));
+        meta.appendChild(Shell.el('span', { text: entry.error, style: { color: 'var(--risk)' } }));
+      }
+      info.appendChild(meta);
+      row.appendChild(info);
+
+      // Savings badge
+      if (entry.outSize && entry.size) {
+        const pct = Math.round((1 - entry.outSize / entry.size) * 100);
+        if (pct > 0) {
+          row.appendChild(Shell.el('div', { class: 'savings', text: `−${pct}%` }));
+        } else {
+          row.appendChild(Shell.el('div'));
+        }
+      } else {
+        row.appendChild(Shell.el('div'));
+      }
+
+      row.appendChild(Shell.el('div', {
+        class: 'file-status',
+        text: { queued: 'Wartet', working: 'Läuft', done: 'Fertig', error: 'Fehler' }[entry.state] || '–',
+        attrs: { 'data-state': entry.state }
+      }));
+
+      const remove = Shell.el('button', {
+        class: 'file-remove',
+        attrs: { type: 'button', title: 'Entfernen' },
+        on: { click: () => removeFile(entry.id) }
+      });
+      remove.appendChild(Shell.parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`));
+      row.appendChild(remove);
+      return row;
+    }
+
+    function updateStats() {
+      statFiles.textContent = state.files.length;
+      const totalIn = state.files.reduce((s, f) => s + f.size, 0);
+      const totalOut = state.files.reduce((s, f) => s + (f.outSize || 0), 0);
+      statSizeIn.textContent = totalIn > 0 ? fmtBytes(totalIn) : '—';
+      statSizeOut.textContent = totalOut > 0 ? fmtBytes(totalOut) : '—';
+      if (totalIn > 0 && totalOut > 0) {
+        const pct = Math.round((1 - totalOut / totalIn) * 100);
+        statSavings.textContent = pct > 0 ? `−${pct}%` : '—';
+      } else {
+        statSavings.textContent = '—';
+      }
+    }
+
+    async function compressOne(entry) {
+      const url = URL.createObjectURL(entry.file);
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error('Bild kaputt'));
+          im.src = url;
+        });
+
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (optResize.checked) {
+          const max = parseInt(optMaxWidth.value, 10);
+          if (w > max) {
+            const ratio = max / w;
+            w = max;
+            h = Math.round(img.naturalHeight * ratio);
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // Determine output format
+        const m = entry.name.match(/\.([^.]+)$/);
+        const ext = m ? m[1].toLowerCase() : 'jpg';
+        let outType = 'image/jpeg', outExt = '.jpg';
+        if (ext === 'png') { outType = 'image/png'; outExt = '.png'; }
+        else if (ext === 'webp') { outType = 'image/webp'; outExt = '.webp'; }
+
+        const quality = parseInt(optQuality.value, 10) / 100;
+        const blob = await new Promise(r => canvas.toBlob(r, outType, quality));
+        if (!blob) throw new Error('Encoding fehler');
+
+        canvas.width = 0; canvas.height = 0;
+
+        const baseName = entry.name.replace(/\.[^.]+$/, '') + (optResize.checked ? `_${w}px` : '_komprimiert') + outExt;
+        return { blob, name: baseName, w, h };
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    async function addFiles(fileList) {
+      const incoming = Array.from(fileList);
+      let added = 0, skipped = 0;
+      for (const file of incoming) {
+        if (state.files.length >= MAX_FILES) {
+          Shell.Toast.show(`Max. ${MAX_FILES} Dateien`, true); break;
+        }
+        if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+          skipped++; continue;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          Shell.Toast.show(`${file.name}: zu groß`, true); skipped++; continue;
+        }
+        state.files.push({
+          id: state.nextId++, file, name: file.name, size: file.size,
+          state: 'queued', error: null, outSize: null, _result: null
+        });
+        added++;
+      }
+      if (skipped > 0 && added === 0) Shell.Toast.show('Nur JPG/PNG/WebP', true);
+      render();
+      resultPanel.classList.remove('active');
+    }
+
+    function removeFile(id) {
+      if (state.processing) return;
+      state.files = state.files.filter(f => f.id !== id);
+      resultPanel.classList.remove('active');
+      render();
+    }
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+          dropzone.classList.add('dragover');
+        }
+      })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      if (state.processing) return;
+      if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) addFiles(e.target.files);
+      e.target.value = '';
+    });
+    btnReset.addEventListener('click', () => {
+      state.files = []; state.results = [];
+      resultPanel.classList.remove('active');
+      globalProgress.classList.remove('active');
+      render();
+    });
+
+    btnProcess.addEventListener('click', async () => {
+      if (state.processing || state.files.length === 0) return;
+      state.processing = true;
+      resultPanel.classList.remove('active');
+      globalProgress.classList.add('active');
+      render();
+
+      const total = state.files.length;
+      let processed = 0, errors = 0;
+      state.results = [];
+
+      for (const entry of state.files) {
+        try {
+          entry.state = 'working';
+          render();
+          globalStage.textContent = `Komprimiere: ${entry.name.length > 30 ? entry.name.slice(0, 29) + '…' : entry.name}`;
+          globalCount.textContent = `${processed} / ${total}`;
+          globalFill.style.right = `${100 - (processed / total) * 100}%`;
+
+          const result = await compressOne(entry);
+          entry._result = result;
+          entry.outSize = result.blob.size;
+          entry.state = 'done';
+          state.results.push(result);
+        } catch (err) {
+          console.error(err);
+          entry.error = err.message || 'Fehler';
+          entry.state = 'error';
+          errors++;
+        }
+        processed++;
+        render();
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      globalStage.textContent = 'Fertig';
+      globalCount.textContent = `${total} / ${total}`;
+      globalFill.style.right = '0%';
+      state.processing = false;
+      globalProgress.classList.remove('active');
+      render();
+
+      const successCount = state.files.filter(f => f.state === 'done').length;
+      const totalIn = state.files.reduce((s, f) => s + f.size, 0);
+      const totalOut = state.files.reduce((s, f) => s + (f.outSize || 0), 0);
+      const savedMB = ((totalIn - totalOut) / (1024 * 1024)).toFixed(1);
+      const pct = Math.round((1 - totalOut / totalIn) * 100);
+
+      while (resultInfo.firstChild) resultInfo.removeChild(resultInfo.firstChild);
+      resultInfo.appendChild(document.createTextNode(`${successCount} Bilder · ${savedMB} MB gespart (−${pct}%)`));
+      if (errors > 0) {
+        resultInfo.appendChild(document.createTextNode(' · '));
+        resultInfo.appendChild(Shell.el('span', { class: 'err', text: `${errors} mit Fehler` }));
+      }
+      downloadLabel.textContent = successCount === 1 ? 'Bild herunterladen' : 'ZIP herunterladen';
+      resultPanel.classList.add('active');
+    });
+
+    btnDownload.addEventListener('click', async () => {
+      if (state.results.length === 0) return;
+      if (state.results.length === 1) {
+        const { blob, name } = state.results[0];
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        const zip = new JSZip();
+        state.results.forEach(r => zip.file(r.name, r.blob));
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clawbuis-komprimiert_${state.results.length}-bilder_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'BILD · KOMPRIMIEREN', tour: true, toolName: 'Bilder komprimieren' });
+      render();
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('from') === 'hub') {
+        const n = parseInt(params.get('n') || '0', 10);
+        if (n > 0) Shell.Toast.show(`${n} Bilder vom Hub erkannt — leg sie hier nochmal ab.`);
+      }
+    });
+  </script>
+</body>
+</html>

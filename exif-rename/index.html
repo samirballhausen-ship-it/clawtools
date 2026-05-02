@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilder nach Aufnahmedatum umbenennen · CLAWBUIS Tools</title>
+  <meta name="description" content="Foto-Archiv aufräumen: IMG_4523.HEIC → 2026-04-15_001.jpg. Aus EXIF-Daten gelesen. 100% lokal." />
+  <link rel="canonical" href="https://tools.clawbuis.com/exif-rename" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <style>
+    .file-list { display: flex; flex-direction: column; }
+    .file-row {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr auto;
+      gap: 14px; align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: var(--surf); }
+    .file-pos {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surf-2); border: 1px solid var(--border);
+      color: var(--ink-2);
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 600;
+    }
+    .name-old, .name-new { min-width: 0; }
+    .name-old {
+      font-size: 13px;
+      color: var(--ink-3);
+      text-decoration: line-through;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-family: var(--font-mono);
+    }
+    .name-new {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--magic);
+      font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .name-date-source {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-3);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .file-remove {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-3);
+    }
+    .file-remove:hover { color: var(--risk); background: var(--surf-2); }
+    .file-remove svg { width: 14px; height: 14px; }
+
+    .pattern-hint {
+      padding: 8px 12px;
+      background: var(--surf);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-2);
+      margin-top: 8px;
+      line-height: 1.6;
+    }
+    .pattern-hint code {
+      background: var(--bg);
+      padding: 1px 5px;
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">BILD · <span class="num">·</span> Sortieren</div>
+      <h1>Bilder umbenennen<br><span class="accent">nach Aufnahmedatum.</span></h1>
+      <p class="lede">
+        Aus IMG_4523.HEIC wird 2026-04-15_001.jpg. EXIF-Datum wird gelesen, neuer Name generiert,
+        Reihenfolge bleibt chronologisch. Falls kein EXIF: Fallback auf Datei-Datum. 100% im Browser.
+      </p>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Bilder zum Umbenennen</h2>
+            <span class="meta" id="queueMeta">0 Dateien</span>
+          </div>
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <div class="drop-title">Bilder hier ablegen</div>
+            <div class="drop-hint">Wir lesen EXIF · sortieren chronologisch · benennen um</div>
+            <input type="file" id="fileInput" accept="image/*,.heic,.heif" multiple class="hidden" />
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div class="card-head"><h2>Übersicht</h2></div>
+          <div class="card-body">
+            <div class="stat-row"><span class="lbl">Bilder</span><span class="val" id="statFiles">0</span></div>
+            <div class="stat-row"><span class="lbl">Mit EXIF-Datum</span><span class="val" id="statExif">—</span></div>
+            <div class="stat-row"><span class="lbl">Datum-Spanne</span><span class="val" id="statRange">—</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Pattern</h2></div>
+          <div class="card-body">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="pattern" value="date_counter" checked />
+                <span class="option-text">
+                  <code style="font-family: var(--font-mono); color: var(--magic);">YYYY-MM-DD_NNN</code>
+                  <span class="option-sub">2026-04-15_001.jpg</span>
+                </span>
+              </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="pattern" value="datetime" />
+                <span class="option-text">
+                  <code style="font-family: var(--font-mono); color: var(--magic);">YYYY-MM-DD_HH-MM-SS</code>
+                  <span class="option-sub">2026-04-15_14-32-08.jpg</span>
+                </span>
+              </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="pattern" value="date_orig" />
+                <span class="option-text">
+                  <code style="font-family: var(--font-mono); color: var(--magic);">YYYY-MM-DD_original</code>
+                  <span class="option-sub">2026-04-15_IMG_4523.jpg</span>
+                </span>
+              </label>
+            </div>
+            <div class="pattern-hint">
+              Bei fehlendem EXIF nutzen wir das Datei-Änderungsdatum als Fallback.
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span id="btnProcessLabel">Umbenennen + ZIP</span>
+        </button>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="result-info" id="resultInfo"></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">ZIP herunterladen</button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Bilder ablegen', text: 'Lade alle Bilder rein die du sortieren willst — auch durcheinander. Wir lesen EXIF und sortieren chronologisch.', side: 'bottom' },
+      { target: '#fileList', title: 'Vorschau', text: 'Hier siehst du den alten Namen (durchgestrichen) und den neuen Namen. Bevor du auf "Umbenennen" klickst, prüf ob alles passt.', side: 'top' },
+      { target: '#btnProcess', title: 'Erstellen', text: 'Wir packen alle umbenannten Dateien in ein ZIP. Original-Dateien werden nicht verändert.', side: 'top' }
+    ];
+
+    const state = { files: [], nextId: 1, zipBlob: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput'), fileListEl = $('fileList');
+    const queueMeta = $('queueMeta');
+    const statFiles = $('statFiles'), statExif = $('statExif'), statRange = $('statRange');
+    const btnProcess = $('btnProcess'), btnProcessLabel = $('btnProcessLabel');
+    const btnDownload = $('btnDownload'), btnReset = $('btnReset');
+    const resultPanel = $('result'), resultInfo = $('resultInfo');
+
+    document.querySelectorAll('input[name="pattern"]').forEach(r =>
+      r.addEventListener('change', () => render())
+    );
+
+    const pad = (n, l = 2) => String(n).padStart(l, '0');
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    function getPattern() {
+      return document.querySelector('input[name="pattern"]:checked').value;
+    }
+
+    function buildNewName(entry, idx) {
+      const d = entry.date;
+      if (!d) return entry.name;
+      const Y = d.getFullYear();
+      const M = pad(d.getMonth() + 1);
+      const D = pad(d.getDate());
+      const H = pad(d.getHours());
+      const Mi = pad(d.getMinutes());
+      const S = pad(d.getSeconds());
+      const m = entry.name.match(/\.([^.]+)$/);
+      const ext = m ? '.' + m[1].toLowerCase() : '';
+      const baseOrig = entry.name.replace(/\.[^.]+$/, '');
+      const counter = pad(idx + 1, 3);
+
+      switch (getPattern()) {
+        case 'datetime': return `${Y}-${M}-${D}_${H}-${Mi}-${S}${ext}`;
+        case 'date_orig': return `${Y}-${M}-${D}_${baseOrig}${ext}`;
+        case 'date_counter':
+        default: return `${Y}-${M}-${D}_${counter}${ext}`;
+      }
+    }
+
+    async function readExifDate(entry) {
+      try {
+        const buf = await entry.file.slice(0, 256 * 1024).arrayBuffer();
+        const data = await window.exifr.parse(buf, { exif: true });
+        if (data && data.DateTimeOriginal) return { date: data.DateTimeOriginal, source: 'EXIF' };
+        if (data && data.CreateDate) return { date: data.CreateDate, source: 'EXIF' };
+      } catch (e) { /* ignore */ }
+      // Fallback: file lastModified
+      return { date: new Date(entry.file.lastModified), source: 'Datei' };
+    }
+
+    function render() {
+      while (fileListEl.firstChild) fileListEl.removeChild(fileListEl.firstChild);
+
+      // Sort by date
+      state.files.sort((a, b) => {
+        if (!a.date) return 1; if (!b.date) return -1;
+        return a.date - b.date;
+      });
+
+      if (state.files.length === 0) {
+        dropzone.style.display = 'block';
+        btnProcess.disabled = true;
+        updateStats();
+        return;
+      }
+      dropzone.style.display = 'none';
+      btnProcess.disabled = false;
+      btnProcessLabel.textContent = state.files.length === 1
+        ? '1 Datei umbenennen + ZIP'
+        : `${state.files.length} umbenennen + ZIP`;
+
+      state.files.forEach((entry, idx) => {
+        const newName = buildNewName(entry, idx);
+        const row = Shell.el('div', { class: 'file-row' });
+        row.appendChild(Shell.el('div', { class: 'file-pos', text: pad(idx + 1) }));
+
+        const oldDiv = Shell.el('div', { class: 'name-old', text: entry.name, title: entry.name });
+        row.appendChild(oldDiv);
+
+        const newDiv = Shell.el('div');
+        newDiv.appendChild(Shell.el('div', { class: 'name-new', text: newName, title: newName }));
+        if (entry.dateSource) {
+          newDiv.appendChild(Shell.el('div', { class: 'name-date-source', text: entry.dateSource }));
+        }
+        row.appendChild(newDiv);
+
+        const remove = Shell.el('button', {
+          class: 'file-remove',
+          attrs: { type: 'button', title: 'Entfernen' },
+          on: { click: () => removeFile(entry.id) }
+        });
+        remove.appendChild(Shell.parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`));
+        row.appendChild(remove);
+
+        fileListEl.appendChild(row);
+      });
+
+      queueMeta.textContent = state.files.length === 1 ? '1 Datei' : `${state.files.length} Dateien`;
+      updateStats();
+    }
+
+    function updateStats() {
+      statFiles.textContent = state.files.length;
+      const exifCount = state.files.filter(f => f.dateSource === 'EXIF').length;
+      statExif.textContent = state.files.length === 0 ? '—' : `${exifCount} / ${state.files.length}`;
+      const dates = state.files.filter(f => f.date).map(f => f.date).sort((a, b) => a - b);
+      if (dates.length >= 2) {
+        const fmt = d => d.toISOString().slice(0, 10);
+        statRange.textContent = `${fmt(dates[0])} – ${fmt(dates[dates.length - 1])}`;
+      } else if (dates.length === 1) {
+        statRange.textContent = dates[0].toISOString().slice(0, 10);
+      } else {
+        statRange.textContent = '—';
+      }
+    }
+
+    async function addFiles(fileList) {
+      const incoming = Array.from(fileList);
+      let added = 0;
+      for (const file of incoming) {
+        if (state.files.length >= 200) {
+          Shell.Toast.show('Max. 200 Dateien', true); break;
+        }
+        if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|heic|heif|tiff?)$/i.test(file.name)) continue;
+        const entry = {
+          id: state.nextId++, file, name: file.name, size: file.size,
+          date: null, dateSource: null
+        };
+        state.files.push(entry);
+        readExifDate(entry).then(({ date, source }) => {
+          entry.date = date; entry.dateSource = source;
+          render();
+        });
+        added++;
+      }
+      if (added === 0) Shell.Toast.show('Nur Bilder erlaubt', true);
+      render();
+      resultPanel.classList.remove('active');
+    }
+
+    function removeFile(id) {
+      state.files = state.files.filter(f => f.id !== id);
+      resultPanel.classList.remove('active');
+      render();
+    }
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+      })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) addFiles(e.target.files);
+      e.target.value = '';
+    });
+    btnReset.addEventListener('click', () => {
+      state.files = []; state.zipBlob = null;
+      resultPanel.classList.remove('active');
+      render();
+    });
+
+    btnProcess.addEventListener('click', async () => {
+      if (state.files.length === 0) return;
+      const zip = new JSZip();
+      const usedNames = new Set();
+
+      for (let idx = 0; idx < state.files.length; idx++) {
+        const entry = state.files[idx];
+        let newName = buildNewName(entry, idx);
+        // De-dupe
+        let candidate = newName, n = 1;
+        while (usedNames.has(candidate)) {
+          const m = newName.match(/^(.+)(\.[^.]+)$/);
+          if (m) candidate = `${m[1]}_${n}${m[2]}`;
+          else candidate = `${newName}_${n}`;
+          n++;
+        }
+        usedNames.add(candidate);
+        zip.file(candidate, entry.file);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });
+      state.zipBlob = zipBlob;
+
+      while (resultInfo.firstChild) resultInfo.removeChild(resultInfo.firstChild);
+      resultInfo.appendChild(document.createTextNode(`${state.files.length} Bilder umbenannt · ${fmtBytes(zipBlob.size)}`));
+      resultPanel.classList.add('active');
+    });
+
+    btnDownload.addEventListener('click', () => {
+      if (!state.zipBlob) return;
+      const url = URL.createObjectURL(state.zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clawbuis-umbenannt_${state.files.length}-bilder_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'EXIF · UMBENENNEN', tour: true, toolName: 'Nach Datum umbenennen' });
+      render();
+    });
+  </script>
+</body>
+</html>

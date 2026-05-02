@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bilder zu PDF · CLAWBUIS Tools</title>
+  <meta name="description" content="Mehrere Bilder zu einem PDF zusammenfassen · A4-tauglich · 100% im Browser" />
+  <link rel="canonical" href="https://tools.clawbuis.com/images-to-pdf" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <style>
+    .file-list { display: flex; flex-direction: column; }
+    .file-row {
+      display: grid;
+      grid-template-columns: auto auto 1fr auto auto;
+      gap: 14px; align-items: center;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: grab;
+    }
+    .file-row:active { cursor: grabbing; }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: var(--surf); }
+    .file-row.dragging { opacity: 0.5; }
+    .file-row.drag-over-top { border-top: 2px solid var(--magic); }
+    .file-row.drag-over-bottom { border-bottom: 2px solid var(--magic); }
+
+    .file-handle { color: var(--ink-3); font-family: var(--font-mono); user-select: none; }
+    .file-pos {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surf-2); border: 1px solid var(--border);
+      color: var(--ink-2);
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 600;
+    }
+    .file-thumb {
+      width: 36px; height: 36px;
+      object-fit: cover;
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+    }
+    .file-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .file-name {
+      font-size: 13px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-meta {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--ink-3);
+    }
+    .file-remove {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-3);
+    }
+    .file-remove:hover { color: var(--risk); background: var(--surf-2); }
+    .file-remove svg { width: 14px; height: 14px; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">BILD · <span class="num">·</span> Zu PDF</div>
+      <h1>Bilder zu PDF.<br><span class="accent">A4. Eine Datei.</span></h1>
+      <p class="lede">
+        Scan-Sammlung, Foto-Stapel oder gemischte Bilder zu einem A4-PDF zusammenfassen.
+        Reihenfolge per Drag, Margins wählbar, Hochformat oder Querformat. 100% lokal.
+      </p>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Bilder in PDF-Reihenfolge</h2>
+            <span class="meta" id="queueMeta">0 Bilder</span>
+          </div>
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <div class="drop-title">Bilder hier ablegen</div>
+            <div class="drop-hint">JPG · PNG · WebP · auch große Mengen · Reihenfolge per Drag änderbar</div>
+            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple class="hidden" />
+          </div>
+          <div class="file-list" id="fileList"></div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div class="card-head"><h2>Übersicht</h2></div>
+          <div class="card-body">
+            <div class="stat-row"><span class="lbl">Bilder</span><span class="val" id="statFiles">0</span></div>
+            <div class="stat-row"><span class="lbl">Größe gesamt</span><span class="val" id="statSize">—</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Layout</h2></div>
+          <div class="card-body">
+            <label class="option" style="padding: 8px 0;">
+              <input type="radio" name="orient" value="auto" checked />
+              <span class="option-text">Auto<span class="option-sub">Hoch/Quer pro Bild dynamisch</span></span>
+            </label>
+            <label class="option" style="padding: 8px 0;">
+              <input type="radio" name="orient" value="portrait" />
+              <span class="option-text">Hochformat<span class="option-sub">Alle Seiten A4 vertikal</span></span>
+            </label>
+            <label class="option" style="padding: 8px 0;">
+              <input type="radio" name="orient" value="landscape" />
+              <span class="option-text">Querformat<span class="option-sub">Alle Seiten A4 horizontal</span></span>
+            </label>
+            <label class="option" style="padding: 12px 0 8px; border-top: 1px solid var(--border); margin-top: 8px;">
+              <input type="checkbox" id="optMargin" checked />
+              <span class="option-text">Rand 10mm<span class="option-sub">Druck-tauglich · sonst randlos</span></span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span id="btnProcessLabel">PDF erstellen</span>
+        </button>
+
+        <div class="global-progress" id="globalProgress">
+          <div class="global-progress-head">
+            <span class="lbl" id="globalStage">Verarbeite…</span>
+            <span class="num" id="globalCount">0 / 0</span>
+          </div>
+          <div class="global-progress-bar">
+            <div class="global-progress-fill" id="globalFill" style="right:100%"></div>
+          </div>
+        </div>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="result-info" id="resultInfo"></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">PDF herunterladen</button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Bilder ablegen', text: 'JPG, PNG, WebP — auch durcheinander. Wir konvertieren alles passend für PDF.', side: 'bottom' },
+      { target: '#fileList', title: 'Reihenfolge per Drag', text: 'Sobald Bilder geladen sind, kannst du sie hier sortieren. Position links zeigt PDF-Seite.', side: 'top' },
+      { target: '#btnProcess', title: 'PDF erstellen', text: 'Wir bauen das PDF im Browser. Bei vielen Bildern kann das ein paar Sekunden dauern.', side: 'top' }
+    ];
+
+    // A4 dimensions in points (1pt = 1/72 inch)
+    const A4 = { w: 595.28, h: 841.89 };
+
+    const state = { files: [], nextId: 1, processing: false, pdfBlob: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput'), fileListEl = $('fileList');
+    const queueMeta = $('queueMeta'), statFiles = $('statFiles'), statSize = $('statSize');
+    const optMargin = $('optMargin');
+    const btnProcess = $('btnProcess'), btnProcessLabel = $('btnProcessLabel');
+    const btnDownload = $('btnDownload'), btnReset = $('btnReset');
+    const globalProgress = $('globalProgress'), globalStage = $('globalStage');
+    const globalCount = $('globalCount'), globalFill = $('globalFill');
+    const resultPanel = $('result'), resultInfo = $('resultInfo');
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    function getOrient() {
+      return document.querySelector('input[name="orient"]:checked').value;
+    }
+
+    function render() {
+      while (fileListEl.firstChild) fileListEl.removeChild(fileListEl.firstChild);
+      if (state.files.length === 0) {
+        dropzone.style.display = 'block';
+        btnProcess.disabled = true;
+        btnProcessLabel.textContent = 'PDF erstellen';
+        updateStats();
+        return;
+      }
+      dropzone.style.display = 'none';
+      btnProcess.disabled = state.processing;
+      btnProcessLabel.textContent = state.processing
+        ? 'Erstelle PDF…'
+        : `PDF aus ${state.files.length} ${state.files.length === 1 ? 'Bild' : 'Bildern'} erstellen`;
+
+      state.files.forEach((entry, idx) => fileListEl.appendChild(buildRow(entry, idx)));
+      queueMeta.textContent = `${state.files.length} ${state.files.length === 1 ? 'Bild' : 'Bilder'}`;
+      updateStats();
+    }
+
+    function buildRow(entry, idx) {
+      const row = Shell.el('div', { class: 'file-row', attrs: { draggable: 'true', 'data-id': entry.id } });
+      row.appendChild(Shell.el('div', { class: 'file-handle', text: '⋮⋮' }));
+      row.appendChild(Shell.el('div', { class: 'file-pos', text: String(idx + 1).padStart(2, '0') }));
+
+      const thumb = Shell.el('img', { class: 'file-thumb', attrs: { src: entry.thumbUrl, alt: '' } });
+      row.appendChild(thumb);
+
+      const info = Shell.el('div', { class: 'file-info' });
+      info.appendChild(Shell.el('div', { class: 'file-name', text: entry.name, title: entry.name }));
+      const meta = Shell.el('div', { class: 'file-meta' });
+      meta.appendChild(document.createTextNode(fmtBytes(entry.size)));
+      if (entry.dimensions) {
+        meta.appendChild(document.createTextNode(` · ${entry.dimensions.w}×${entry.dimensions.h}`));
+      }
+      info.appendChild(meta);
+      row.appendChild(info);
+
+      const remove = Shell.el('button', {
+        class: 'file-remove',
+        attrs: { type: 'button', title: 'Entfernen' },
+        on: { click: () => removeFile(entry.id) }
+      });
+      remove.appendChild(Shell.parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`));
+      row.appendChild(remove);
+
+      // Drag-reorder
+      row.addEventListener('dragstart', e => {
+        if (state.processing) { e.preventDefault(); return; }
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(entry.id));
+      });
+      row.addEventListener('dragend', () => row.classList.remove('dragging'));
+      row.addEventListener('dragover', e => {
+        e.preventDefault();
+        const rect = row.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        row.classList.toggle('drag-over-top', before);
+        row.classList.toggle('drag-over-bottom', !before);
+      });
+      row.addEventListener('dragleave', () => row.classList.remove('drag-over-top', 'drag-over-bottom'));
+      row.addEventListener('drop', e => {
+        e.preventDefault(); e.stopPropagation();
+        row.classList.remove('drag-over-top', 'drag-over-bottom');
+        const fromId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        if (!fromId || fromId === entry.id) return;
+        const fromIdx = state.files.findIndex(f => f.id === fromId);
+        const toIdx = state.files.findIndex(f => f.id === entry.id);
+        if (fromIdx < 0 || toIdx < 0) return;
+        const rect = row.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        const insertAt = before ? toIdx : toIdx + 1;
+        const [moved] = state.files.splice(fromIdx, 1);
+        const adjusted = insertAt > fromIdx ? insertAt - 1 : insertAt;
+        state.files.splice(adjusted, 0, moved);
+        render();
+      });
+
+      return row;
+    }
+
+    function updateStats() {
+      statFiles.textContent = state.files.length;
+      const total = state.files.reduce((s, f) => s + f.size, 0);
+      statSize.textContent = total > 0 ? fmtBytes(total) : '—';
+    }
+
+    async function addFiles(fileList) {
+      const incoming = Array.from(fileList);
+      let added = 0, skipped = 0;
+      for (const file of incoming) {
+        if (state.files.length >= 200) {
+          Shell.Toast.show('Max. 200 Bilder', true); break;
+        }
+        if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+          skipped++; continue;
+        }
+        const entry = {
+          id: state.nextId++, file, name: file.name, size: file.size,
+          thumbUrl: URL.createObjectURL(file), dimensions: null
+        };
+        state.files.push(entry);
+        // Probe dimensions
+        const im = new Image();
+        im.onload = () => {
+          entry.dimensions = { w: im.naturalWidth, h: im.naturalHeight };
+          render();
+        };
+        im.src = entry.thumbUrl;
+        added++;
+      }
+      if (added === 0) Shell.Toast.show('Nur JPG/PNG/WebP', true);
+      render();
+      resultPanel.classList.remove('active');
+    }
+
+    function removeFile(id) {
+      if (state.processing) return;
+      const e = state.files.find(f => f.id === id);
+      if (e && e.thumbUrl) URL.revokeObjectURL(e.thumbUrl);
+      state.files = state.files.filter(f => f.id !== id);
+      resultPanel.classList.remove('active');
+      render();
+    }
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+      })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      if (state.processing) return;
+      if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) addFiles(e.target.files);
+      e.target.value = '';
+    });
+    btnReset.addEventListener('click', () => {
+      state.files.forEach(f => f.thumbUrl && URL.revokeObjectURL(f.thumbUrl));
+      state.files = []; state.pdfBlob = null;
+      resultPanel.classList.remove('active');
+      globalProgress.classList.remove('active');
+      render();
+    });
+
+    btnProcess.addEventListener('click', async () => {
+      if (state.processing || state.files.length === 0) return;
+      state.processing = true;
+      resultPanel.classList.remove('active');
+      globalProgress.classList.add('active');
+      render();
+
+      const pdf = await PDFLib.PDFDocument.create();
+      pdf.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
+      pdf.setCreator('CLAWBUIS Bilder→PDF');
+      pdf.setCreationDate(new Date());
+
+      const orient = getOrient();
+      const margin = optMargin.checked ? 10 * 2.834 : 0; // 10mm = 28.34pt
+      const total = state.files.length;
+      let processed = 0, errors = 0;
+
+      for (const entry of state.files) {
+        try {
+          globalStage.textContent = `Seite ${processed + 1}: ${entry.name.length > 24 ? entry.name.slice(0, 23) + '…' : entry.name}`;
+          globalCount.textContent = `${processed} / ${total}`;
+          globalFill.style.right = `${100 - (processed / total) * 100}%`;
+
+          const buf = await entry.file.arrayBuffer();
+          let img;
+          if (entry.file.type === 'image/jpeg' || /\.jpe?g$/i.test(entry.name)) {
+            img = await pdf.embedJpg(buf);
+          } else if (entry.file.type === 'image/png' || /\.png$/i.test(entry.name)) {
+            img = await pdf.embedPng(buf);
+          } else {
+            // WebP: convert via canvas to JPEG first
+            const url = URL.createObjectURL(entry.file);
+            try {
+              const im = await new Promise((res, rej) => {
+                const i = new Image();
+                i.onload = () => res(i); i.onerror = () => rej(new Error('Bild kaputt'));
+                i.src = url;
+              });
+              const canvas = document.createElement('canvas');
+              canvas.width = im.naturalWidth; canvas.height = im.naturalHeight;
+              canvas.getContext('2d').drawImage(im, 0, 0);
+              const jpgBlob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+              img = await pdf.embedJpg(await jpgBlob.arrayBuffer());
+              canvas.width = 0; canvas.height = 0;
+            } finally { URL.revokeObjectURL(url); }
+          }
+
+          // Determine page orientation
+          const imgPortrait = img.height >= img.width;
+          let pageW, pageH;
+          if (orient === 'auto') {
+            pageW = imgPortrait ? A4.w : A4.h;
+            pageH = imgPortrait ? A4.h : A4.w;
+          } else if (orient === 'portrait') {
+            pageW = A4.w; pageH = A4.h;
+          } else {
+            pageW = A4.h; pageH = A4.w;
+          }
+
+          const page = pdf.addPage([pageW, pageH]);
+          const availW = pageW - margin * 2;
+          const availH = pageH - margin * 2;
+          const scale = Math.min(availW / img.width, availH / img.height);
+          const drawW = img.width * scale;
+          const drawH = img.height * scale;
+          const x = (pageW - drawW) / 2;
+          const y = (pageH - drawH) / 2;
+          page.drawImage(img, { x, y, width: drawW, height: drawH });
+
+          processed++;
+          render();
+          await new Promise(r => setTimeout(r, 0));
+        } catch (err) {
+          console.error(err);
+          errors++;
+          processed++;
+        }
+      }
+
+      globalStage.textContent = 'Speichere PDF…';
+      const bytes = await pdf.save();
+      state.pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+
+      state.processing = false;
+      globalProgress.classList.remove('active');
+      render();
+
+      const sizeMB = (state.pdfBlob.size / (1024 * 1024)).toFixed(2);
+      while (resultInfo.firstChild) resultInfo.removeChild(resultInfo.firstChild);
+      resultInfo.appendChild(document.createTextNode(`PDF mit ${total - errors} Seiten · ${sizeMB} MB`));
+      if (errors > 0) {
+        resultInfo.appendChild(document.createTextNode(' · '));
+        resultInfo.appendChild(Shell.el('span', { class: 'err', text: `${errors} mit Fehler` }));
+      }
+      resultPanel.classList.add('active');
+    });
+
+    btnDownload.addEventListener('click', () => {
+      if (!state.pdfBlob) return;
+      const url = URL.createObjectURL(state.pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clawbuis-bilder-zu-pdf_${state.files.length}-bilder_${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'BILD · ZU PDF', tour: true, toolName: 'Bilder zu PDF' });
+      render();
+    });
+  </script>
+</body>
+</html>
