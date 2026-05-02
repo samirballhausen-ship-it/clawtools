@@ -1,6 +1,73 @@
 /* CLAWBUIS Tools Platform — Shared Shell CSS
- * Header · Footer · Cosmos · Privacy · Tour · Hub-Tiles · Tool-Workshop
+ * Header · Footer · Cosmos · Privacy · Tour · Hub-Tiles · Tool-Workshop · PWA
  */
+
+/* ─── PWA Install Button & iOS Hint ─────────────────── */
+.pwa-install-btn {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 100;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 18px;
+  background: var(--magic, #15803d);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pwa-install-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+.pwa-install-btn:active { transform: translateY(0); }
+.pwa-install-btn span { font-size: 18px; line-height: 1; }
+@media (max-width: 768px) {
+  .pwa-install-btn { bottom: 16px; right: 16px; left: 16px; justify-content: center; }
+}
+
+.pwa-ios-hint {
+  position: fixed;
+  bottom: 20px; left: 16px; right: 16px;
+  max-width: 380px;
+  margin: 0 auto;
+  z-index: 100;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--magic, #15803d);
+  padding: 16px 18px 16px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  position: relative;
+}
+.pwa-ios-hint-title {
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+  padding-right: 24px;
+}
+.pwa-ios-hint-body {
+  color: var(--ink-2);
+}
+.pwa-ios-hint-body strong {
+  color: var(--ink);
+}
+.pwa-ios-hint-close {
+  position: absolute;
+  top: 8px; right: 10px;
+  width: 24px; height: 24px;
+  background: none; border: none;
+  font-size: 22px; line-height: 1;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 0;
+}
+.pwa-ios-hint-close:hover { color: var(--ink); }
+
 
 /* ─── Reset ────────────────────────────────────────── */
 * { box-sizing: border-box; }
@@ -660,41 +727,46 @@ input[type="file"].hidden { display: none; }
 .result-info .err { color: var(--risk); }
 
 /* ─── Privacy Banner (auto-injected by shell.js) ──── */
-.privacy {
-  margin-top: 32px;
-  padding: 20px 24px;
+details.privacy {
+  margin-top: 28px;
   border: 1px solid var(--border);
   background: var(--surf);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
-  align-items: start;
 }
+.privacy-summary {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  font-size: 13px;
+}
+.privacy-summary::-webkit-details-marker { display: none; }
+.privacy-summary:hover { background: var(--surf-2); }
 .privacy-icon {
-  width: 36px; height: 36px;
+  width: 28px; height: 28px;
   flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
   background: var(--ok-soft);
   border: 1px solid var(--magic);
   color: var(--magic);
 }
-.privacy-icon svg { width: 18px; height: 18px; }
-.privacy-body { font-size: 13px; line-height: 1.55; }
-.privacy-body h3 {
-  font-family: var(--font-heading);
-  font-size: 14px; font-weight: 600;
-  margin-bottom: 6px;
-  display: flex; align-items: center; gap: 10px;
+.privacy-icon svg { width: 14px; height: 14px; }
+.privacy-summary-text {
+  flex: 1; min-width: 0;
+  color: var(--ink-2);
 }
-.privacy-body h3 .tag {
-  font-family: var(--font-mono);
-  font-size: 10px; letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--magic);
-  background: var(--bg);
-  border: 1px solid var(--magic);
-  padding: 2px 6px;
-  font-weight: 500;
+.privacy-summary-text strong {
+  color: var(--ink); font-weight: 600;
+}
+.privacy-chevron {
+  font-size: 14px;
+  color: var(--ink-3);
+  transition: transform 0.2s var(--ease);
+}
+details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
+.privacy-body {
+  padding: 0 16px 16px 56px;
+  font-size: 13px; line-height: 1.55;
 }
 .privacy-body p { color: var(--ink-2); margin-bottom: 6px; }
 .privacy-body ul {
@@ -985,8 +1057,8 @@ input[type="file"].hidden { display: none; }
   .card-body { padding: 16px; }
   .dropzone { padding: 32px 16px; }
   .drop-icon { width: 36px; height: 36px; }
-  .privacy { padding: 16px; grid-template-columns: 1fr; }
-  .privacy-icon { margin: 0 auto; }
+  .privacy-summary { padding: 12px 14px; gap: 10px; }
+  .privacy-body { padding: 0 14px 14px 14px; }
   .app-footer-inner { flex-direction: column; gap: 8px; text-align: center; }
 }
 @media (max-width: 480px) {

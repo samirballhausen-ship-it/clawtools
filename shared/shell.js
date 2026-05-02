@@ -165,19 +165,20 @@
     if (!main) return;
     if (main.querySelector('.privacy')) return;
 
-    const section = el('section', {
-      class: 'privacy', attrs: { 'aria-labelledby': 'privacyTitle' }
-    });
-    const iconWrap = el('div', { class: 'privacy-icon', attrs: { 'aria-hidden': 'true' } });
+    const details = el('details', { class: 'privacy', attrs: { 'aria-labelledby': 'privacyTitle' } });
+    const summary = el('summary', { class: 'privacy-summary' });
+    const iconWrap = el('span', { class: 'privacy-icon', attrs: { 'aria-hidden': 'true' } });
     iconWrap.appendChild(parseSVG(PRIVACY_ICON_SVG));
+    summary.appendChild(iconWrap);
+    const summaryText = el('span', { class: 'privacy-summary-text' });
+    summaryText.appendChild(el('strong', { attrs: { id: 'privacyTitle' }, text: 'Datenschutz' }));
+    summaryText.appendChild(document.createTextNode(' · '));
+    summaryText.appendChild(el('span', { text: '100 % lokal · keine Uploads · DSGVO' }));
+    summary.appendChild(summaryText);
+    summary.appendChild(el('span', { class: 'privacy-chevron', attrs: { 'aria-hidden': 'true' }, text: '▾' }));
+    details.appendChild(summary);
 
     const body = el('div', { class: 'privacy-body' });
-    const h3 = el('h3', { attrs: { id: 'privacyTitle' } });
-    h3.appendChild(document.createTextNode('Datenschutz '));
-    h3.appendChild(el('span', { class: 'tag', text: 'DSGVO-konform' }));
-    body.appendChild(h3);
-
-    // Use DOM construction (not innerHTML) for safety
     const p = el('p');
     p.appendChild(document.createTextNode('Dieses Werkzeug verarbeitet deine Dateien '));
     p.appendChild(el('strong', { text: 'ausschließlich lokal in deinem Browser' }));
@@ -193,9 +194,8 @@
     ].forEach(t => ul.appendChild(el('li', { text: t })));
     body.appendChild(ul);
 
-    section.appendChild(iconWrap);
-    section.appendChild(body);
-    main.appendChild(section);
+    details.appendChild(body);
+    main.appendChild(details);
   }
 
   // ────────────────────────────────────────────────
@@ -504,6 +504,7 @@
       footer: opts.footer !== false,
       toolName: opts.toolName || ''
     };
+    injectPWAMeta();
     injectHeader({ tag: cfg.tag, tour: cfg.tour });
     if (cfg.privacy) injectPrivacy();
     if (cfg.footer) injectFooter(cfg.toolName);
@@ -513,6 +514,109 @@
         setTimeout(() => Tour.maybeShowWelcome(), 1500);
       }
     }
+    setupPWA(opts.isHub);
+  }
+
+  // ────────────────────────────────────────────────
+  // PWA — Auto-Inject Manifest + Apple Meta + Service Worker + Install Button
+  // ────────────────────────────────────────────────
+  function injectPWAMeta() {
+    const head = document.head;
+    function ensure(tag, attrs) {
+      const sel = Object.entries(attrs).map(([k, v]) => `[${k}="${v}"]`).slice(0, 2).join('');
+      if (head.querySelector(`${tag}${sel}`)) return;
+      const e = document.createElement(tag);
+      Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+      head.appendChild(e);
+    }
+    ensure('link', { rel: 'manifest', href: '/manifest.webmanifest' });
+    ensure('meta', { name: 'theme-color', content: '#15803d' });
+    ensure('meta', { name: 'apple-mobile-web-app-capable', content: 'yes' });
+    ensure('meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'default' });
+    ensure('meta', { name: 'apple-mobile-web-app-title', content: 'Tools' });
+    ensure('link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/shared/icons/apple-touch-icon-180.png' });
+    ensure('link', { rel: 'apple-touch-icon', sizes: '167x167', href: '/shared/icons/apple-touch-icon-167.png' });
+    ensure('link', { rel: 'apple-touch-icon', sizes: '152x152', href: '/shared/icons/apple-touch-icon-152.png' });
+  }
+
+  let deferredInstallPrompt = null;
+  function setupPWA(isHub) {
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('[sw] register failed', e));
+      });
+    }
+
+    // Capture install prompt for later
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      showInstallButton();
+    });
+
+    // Hide if already installed
+    window.addEventListener('appinstalled', () => {
+      const btn = document.querySelector('.pwa-install-btn');
+      if (btn) btn.remove();
+      deferredInstallPrompt = null;
+      Toast.show('Als App installiert — du findest sie auf deinem Homescreen.');
+    });
+
+    // iOS-Detection: kein beforeinstallprompt → eigenes Hint
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isIOS && !isStandalone && isHub) {
+      setTimeout(() => showIOSHint(), 2500);
+    }
+  }
+
+  function showInstallButton() {
+    if (document.querySelector('.pwa-install-btn')) return;
+    const btn = el('button', {
+      class: 'pwa-install-btn',
+      attrs: { type: 'button', 'aria-label': 'Als App auf Homescreen installieren' },
+      on: { click: () => triggerInstall() }
+    });
+    const ico = el('span', { attrs: { 'aria-hidden': 'true' }, text: '⤓' });
+    btn.appendChild(ico);
+    btn.appendChild(document.createTextNode(' Als App installieren'));
+    document.body.appendChild(btn);
+  }
+
+  async function triggerInstall() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice && choice.outcome === 'accepted') {
+      const btn = document.querySelector('.pwa-install-btn');
+      if (btn) btn.remove();
+    }
+    deferredInstallPrompt = null;
+  }
+
+  function showIOSHint() {
+    if (sessionStorage.getItem('clawtools-ios-hint-shown')) return;
+    if (document.querySelector('.pwa-ios-hint')) return;
+    sessionStorage.setItem('clawtools-ios-hint-shown', '1');
+    const card = el('div', { class: 'pwa-ios-hint' });
+    const close = el('button', {
+      class: 'pwa-ios-hint-close',
+      attrs: { type: 'button', 'aria-label': 'Schließen' },
+      text: '×',
+      on: { click: () => card.remove() }
+    });
+    const title = el('div', { class: 'pwa-ios-hint-title', text: 'Als App auf Homescreen' });
+    const body = el('div', { class: 'pwa-ios-hint-body' });
+    body.appendChild(document.createTextNode('Tippe auf '));
+    body.appendChild(el('strong', { text: 'Teilen' }));
+    body.appendChild(document.createTextNode(' (das Quadrat mit Pfeil) und dann auf '));
+    body.appendChild(el('strong', { text: 'Zum Home-Bildschirm' }));
+    body.appendChild(document.createTextNode('. Schon hast du Tools immer griffbereit.'));
+    card.appendChild(close);
+    card.appendChild(title);
+    card.appendChild(body);
+    document.body.appendChild(card);
   }
 
   // ────────────────────────────────────────────────
