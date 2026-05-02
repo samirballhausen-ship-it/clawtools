@@ -1,0 +1,77 @@
+/* CLAWBUIS Tools Platform — Design Tokens
+ * Extracted from Office-NG (clawbuis-demo-store/src/shell/tokens.css)
+ * + harmonized with pdf-splitter v2 patterns
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@200;300;400;500;600;700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Inks */
+  --ink:           #0a0a0a;
+  --ink-2:         #525252;
+  --ink-3:         #a3a3a3;
+  --ink-4:         #d4d4d4;
+
+  /* Surfaces */
+  --bg:            #ffffff;
+  --bg-soft:       #fafafa;
+  --surf:          #fafafa;
+  --surf-2:        #f5f5f5;
+  --surf-3:        #ededed;
+
+  /* Borders */
+  --border:        #e5e5e5;
+  --border-strong: #d4d4d4;
+
+  /* Magic-Akzent: Forest-Green (CLAWBUIS Office-NG Primary) */
+  --magic:         #15803d;
+  --magic-soft:    rgba(21, 128, 61, 0.08);
+  --magic-glow:    rgba(21, 128, 61, 0.4);
+  --magic-strong:  #166534;
+
+  /* Semantic */
+  --ok:            #15803d;
+  --ok-soft:       #f0f9f4;
+  --warn:          #b45309;
+  --warn-soft:     rgba(180, 83, 9, 0.08);
+  --risk:          #991b1b;
+  --risk-soft:     #fef2f2;
+
+  /* Studio (Dark) — for Cosmos & rare dark surfaces */
+  --studio:        #080810;
+  --studio-2:      #0a0a14;
+
+  /* Cosmic-Akzente (selten — only for Cosmos-Strip + special states) */
+  --gold:          #c29b62;
+  --gold-glow:     #fbe4a0;
+  --teal:          #2dd4bf;
+
+  /* Layout */
+  --r:             8px;
+  --r-sm:          4px;
+  --r-pill:        999px;
+  --r-tool:        2px;       /* tools use sharper corners (matches splitter v2) */
+  --container:     1200px;
+  --container-wide:1400px;
+  --header-h:      60px;
+  --gap:           16px;
+  --gap-sm:        8px;
+  --gap-lg:        24px;
+
+  /* Easings */
+  --ease:          cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:      cubic-bezier(0, 0, 0.2, 1);
+  --ease-reveal:   cubic-bezier(0.2, 0.7, 0.1, 1);
+
+  /* Shadows */
+  --shadow-1:      0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-2:      0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-3:      0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-magic:  0 8px 24px rgba(21, 128, 61, 0.12);
+
+  /* Typography */
+  --font-heading:  'Bricolage Grotesque', system-ui, sans-serif;
+  --font-mono:     'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --font-body:     'Geist', 'Inter', system-ui, sans-serif;
+}

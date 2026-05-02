@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datenschutzerklärung · CLAWBUIS Tools</title>
+  <meta name="description" content="Datenschutzerklärung gemäß DSGVO Art. 13 für tools.clawbuis.com — kein Tracking, keine Server-Verarbeitung." />
+  <meta name="robots" content="index, follow" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <style>
+    .legal { max-width: 720px; }
+    .legal h1 { font-size: 32px; margin-bottom: 24px; }
+    .legal h2 { font-size: 18px; margin-top: 28px; margin-bottom: 8px; font-weight: 600; }
+    .legal h3 { font-size: 15px; margin-top: 16px; margin-bottom: 6px; font-weight: 600; }
+    .legal p, .legal li { color: var(--ink-2); margin-bottom: 12px; line-height: 1.6; }
+    .legal ul { padding-left: 20px; margin-bottom: 16px; }
+    .legal a { color: var(--magic); }
+    .legal strong { color: var(--ink); }
+    .legal-callout {
+      padding: 16px 20px;
+      background: var(--ok-soft);
+      border-left: 3px solid var(--magic);
+      margin: 20px 0;
+    }
+    .legal-callout strong { color: var(--magic); }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <article class="legal">
+      <h1>Datenschutzerklärung</h1>
+
+      <div class="legal-callout">
+        <strong>Kurz vorab:</strong> Eure Dateien verlassen euren Rechner nicht.
+        Sie werden vollständig im Browser verarbeitet. Wir betreiben keinen Server,
+        der Datei-Inhalte verarbeitet, speichert oder weiterleitet. Der Code ist
+        <a href="https://github.com/samirballhausen-ship-it/clawbuis-tools" target="_blank" rel="noopener noreferrer">öffentlich einsehbar auf GitHub</a> —
+        ihr könnt das selbst prüfen.
+      </div>
+
+      <h2>1. Verantwortlicher</h2>
+      <p>
+        Verantwortlicher i.S.d. DSGVO Art. 4 Nr. 7 für die Bereitstellung dieser Website ist
+        Samir Ballhausen — Kontaktdaten siehe <a href="/impressum">Impressum</a>.
+      </p>
+
+      <h2>2. Art der Verarbeitung — und was eben NICHT verarbeitet wird</h2>
+      <p>
+        <strong>Datei-Inhalte werden NICHT von uns verarbeitet.</strong>
+        Sämtliche Werkzeuge (PDF-Splitter, HEIC-Konverter, Bilder-Komprimieren etc.) führen
+        ihre Operationen ausschließlich im Arbeitsspeicher (RAM) des Browsers des Nutzers durch.
+        Es findet zu keinem Zeitpunkt eine Übertragung der Datei-Inhalte an einen Server statt —
+        weder an unseren Server noch an Dritte.
+      </p>
+      <p>
+        Beim Schließen des Browser-Tabs werden alle geladenen Dateien automatisch
+        aus dem Arbeitsspeicher entfernt.
+      </p>
+
+      <h2>3. Was wir technisch nicht verhindern können — und transparent machen</h2>
+
+      <h3>3.1 Server-Logs (Hosting via Vercel)</h3>
+      <p>
+        Beim Aufruf der Website werden — wie bei jedem Web-Hosting — durch unseren
+        Hosting-Provider Vercel Inc. (340 S Lemon Ave #4133, Walnut, CA 91789, USA)
+        kurzfristige Logfiles erstellt:
+      </p>
+      <ul>
+        <li>IP-Adresse (anonymisiert nach 30 Tagen)</li>
+        <li>Datum und Uhrzeit des Zugriffs</li>
+        <li>Browser-User-Agent</li>
+        <li>Referrer (woher der Besucher kommt)</li>
+        <li>HTTP-Status der Anfrage</li>
+      </ul>
+      <p>
+        Diese Logs enthalten <strong>keine</strong> Datei-Inhalte und <strong>keine</strong>
+        Metadaten zu verarbeiteten Dateien. Sie dienen ausschließlich der Sicherheit und
+        Funktionsfähigkeit. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse).
+      </p>
+      <p>
+        Vercel ist EU-Standardvertragsklauseln (SCC) angeschlossen. Der Webserver für
+        diese Domain läuft in der EU-Region (Frankfurt, <code>fra1</code>).
+      </p>
+
+      <h3>3.2 CDN-Bibliotheken (jsdelivr / cdnjs / Google Fonts)</h3>
+      <p>
+        Einzelne Werkzeuge laden Bibliotheken (z.B. <code>pdf-lib</code>, <code>pdf.js</code>)
+        zur Laufzeit von öffentlichen Content-Delivery-Networks:
+      </p>
+      <ul>
+        <li><strong>jsDelivr</strong> (cdn.jsdelivr.net) — JavaScript-Bibliotheken</li>
+        <li><strong>cdnjs</strong> (cdnjs.cloudflare.com) — JavaScript-Bibliotheken</li>
+        <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) — Schriftarten</li>
+      </ul>
+      <p>
+        Diese Anbieter sehen <strong>nur die Anfrage nach den JS-/CSS-/Font-Dateien selbst</strong> —
+        niemals den Inhalt eurer Dateien. Eure Dateien werden ausschließlich im Browser
+        verarbeitet und nie an diese CDN-Anbieter übermittelt.
+      </p>
+
+      <h3>3.3 Lokale Browser-Speicher (localStorage)</h3>
+      <p>Wir nutzen <code>localStorage</code> ausschließlich für:</p>
+      <ul>
+        <li>Eine Einstellung "Tutorial bereits gesehen" (Boolean: <code>"1"</code> oder gar nichts)</li>
+      </ul>
+      <p>
+        Es werden <strong>keine</strong> User-Daten, Datei-Namen, Datei-Metadaten oder
+        Verarbeitungs-Verlauf in localStorage gespeichert.
+      </p>
+
+      <h2>4. Cookies — keine</h2>
+      <p>
+        Diese Website setzt <strong>keine Cookies</strong>. Weder eigene noch von Dritten.
+        Daher ist auch kein Cookie-Banner erforderlich.
+      </p>
+
+      <h2>5. Tracking & Analytics — keine</h2>
+      <p>
+        Diese Website nutzt <strong>keine</strong> Analytics-Tools wie Google Analytics,
+        Matomo, Plausible o.ä. Es findet keinerlei Erfassung von Nutzungsverhalten,
+        Klicks, Verweildauern, Conversion-Tracking oder Marketing-Pixeln statt.
+      </p>
+
+      <h2>6. Smart-Suggest-Funktion auf der Hauptseite</h2>
+      <p>
+        Auf der Startseite gibt es einen Bereich, in den Nutzer Dateien droppen können,
+        um passende Werkzeug-Vorschläge zu erhalten. Die Erkennung des Datei-Typs erfolgt
+        durch Auslesen der ersten 12 Bytes (sog. Magic-Bytes) im Browser. Diese Bytes werden
+        <strong>NICHT</strong> an einen Server übertragen. Inhalte der Dateien werden zu
+        keinem Zeitpunkt analysiert.
+      </p>
+      <p>
+        Der Code ist transparent einsehbar:
+        <a href="https://github.com/samirballhausen-ship-it/clawbuis-tools/blob/main/shared/suggest-engine.js" target="_blank" rel="noopener noreferrer">shared/suggest-engine.js</a>.
+      </p>
+
+      <h2>7. Rechte der betroffenen Person</h2>
+      <p>Da wir keine personenbezogenen Daten zu Datei-Verarbeitungen speichern, beschränken
+        sich eure Rechte praktisch auf die Server-Logs (siehe 3.1):</p>
+      <ul>
+        <li><strong>Auskunft</strong> (Art. 15 DSGVO)</li>
+        <li><strong>Berichtigung</strong> (Art. 16 DSGVO)</li>
+        <li><strong>Löschung</strong> (Art. 17 DSGVO)</li>
+        <li><strong>Einschränkung der Verarbeitung</strong> (Art. 18 DSGVO)</li>
+        <li><strong>Widerspruch</strong> (Art. 21 DSGVO)</li>
+        <li><strong>Beschwerde bei der Aufsichtsbehörde</strong> (Art. 77 DSGVO)</li>
+      </ul>
+      <p>
+        Anfragen richtet bitte an <a href="mailto:hi@clawbuis.com">hi@clawbuis.com</a>.
+      </p>
+
+      <h2>8. Änderungen dieser Datenschutzerklärung</h2>
+      <p>
+        Diese Datenschutzerklärung kann sich ändern, wenn sich die Funktionsweise der
+        Website ändert. Die jeweils aktuelle Fassung ist hier abrufbar.
+      </p>
+
+      <p style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); margin-top: 32px;">
+        Stand: 2026-05-02
+      </p>
+
+      <p style="margin-top: 40px;"><a href="/">← Zurück zur Übersicht</a></p>
+    </article>
+  </main>
+  <script src="/shared/shell.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'DATENSCHUTZ', tour: false, privacy: false, toolName: 'Datenschutz' });
+    });
+  </script>
+</body>
+</html>

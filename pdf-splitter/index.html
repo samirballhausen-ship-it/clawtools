@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CLAWBUIS · PDF Splitter</title>
+<meta name="description" content="Mehrseitige PDFs in Einzelseiten zerlegen. Komplett im Browser." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Cpath d='M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54' fill='none' stroke='%230a0a0a' stroke-width='1.5' stroke-linecap='round' opacity='0.55'/%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+  :root {
+    --ink:           #0a0a0a;
+    --ink-2:         #525252;
+    --ink-3:         #a3a3a3;
+    --ink-4:         #d4d4d4;
+    --bg:            #ffffff;
+    --surf:          #fafafa;
+    --surf-2:        #f5f5f5;
+    --surf-3:        #ededed;
+    --border:        #e5e5e5;
+    --border-strong: #d4d4d4;
+
+    --ok:            #15803d;
+    --ok-soft:       #f0f9f4;
+    --warn:          #b45309;
+    --risk:          #991b1b;
+    --risk-soft:     #fef2f2;
+
+    --r:             2px;
+    --header-h:      60px;
+    --container:     1200px;
+    --gap:           16px;
+
+    --ease:          cubic-bezier(.4, 0, .2, 1);
+    --ease-spring:   cubic-bezier(.34, 1.56, .64, 1);
+  }
+
+  * { box-sizing: border-box; }
+  *, *::before, *::after { margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Geist", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(10,10,10,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10,10,10,0.045) 1px, transparent 1px);
+    background-size: 72px 72px;
+    background-attachment: fixed;
+    background-position: -1px -1px;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: "Bricolage Grotesque", "Geist", sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  button { background: none; border: none; cursor: pointer; font: inherit; color: inherit; }
+  input, select { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* Header */
+  .app-header {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .app-header-inner {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 24px;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo { width: 28px; height: 33px; flex-shrink: 0; }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.05; }
+  .brand-name {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.01em;
+    position: relative; display: inline-block;
+  }
+  .brand-name::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: -2px;
+    height: 2px; background: var(--ok);
+  }
+  .brand-tag {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-3);
+    margin-top: 4px;
+  }
+  .header-meta {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .header-meta .dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--ok);
+    margin-right: 6px; vertical-align: 1px;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: .35; }
+  }
+
+  /* Layout */
+  .app-main {
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+  .hero { margin-bottom: 40px; }
+  .eyebrow {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-3);
+    font-weight: 600;
+    margin-bottom: 14px; display: inline-block;
+    padding: 4px 10px;
+    background: var(--surf-2);
+    border: 1px solid var(--border);
+  }
+  .eyebrow .num { color: var(--ok); }
+  h1 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 600; margin-bottom: 12px;
+    max-width: 720px;
+  }
+  h1 .accent { color: var(--ok); }
+  .lede {
+    font-size: 16px; color: var(--ink-2);
+    line-height: 1.55; max-width: 640px;
+  }
+
+  /* Two-col working area */
+  .work-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px; align-items: start;
+  }
+  @media (max-width: 960px) { .work-grid { grid-template-columns: 1fr; } }
+
+  /* Card */
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+  }
+  .card-head {
+    padding: 14px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--surf);
+  }
+  .card-head h2 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 14px; font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+  .card-head .meta {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .card-body { padding: 20px; }
+
+  /* Dropzone */
+  .dropzone {
+    position: relative;
+    padding: 48px 24px;
+    text-align: center; cursor: pointer;
+    transition: background .2s var(--ease), border-color .2s var(--ease);
+    border: 1.5px dashed var(--border-strong);
+    background: var(--surf);
+  }
+  .dropzone:hover {
+    background: var(--bg);
+    border-color: var(--ink);
+  }
+  .dropzone.dragover {
+    background: var(--ok-soft);
+    border-color: var(--ok);
+    border-style: solid;
+  }
+  .dropzone.processing { pointer-events: none; opacity: 0.6; }
+  .drop-icon {
+    width: 44px; height: 44px;
+    margin: 0 auto 16px;
+    color: var(--ink-2); display: block;
+  }
+  .dropzone:hover .drop-icon { color: var(--ink); }
+  .dropzone.dragover .drop-icon { color: var(--ok); }
+  .drop-title { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .drop-hint { font-size: 13px; color: var(--ink-2); }
+  .drop-hint kbd {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; padding: 2px 6px;
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 2px; color: var(--ink);
+  }
+  input[type="file"] { display: none; }
+
+  /* Queue */
+  .queue { display: flex; flex-direction: column; }
+  .queue-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    gap: 16px; align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s var(--ease);
+  }
+  .queue-row:last-child { border-bottom: none; }
+  .queue-row:hover { background: var(--surf); }
+
+  .queue-icon {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surf-2);
+    border: 1px solid var(--border);
+    color: var(--ink-2); flex-shrink: 0;
+  }
+  .queue-icon svg { width: 16px; height: 16px; }
+  .queue-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .queue-name {
+    font-size: 14px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .queue-sub {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.04em; display: flex; gap: 8px;
+  }
+  .queue-sub span + span::before {
+    content: "·"; margin-right: 8px; color: var(--ink-4);
+  }
+  .queue-status {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg); color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .queue-status[data-state="queued"]   { color: var(--ink-3); }
+  .queue-status[data-state="working"]  { color: var(--ok); border-color: var(--ok); background: var(--ok-soft); }
+  .queue-status[data-state="done"]     { color: var(--ok); border-color: var(--ok); }
+  .queue-status[data-state="error"]    { color: var(--risk); border-color: var(--risk); background: var(--risk-soft); }
+  .queue-progress {
+    width: 80px; height: 4px;
+    background: var(--surf-3);
+    position: relative; overflow: hidden;
+  }
+  .queue-progress::after {
+    content: ""; position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: var(--p, 0%); background: var(--ok);
+    transition: width .25s var(--ease);
+  }
+  .queue-remove {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-3);
+    transition: color .15s var(--ease), background .15s var(--ease);
+  }
+  .queue-remove:hover { color: var(--risk); background: var(--surf-2); }
+  .queue-remove:disabled { opacity: 0.3; cursor: not-allowed; }
+  .queue-remove svg { width: 14px; height: 14px; }
+
+  /* Add-more strip */
+  .add-more {
+    border-top: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surf);
+    cursor: pointer; font-size: 13px;
+    color: var(--ink-2);
+    transition: background .15s var(--ease);
+  }
+  .add-more:hover { background: var(--surf-2); color: var(--ink); }
+  .add-more svg { width: 14px; height: 14px; }
+
+  /* Sidebar */
+  .sidebar {
+    display: flex; flex-direction: column; gap: 16px;
+    position: sticky; top: calc(var(--header-h) + 24px);
+  }
+  @media (max-width: 960px) { .sidebar { position: static; } }
+
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .lbl {
+    color: var(--ink-2); text-transform: uppercase;
+    letter-spacing: 0.08em; font-size: 10px;
+    font-family: "Geist Mono", monospace;
+  }
+  .stat-row .val {
+    font-family: "Geist Mono", monospace;
+    font-weight: 500; font-variant-numeric: tabular-nums;
+  }
+
+  .option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+    cursor: pointer; user-select: none;
+  }
+  .option:last-child { border-bottom: none; }
+  .option input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--ok); cursor: pointer; flex-shrink: 0;
+  }
+  .option-text { flex: 1; font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+  .option-text .option-sub {
+    font-size: 11px;
+    color: var(--ink-3);
+    line-height: 1.35;
+  }
+  .option-hint {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px; color: var(--ink-3);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 8px; width: 100%; height: 44px;
+    padding: 0 16px;
+    font-family: "Geist", sans-serif;
+    font-size: 14px; font-weight: 500;
+    border: 1px solid var(--ink);
+    background: var(--ink); color: white;
+    cursor: pointer;
+    transition: all .15s var(--ease);
+  }
+  .btn:hover { background: #1f1f1f; }
+  .btn:disabled {
+    background: var(--surf-2); border-color: var(--border-strong);
+    color: var(--ink-3); cursor: not-allowed;
+  }
+  .btn-secondary { background: var(--bg); color: var(--ink); }
+  .btn-secondary:hover { background: var(--surf-2); }
+  .btn-success { background: var(--ok); border-color: var(--ok); }
+  .btn-success:hover { background: #136d34; }
+  .btn svg { width: 16px; height: 16px; }
+  .btn-process-spinner {
+    width: 16px; height: 16px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .global-progress {
+    margin-top: 16px; padding: 16px;
+    background: var(--surf);
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .global-progress.active { display: block; }
+  .global-progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 10px; font-size: 12px;
+  }
+  .global-progress-head .lbl {
+    font-family: "Geist Mono", monospace;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--ok); font-weight: 600;
+  }
+  .global-progress-head .num {
+    font-family: "Geist Mono", monospace;
+    color: var(--ink-2); font-variant-numeric: tabular-nums;
+  }
+  .global-progress-bar {
+    height: 4px; background: var(--surf-3);
+    position: relative; overflow: hidden;
+  }
+  .global-progress-fill {
+    position: absolute; inset: 0 100% 0 0;
+    background: var(--ok);
+    transition: right .25s var(--ease);
+  }
+
+  .result {
+    margin-top: 16px; padding: 16px;
+    background: var(--ok-soft);
+    border: 1px solid var(--ok);
+    display: none;
+  }
+  .result.active { display: block; }
+  .result-head {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600; color: var(--ok);
+    margin-bottom: 6px; font-size: 14px;
+  }
+  .result-head svg { width: 18px; height: 18px; }
+  .result-info {
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; color: var(--ink-2);
+    letter-spacing: 0.04em;
+  }
+  .result-info .err { color: var(--risk); }
+
+  /* Privacy band */
+  .privacy {
+    margin-top: 32px;
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    background: var(--surf);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .privacy-icon {
+    width: 36px; height: 36px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ok-soft);
+    border: 1px solid var(--ok);
+    color: var(--ok);
+  }
+  .privacy-icon svg { width: 18px; height: 18px; }
+  .privacy-body { font-size: 13px; line-height: 1.55; }
+  .privacy-body h3 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 14px; font-weight: 600;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .privacy-body h3 .tag {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ok);
+    background: var(--bg);
+    border: 1px solid var(--ok);
+    padding: 2px 6px;
+    font-weight: 500;
+  }
+  .privacy-body p { color: var(--ink-2); margin-bottom: 6px; }
+  .privacy-body ul {
+    list-style: none;
+    margin-top: 8px;
+    display: grid;
+    gap: 4px;
+  }
+  .privacy-body li {
+    color: var(--ink-2);
+    padding-left: 18px;
+    position: relative;
+  }
+  .privacy-body li::before {
+    content: "✓";
+    position: absolute; left: 0;
+    color: var(--ok); font-weight: 600;
+  }
+
+  /* ─── Cosmos strip (subtle window into the universe) ─── */
+  .cosmos {
+    display: block;
+    margin-top: 80px;
+    height: 64px;
+    width: 100%;
+    background: radial-gradient(
+      ellipse 70% 100% at 50% 50%,
+      #1a2042 0%,
+      #0a0d22 40%,
+      #03030a 80%,
+      #000 100%
+    );
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    text-decoration: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: filter 0.6s var(--ease);
+  }
+  .cosmos:hover { filter: brightness(1.18) saturate(1.15); }
+
+  .cosmos-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .cosmos-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 26px;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    opacity: 0.78;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,0.4));
+    transition: opacity 0.4s var(--ease), filter 0.4s var(--ease);
+    pointer-events: none;
+  }
+  .cosmos:hover .cosmos-logo {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 6px rgba(45, 212, 191, 0.7))
+      drop-shadow(0 0 14px rgba(194, 155, 98, 0.4));
+  }
+
+  /* Star twinkle */
+  @keyframes twinkle {
+    0%, 100% { opacity: var(--o, 0.6); }
+    50%      { opacity: calc(var(--o, 0.6) * 0.3); }
+  }
+  .cosmos-svg .star { animation: twinkle var(--d, 3s) ease-in-out infinite; }
+
+  /* Footer */
+  .app-footer {
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    padding: 24px;
+    margin-top: 0;
+  }
+  .app-footer-inner {
+    max-width: var(--container);
+    margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px; color: var(--ink-3);
+    letter-spacing: 0.06em;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .app-footer-inner strong { color: var(--ink-2); font-weight: 500; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink); color: white;
+    padding: 12px 20px;
+    border-radius: var(--r);
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    z-index: 100;
+    transition: transform .3s var(--ease-spring);
+    max-width: 90%;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--risk); }
+
+  ::selection { background: var(--ok); color: white; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header-inner">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#0a0a0a" stroke-linecap="round">
+          <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.2"/>
+          <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.4"/>
+          <path d="M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3" stroke-width="2.6"/>
+          <path d="M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4" stroke-width="2.4"/>
+          <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2"/>
+        </g>
+        <path d="M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54"
+              fill="none" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
+        <circle cx="32" cy="50" r="2.4" fill="#15803d"/>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">CLAWBUIS</span>
+        <span class="brand-tag">PDF · Splitter</span>
+      </div>
+    </div>
+    <div class="header-meta">
+      <span class="dot"></span>Local · No Upload
+    </div>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <section class="hero">
+    <div class="eyebrow">v2 <span class="num">·</span> Multi-File · Office-Grade</div>
+    <h1>Mehrseitige PDFs.<br>Eine Datei pro Seite. <span class="accent">Sauber sortiert.</span></h1>
+    <p class="lede">
+      Lege beliebig viele PDFs ab. Jede Seite wird zu einer eigenen Datei,
+      strukturiert nach Quelldokument, optional mit Volltext-Index als Excel.
+      Verarbeitung bleibt komplett auf deinem Rechner — keine Server, kein Upload, keine Spuren.
+    </p>
+  </section>
+
+  <div class="work-grid">
+
+    <div>
+      <div class="card" id="dropCard">
+        <div class="card-head">
+          <h2>Dateien</h2>
+          <span class="meta" id="queueMeta">0 Dateien</span>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="drop-title">PDFs hier ablegen</div>
+          <div class="drop-hint">oder <kbd>Klicken</kbd> zum Auswählen · mehrere Dateien gleichzeitig erlaubt</div>
+          <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple />
+        </div>
+
+        <div class="queue" id="queue"></div>
+
+        <div class="add-more" id="addMore" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>Weitere PDFs hinzufügen</span>
+        </div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+
+      <div class="card">
+        <div class="card-head"><h2>Übersicht</h2></div>
+        <div class="card-body">
+          <div class="stat-row">
+            <span class="lbl">Dateien</span>
+            <span class="val" id="statFiles">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="lbl">Seiten gesamt</span>
+            <span class="val" id="statPages">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="lbl">Größe</span>
+            <span class="val" id="statSize">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Optionen</h2></div>
+        <div class="card-body">
+          <label class="option">
+            <input type="checkbox" id="optExcel" checked />
+            <span class="option-text">Excel mit Seitentexten</span>
+            <span class="option-hint">.xlsx</span>
+          </label>
+          <label class="option">
+            <input type="checkbox" id="optMerge" />
+            <span class="option-text">Excel über alle Dateien zusammenführen</span>
+            <span class="option-hint">1 Sheet/PDF</span>
+          </label>
+          <label class="option">
+            <input type="checkbox" id="optFlat" />
+            <span class="option-text">
+              Flach-Modus
+              <span class="option-sub">Fixt Doppel-Layer / Overlay-Bugs · Bild statt Vektor</span>
+            </span>
+            <span class="option-hint">JPEG</span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn" id="btnProcess" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <span id="btnProcessLabel">Verarbeiten</span>
+      </button>
+
+      <div class="global-progress" id="globalProgress">
+        <div class="global-progress-head">
+          <span class="lbl" id="globalStage">Verarbeite…</span>
+          <span class="num" id="globalCount">0 / 0</span>
+        </div>
+        <div class="global-progress-bar">
+          <div class="global-progress-fill" id="globalFill" style="right:100%"></div>
+        </div>
+      </div>
+
+      <div class="result" id="result">
+        <div class="result-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Fertig
+        </div>
+        <div class="result-info" id="resultInfo"></div>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button class="btn btn-success" id="btnDownload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            ZIP herunterladen
+          </button>
+          <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- Privacy / DSGVO note -->
+  <section class="privacy" aria-labelledby="privacyTitle">
+    <div class="privacy-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+    </div>
+    <div class="privacy-body">
+      <h3 id="privacyTitle">Datenschutz <span class="tag">DSGVO-konform</span></h3>
+      <p>
+        Dieses Tool verarbeitet PDFs <strong>ausschließlich lokal in deinem Browser</strong>.
+        Deine Dateien werden zu keinem Zeitpunkt an einen Server übertragen — auch nicht
+        an die Hosting-Plattform dieser Seite. Geeignet für vertrauliche Dokumente
+        (Verträge, Mandantenakten, Personaldaten, Rechnungen).
+      </p>
+      <ul>
+        <li>Keine Datei-Uploads. Verarbeitung 100 % im Browser-Speicher (RAM).</li>
+        <li>Keine Cookies, kein Tracking, keine Analytics.</li>
+        <li>Keine Server-Logs zu PDF-Inhalten — die Seite ist statisches HTML.</li>
+        <li>Bibliotheken (pdf-lib, pdf.js, JSZip, SheetJS) werden über öffentliche CDNs (jsdelivr, cdnjs) geladen — diese sehen nur die Anfrage nach den JS-Dateien selbst, niemals deine PDFs.</li>
+        <li>Mit Schließen des Tabs werden alle geladenen Dateien aus dem Speicher entfernt.</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<a class="cosmos" id="cosmos"
+   href="https://clawbuis.com"
+   target="_blank"
+   rel="noopener noreferrer"
+   aria-label="CLAWBUIS">
+  <svg class="cosmos-svg" id="cosmosSvg" viewBox="0 0 1200 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+  <svg class="cosmos-logo" viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-linecap="round">
+      <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.2"/>
+      <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.4"/>
+      <path d="M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3" stroke-width="2.6"/>
+      <path d="M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4" stroke-width="2.4"/>
+      <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2"/>
+    </g>
+    <path d="M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54"
+          fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="32" cy="50" r="2.4" fill="#2dd4bf" opacity="0.95"/>
+  </svg>
+</a>
+
+<footer class="app-footer">
+  <div class="app-footer-inner">
+    <div>CLAWBUIS · OFFICE NG · <strong>PDF Splitter v2</strong></div>
+    <div>Verarbeitung lokal · Keine Server-Uploads · 100 % Browser</div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  // ────────────────────────────────────────────────
+  // State
+  // ────────────────────────────────────────────────
+  const state = {
+    files: [],
+    nextId: 1,
+    processing: false,
+    zipBlob: null,
+    zipName: null,
+  };
+
+  const MAX_FILE_SIZE = 200 * 1024 * 1024;
+  const MAX_FILES = 50;
+
+  // SVG namespace constant
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // ────────────────────────────────────────────────
+  // DOM refs
+  // ────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const dropzone = $('dropzone');
+  const fileInput = $('fileInput');
+  const queueEl = $('queue');
+  const addMore = $('addMore');
+  const queueMeta = $('queueMeta');
+  const statFiles = $('statFiles');
+  const statPages = $('statPages');
+  const statSize = $('statSize');
+  const optExcel = $('optExcel');
+  const optMerge = $('optMerge');
+  const optFlat = $('optFlat');
+  const btnProcess = $('btnProcess');
+  const btnProcessLabel = $('btnProcessLabel');
+  const btnDownload = $('btnDownload');
+  const btnReset = $('btnReset');
+  const globalProgress = $('globalProgress');
+  const globalStage = $('globalStage');
+  const globalCount = $('globalCount');
+  const globalFill = $('globalFill');
+  const resultPanel = $('result');
+  const resultInfo = $('resultInfo');
+  const toast = $('toast');
+
+  // ────────────────────────────────────────────────
+  // Utilities
+  // ────────────────────────────────────────────────
+  const fmtBytes = b => {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  };
+
+  const sanitize = name => name.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 80);
+
+  function el(tag, opts = {}, children = []) {
+    const node = document.createElement(tag);
+    if (opts.class) node.className = opts.class;
+    if (opts.text != null) node.textContent = opts.text;
+    if (opts.title != null) node.title = opts.title;
+    if (opts.attrs) {
+      for (const [k, v] of Object.entries(opts.attrs)) {
+        if (v == null) continue;
+        node.setAttribute(k, v);
+      }
+    }
+    if (opts.style) {
+      for (const [k, v] of Object.entries(opts.style)) node.style.setProperty(k, v);
+    }
+    if (opts.on) {
+      for (const [k, v] of Object.entries(opts.on)) node.addEventListener(k, v);
+    }
+    children.forEach(c => c && node.appendChild(c));
+    return node;
+  }
+
+  // Build SVG safely from a static template literal (no user content).
+  // Using a template + querySelector to clone — innerHTML is fine here
+  // because the source is a hard-coded literal, never user input.
+  function svg(svgMarkup) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = svgMarkup.trim();
+    return tpl.content.firstChild;
+  }
+
+  let toastTimer = null;
+  function showToast(msg, isError = false) {
+    toast.textContent = msg;
+    toast.classList.toggle('error', isError);
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  // ────────────────────────────────────────────────
+  // Queue rendering — DOM construction (XSS-safe)
+  // ────────────────────────────────────────────────
+  function renderQueue() {
+    while (queueEl.firstChild) queueEl.removeChild(queueEl.firstChild);
+
+    if (state.files.length === 0) {
+      addMore.style.display = 'none';
+      dropzone.style.display = 'block';
+      btnProcess.disabled = true;
+      setBtnIdle('Verarbeiten');
+      updateStats();
+      return;
+    }
+
+    dropzone.style.display = 'none';
+    addMore.style.display = state.processing ? 'none' : 'flex';
+    btnProcess.disabled = state.processing;
+
+    if (state.processing) {
+      setBtnSpinner('Verarbeite…');
+    } else {
+      const label = state.files.length === 1
+        ? 'Datei verarbeiten'
+        : `${state.files.length} Dateien verarbeiten`;
+      setBtnIdle(label);
+    }
+
+    state.files.forEach(entry => queueEl.appendChild(buildQueueRow(entry)));
+
+    queueMeta.textContent =
+      state.files.length === 1 ? '1 Datei' : `${state.files.length} Dateien`;
+    updateStats();
+  }
+
+  function buildQueueRow(entry) {
+    const row = el('div', { class: 'queue-row' });
+
+    // Icon
+    const icon = el('div', { class: 'queue-icon' });
+    icon.appendChild(svg(
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>`
+    ));
+    row.appendChild(icon);
+
+    // Info: name + sub
+    const info = el('div', { class: 'queue-info' });
+    info.appendChild(el('div', {
+      class: 'queue-name',
+      text: entry.name,        // textContent — XSS-safe
+      title: entry.name,
+    }));
+    const sub = el('div', { class: 'queue-sub' });
+    sub.appendChild(el('span', { text: fmtBytes(entry.size) }));
+    sub.appendChild(el('span', {
+      text: entry.pages != null ? `${entry.pages} Seiten` : '— Seiten',
+    }));
+    if (entry.error) {
+      sub.appendChild(el('span', {
+        text: entry.error,
+        style: { color: 'var(--risk)' },
+      }));
+    }
+    info.appendChild(sub);
+    row.appendChild(info);
+
+    // Per-row progress (only while working)
+    if (entry.state === 'working') {
+      const prog = el('div', { class: 'queue-progress' });
+      prog.style.setProperty('--p', `${(entry.progress * 100).toFixed(0)}%`);
+      row.appendChild(prog);
+    } else {
+      row.appendChild(el('div'));   // grid placeholder
+    }
+
+    // Status chip
+    row.appendChild(el('div', {
+      class: 'queue-status',
+      text: labelFor(entry.state),
+      attrs: { 'data-state': entry.state },
+    }));
+
+    // Remove button
+    const remove = el('button', {
+      class: 'queue-remove',
+      attrs: {
+        type: 'button',
+        title: 'Entfernen',
+        'aria-label': `Datei ${entry.name} entfernen`,
+        ...(state.processing ? { disabled: '' } : {}),
+      },
+      on: { click: () => removeFile(entry.id) },
+    });
+    remove.appendChild(svg(
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>`
+    ));
+    row.appendChild(remove);
+
+    return row;
+  }
+
+  function setBtnIdle(label) {
+    while (btnProcess.firstChild) btnProcess.removeChild(btnProcess.firstChild);
+    btnProcess.appendChild(svg(
+      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>`
+    ));
+    btnProcess.appendChild(el('span', { text: label }));
+  }
+
+  function setBtnSpinner(label) {
+    while (btnProcess.firstChild) btnProcess.removeChild(btnProcess.firstChild);
+    btnProcess.appendChild(el('div', { class: 'btn-process-spinner' }));
+    btnProcess.appendChild(el('span', { text: label }));
+  }
+
+  function labelFor(s) {
+    if (s === 'queued')  return 'Wartet';
+    if (s === 'working') return 'Läuft';
+    if (s === 'done')    return 'Fertig';
+    if (s === 'error')   return 'Fehler';
+    return s;
+  }
+
+  function updateStats() {
+    statFiles.textContent = state.files.length;
+    const totalPages = state.files.reduce((s, f) => s + (f.pages || 0), 0);
+    statPages.textContent = totalPages > 0 ? totalPages : '—';
+    const totalSize = state.files.reduce((s, f) => s + f.size, 0);
+    statSize.textContent = totalSize > 0 ? fmtBytes(totalSize) : '—';
+  }
+
+  // ────────────────────────────────────────────────
+  // File adding / removing
+  // ────────────────────────────────────────────────
+  async function addFiles(fileList) {
+    const incoming = Array.from(fileList);
+    let added = 0;
+    let skipped = 0;
+
+    for (const file of incoming) {
+      if (state.files.length >= MAX_FILES) {
+        showToast(`Maximum ${MAX_FILES} Dateien erreicht`, true);
+        break;
+      }
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      if (!isPdf) { skipped++; continue; }
+      if (file.size > MAX_FILE_SIZE) {
+        showToast(`${file.name}: zu groß (${fmtBytes(file.size)} > 200 MB)`, true);
+        skipped++;
+        continue;
+      }
+      const dup = state.files.some(f => f.name === file.name && f.size === file.size);
+      if (dup) { skipped++; continue; }
+
+      const entry = {
+        id: state.nextId++,
+        file,
+        name: file.name,
+        size: file.size,
+        pages: null,
+        state: 'queued',
+        progress: 0,
+        error: null,
+        _buffer: null,
+      };
+      state.files.push(entry);
+      added++;
+      probePageCount(entry).catch(() => {});
+    }
+
+    if (skipped > 0 && added === 0) {
+      showToast('Nur PDFs sind erlaubt', true);
+    }
+    renderQueue();
+
+    resultPanel.classList.remove('active');
+    state.zipBlob = null;
+  }
+
+  async function probePageCount(entry) {
+    try {
+      const buf = await entry.file.arrayBuffer();
+      const doc = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
+      entry.pages = doc.getPageCount();
+      entry._buffer = buf;
+      renderQueue();
+    } catch (e) {
+      entry.error = 'PDF kaputt';
+      entry.state = 'error';
+      renderQueue();
+    }
+  }
+
+  function removeFile(id) {
+    if (state.processing) return;
+    state.files = state.files.filter(f => f.id !== id);
+    state.zipBlob = null;
+    resultPanel.classList.remove('active');
+    renderQueue();
+  }
+
+  // ────────────────────────────────────────────────
+  // Drag & drop
+  // ────────────────────────────────────────────────
+  ['dragenter', 'dragover'].forEach(ev => {
+    document.body.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+        dropzone.classList.add('dragover');
+      }
+    });
+  });
+  ['dragleave', 'drop'].forEach(ev => {
+    document.body.addEventListener(ev, e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    });
+  });
+  document.body.addEventListener('drop', e => {
+    if (state.processing) return;
+    if (e.dataTransfer && e.dataTransfer.files.length) {
+      addFiles(e.dataTransfer.files);
+    }
+  });
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  addMore.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    if (e.target.files.length) addFiles(e.target.files);
+    e.target.value = '';
+  });
+
+  btnReset.addEventListener('click', () => {
+    state.files = [];
+    state.zipBlob = null;
+    state.zipName = null;
+    resultPanel.classList.remove('active');
+    globalProgress.classList.remove('active');
+    renderQueue();
+  });
+
+  // ────────────────────────────────────────────────
+  // Processing
+  // ────────────────────────────────────────────────
+  btnProcess.addEventListener('click', async () => {
+    if (state.processing || state.files.length === 0) return;
+    await processAll();
+  });
+
+  async function processAll() {
+    state.processing = true;
+    resultPanel.classList.remove('active');
+    globalProgress.classList.add('active');
+
+    state.files.forEach(f => {
+      if (f.state !== 'error') { f.state = 'queued'; f.progress = 0; }
+    });
+    renderQueue();
+
+    const zip = new JSZip();
+    const allTextSheets = [];
+    const total = state.files.length;
+    let processed = 0;
+    let totalPages = 0;
+    let hadErrors = 0;
+
+    for (const entry of state.files) {
+      if (entry.state === 'error') { processed++; continue; }
+      try {
+        entry.state = 'working';
+        entry.progress = 0.02;
+        renderQueue();
+        updateGlobal(`Verarbeite ${truncate(entry.name, 40)}`, processed, total);
+
+        const baseName = sanitize(entry.name.replace(/\.pdf$/i, ''));
+        const folder = zip.folder(baseName);
+
+        const buffer = entry._buffer || await entry.file.arrayBuffer();
+        const srcDoc = await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
+        const pageCount = srcDoc.getPageCount();
+        entry.pages = pageCount;
+        totalPages += pageCount;
+        const padW = String(pageCount).length;
+
+        // Flat-Mode shares pdf.js doc with text extraction
+        let pdfJsDoc = null;
+        if (optFlat.checked || optExcel.checked) {
+          pdfJsDoc = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+        }
+
+        // ── Split each page ───────────────────────
+        for (let i = 0; i < pageCount; i++) {
+          let bytes;
+          if (optFlat.checked) {
+            // Rasterize page → embed as JPEG in fresh single-layer PDF.
+            // Universal fix for layer / overlay / OCG artifacts.
+            bytes = await splitPageFlat(pdfJsDoc, i + 1);
+          } else {
+            const newDoc = await PDFLib.PDFDocument.create();
+            const [copied] = await newDoc.copyPages(srcDoc, [i]);
+            newDoc.addPage(copied);
+            bytes = await newDoc.save();
+          }
+          const num = String(i + 1).padStart(padW, '0');
+          folder.file(`${baseName}_seite-${num}.pdf`, bytes);
+          entry.progress = ((i + 1) / pageCount) * 0.7;
+          if (i % 4 === 0) {
+            renderQueue();
+            await new Promise(r => setTimeout(r, 0));
+          }
+        }
+
+        if (optExcel.checked) {
+          const rows = [['Seite', 'Zeichen', 'Text']];
+          for (let i = 1; i <= pageCount; i++) {
+            const page = await pdfJsDoc.getPage(i);
+            const content = await page.getTextContent();
+            const text = content.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+            rows.push([i, text.length, text]);
+            entry.progress = 0.7 + (i / pageCount) * 0.28;
+            if (i % 6 === 0) {
+              renderQueue();
+              await new Promise(r => setTimeout(r, 0));
+            }
+          }
+
+          if (optMerge.checked) {
+            allTextSheets.push({ name: baseName.slice(0, 28), rows });
+          } else {
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [{ wch: 7 }, { wch: 9 }, { wch: 100 }];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Seitentexte');
+            const xlsxBuf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+            folder.file(`${baseName}_seitentexte.xlsx`, xlsxBuf);
+          }
+        }
+
+        // Free buffer reference for GC
+        entry._buffer = null;
+
+        entry.progress = 1;
+        entry.state = 'done';
+        renderQueue();
+      } catch (err) {
+        console.error(err);
+        entry.error = err.message || String(err);
+        entry.state = 'error';
+        hadErrors++;
+        renderQueue();
+      }
+      processed++;
+    }
+
+    if (optExcel.checked && optMerge.checked && allTextSheets.length > 0) {
+      updateGlobal('Excel wird erstellt…', processed, total);
+      const wb = XLSX.utils.book_new();
+      const usedNames = new Set();
+      allTextSheets.forEach((s, idx) => {
+        let name = s.name || `PDF_${idx + 1}`;
+        let candidate = name.slice(0, 31);
+        let n = 1;
+        while (usedNames.has(candidate)) {
+          candidate = (name.slice(0, 28) + '_' + n).slice(0, 31);
+          n++;
+        }
+        usedNames.add(candidate);
+        const ws = XLSX.utils.aoa_to_sheet(s.rows);
+        ws['!cols'] = [{ wch: 7 }, { wch: 9 }, { wch: 100 }];
+        XLSX.utils.book_append_sheet(wb, ws, candidate);
+      });
+      const xlsxBuf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+      zip.file(`_seitentexte_zusammengefuehrt.xlsx`, xlsxBuf);
+    }
+
+    updateGlobal('ZIP wird gepackt…', total, total);
+    const zipBlob = await zip.generateAsync(
+      { type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } },
+      meta => {
+        globalFill.style.right = `${(100 - meta.percent).toFixed(0)}%`;
+      }
+    );
+
+    state.zipBlob = zipBlob;
+    state.zipName = state.files.length === 1
+      ? `${sanitize(state.files[0].name.replace(/\.pdf$/i, ''))}_seiten.zip`
+      : `pdf-splitter_${state.files.length}-dateien_${new Date().toISOString().slice(0, 10)}.zip`;
+
+    state.processing = false;
+    globalProgress.classList.remove('active');
+    renderQueue();
+
+    const successCount = state.files.filter(f => f.state === 'done').length;
+    const sizeMB = (zipBlob.size / (1024 * 1024)).toFixed(2);
+
+    // Build result info safely (no innerHTML with user data)
+    while (resultInfo.firstChild) resultInfo.removeChild(resultInfo.firstChild);
+    const fileLabel = successCount === 1 ? 'Datei' : 'Dateien';
+    resultInfo.appendChild(document.createTextNode(
+      `${successCount} ${fileLabel} · ${totalPages} Seiten · ${sizeMB} MB`
+    ));
+    if (hadErrors > 0) {
+      resultInfo.appendChild(document.createTextNode(' · '));
+      const errSpan = el('span', {
+        class: 'err',
+        text: `${hadErrors} mit Fehler`,
+      });
+      resultInfo.appendChild(errSpan);
+    }
+    resultPanel.classList.add('active');
+
+    if (hadErrors > 0) {
+      showToast(
+        `${hadErrors} ${hadErrors === 1 ? 'Datei' : 'Dateien'} konnten nicht verarbeitet werden`,
+        true
+      );
+    }
+  }
+
+  function truncate(s, n) {
+    return s.length > n ? s.slice(0, n - 1) + '…' : s;
+  }
+
+  // ────────────────────────────────────────────────
+  // Flat-Mode: render page → JPEG → fresh single-layer PDF
+  // Fixes overlapping content streams / OCG layer artifacts
+  // ────────────────────────────────────────────────
+  async function splitPageFlat(pdfJsDoc, pageNumber) {
+    const page = await pdfJsDoc.getPage(pageNumber);
+    const renderViewport = page.getViewport({ scale: 2 });   // 2x for crisp output
+    const sizeViewport = page.getViewport({ scale: 1 });     // for final PDF dims
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(renderViewport.width);
+    canvas.height = Math.floor(renderViewport.height);
+    const ctx = canvas.getContext('2d');
+
+    // Paint white background — some PDFs have transparent paint
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({
+      canvasContext: ctx,
+      viewport: renderViewport,
+      intent: 'print',     // print intent ignores OCG layer overrides
+    }).promise;
+
+    // Canvas → JPEG bytes
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.88));
+    const jpgBytes = new Uint8Array(await blob.arrayBuffer());
+
+    // Embed in fresh single-layer PDF at original print dimensions
+    const newDoc = await PDFLib.PDFDocument.create();
+    const jpg = await newDoc.embedJpg(jpgBytes);
+    const newPage = newDoc.addPage([sizeViewport.width, sizeViewport.height]);
+    newPage.drawImage(jpg, {
+      x: 0, y: 0,
+      width: sizeViewport.width,
+      height: sizeViewport.height,
+    });
+
+    // Free canvas memory
+    canvas.width = 0;
+    canvas.height = 0;
+
+    return await newDoc.save();
+  }
+
+  function updateGlobal(stage, current, total) {
+    globalStage.textContent = stage;
+    globalCount.textContent = `${current} / ${total}`;
+    globalFill.style.right = `${100 - (current / Math.max(total, 1)) * 100}%`;
+  }
+
+  // ────────────────────────────────────────────────
+  // Download
+  // ────────────────────────────────────────────────
+  btnDownload.addEventListener('click', () => {
+    if (!state.zipBlob) return;
+    const url = URL.createObjectURL(state.zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = state.zipName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  // ────────────────────────────────────────────────
+  // Cosmos strip — generate stars + nebula procedurally
+  // ────────────────────────────────────────────────
+  function buildCosmos() {
+    const svg = document.getElementById('cosmosSvg');
+    if (!svg) return;
+    const SVGNS = 'http://www.w3.org/2000/svg';
+
+    // Two soft nebula glows off-center for depth
+    const nebula1 = document.createElementNS(SVGNS, 'ellipse');
+    nebula1.setAttribute('cx', '210');
+    nebula1.setAttribute('cy', '32');
+    nebula1.setAttribute('rx', '180');
+    nebula1.setAttribute('ry', '38');
+    nebula1.setAttribute('fill', '#2dd4bf');
+    nebula1.setAttribute('opacity', '0.06');
+    nebula1.setAttribute('filter', 'blur(20px)');
+    svg.appendChild(nebula1);
+
+    const nebula2 = document.createElementNS(SVGNS, 'ellipse');
+    nebula2.setAttribute('cx', '950');
+    nebula2.setAttribute('cy', '34');
+    nebula2.setAttribute('rx', '210');
+    nebula2.setAttribute('ry', '36');
+    nebula2.setAttribute('fill', '#c29b62');
+    nebula2.setAttribute('opacity', '0.07');
+    nebula2.setAttribute('filter', 'blur(24px)');
+    svg.appendChild(nebula2);
+
+    // Procedural stars: ~70 across the strip, varying size + opacity + twinkle delay.
+    // Avoid the center 200px around the logo so it can breathe.
+    const STAR_COUNT = 70;
+    const cx = 600, exclude = 80;     // logo center + clearance
+    let placed = 0;
+    let attempts = 0;
+    while (placed < STAR_COUNT && attempts < 400) {
+      attempts++;
+      const x = Math.random() * 1200;
+      const y = Math.random() * 64;
+      // Bias away from center logo zone
+      if (Math.abs(x - cx) < exclude && Math.abs(y - 32) < 16) continue;
+
+      const r = Math.random() < 0.85 ? 0.5 + Math.random() * 0.7 : 1.2 + Math.random() * 0.8;
+      const opacity = 0.35 + Math.random() * 0.55;
+      const dur = 2 + Math.random() * 4;
+      const delay = Math.random() * 4;
+
+      const star = document.createElementNS(SVGNS, 'circle');
+      star.setAttribute('class', 'star');
+      star.setAttribute('cx', x.toFixed(1));
+      star.setAttribute('cy', y.toFixed(1));
+      star.setAttribute('r', r.toFixed(2));
+      star.setAttribute('fill', Math.random() < 0.92 ? '#ffffff' : '#bcd9ff');
+      star.style.setProperty('--o', opacity.toFixed(2));
+      star.style.setProperty('--d', dur.toFixed(2) + 's');
+      star.style.opacity = opacity.toFixed(2);
+      star.style.animationDelay = (-delay).toFixed(2) + 's';
+      svg.appendChild(star);
+      placed++;
+    }
+
+    // A few brighter "lead" stars to anchor the eye — small but warm
+    const leads = [
+      { x: 380, y: 22, r: 1.3 },
+      { x: 820, y: 44, r: 1.2 },
+      { x: 1080, y: 16, r: 1.1 },
+    ];
+    leads.forEach(s => {
+      const star = document.createElementNS(SVGNS, 'circle');
+      star.setAttribute('class', 'star');
+      star.setAttribute('cx', s.x);
+      star.setAttribute('cy', s.y);
+      star.setAttribute('r', s.r);
+      star.setAttribute('fill', '#fffde8');
+      star.style.setProperty('--o', '0.95');
+      star.style.setProperty('--d', '5s');
+      star.style.opacity = '0.95';
+      star.style.animationDelay = (-Math.random() * 5).toFixed(2) + 's';
+      // Glow
+      const halo = document.createElementNS(SVGNS, 'circle');
+      halo.setAttribute('cx', s.x);
+      halo.setAttribute('cy', s.y);
+      halo.setAttribute('r', (s.r * 3).toFixed(1));
+      halo.setAttribute('fill', '#fffde8');
+      halo.setAttribute('opacity', '0.18');
+      halo.setAttribute('filter', 'blur(2px)');
+      svg.appendChild(halo);
+      svg.appendChild(star);
+    });
+  }
+  buildCosmos();
+
+  // ────────────────────────────────────────────────
+  // Init
+  // ────────────────────────────────────────────────
+  renderQueue();
+</script>
+</body>
+</html>

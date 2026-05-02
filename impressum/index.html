@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impressum · CLAWBUIS Tools</title>
+  <meta name="description" content="Impressum gemäß § 5 TMG für tools.clawbuis.com" />
+  <meta name="robots" content="index, follow" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <style>
+    .legal { max-width: 720px; }
+    .legal h1 { font-size: 32px; margin-bottom: 24px; }
+    .legal h2 { font-size: 18px; margin-top: 28px; margin-bottom: 8px; font-weight: 600; }
+    .legal p, .legal address { color: var(--ink-2); margin-bottom: 12px; line-height: 1.6; font-style: normal; }
+    .legal a { color: var(--magic); }
+    .placeholder {
+      display: inline-block;
+      padding: 2px 6px;
+      background: var(--warn-soft);
+      color: var(--warn);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <article class="legal">
+      <h1>Impressum</h1>
+      <p>Angaben gemäß § 5 TMG (Telemediengesetz)</p>
+
+      <h2>Anbieter</h2>
+      <address>
+        Samir Ballhausen<br>
+        <span class="placeholder">[STRASSE + HAUSNUMMER]</span><br>
+        <span class="placeholder">[PLZ ORT]</span><br>
+        Deutschland
+      </address>
+
+      <h2>Kontakt</h2>
+      <address>
+        E-Mail: <a href="mailto:hi@clawbuis.com">hi@clawbuis.com</a><br>
+        Web: <a href="https://clawbuis.com" target="_blank" rel="noopener noreferrer">clawbuis.com</a>
+      </address>
+
+      <h2>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
+      <p>Samir Ballhausen, Anschrift wie oben.</p>
+
+      <h2>Haftungsausschluss</h2>
+      <p>
+        Die Werkzeuge auf tools.clawbuis.com werden ohne Gewähr und kostenlos
+        zur Verfügung gestellt. Die Verarbeitung erfolgt ausschließlich lokal im Browser
+        des Nutzers. Eine Haftung für Datenverluste, fehlerhafte Verarbeitungsergebnisse oder
+        rechtliche Konsequenzen aus der Nutzung ist ausgeschlossen, soweit gesetzlich zulässig.
+      </p>
+
+      <h2>Open-Source-Code</h2>
+      <p>
+        Der Quellcode ist öffentlich einsehbar:
+        <a href="https://github.com/samirballhausen-ship-it/clawbuis-tools" target="_blank" rel="noopener noreferrer">github.com/samirballhausen-ship-it/clawbuis-tools</a>.
+        Damit ist die Funktionsweise der Werkzeuge — insbesondere die ausschließliche
+        lokale Verarbeitung ohne Server-Upload — jederzeit unabhängig prüfbar.
+      </p>
+
+      <h2>Streitschlichtung</h2>
+      <p>
+        Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
+        <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr/</a>.
+        Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer
+        Verbraucherschlichtungsstelle teilzunehmen.
+      </p>
+
+      <p style="margin-top: 40px;"><a href="/">← Zurück zur Übersicht</a></p>
+    </article>
+  </main>
+  <script src="/shared/shell.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'IMPRESSUM', tour: false, privacy: false, toolName: 'Impressum' });
+    });
+  </script>
+</body>
+</html>
