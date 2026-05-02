@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF schwärzen · CLAWBUIS Tools</title>
+  <meta name="description" content="Sensible PDF-Bereiche dauerhaft unkenntlich machen · 100% lokal" />
+  <link rel="canonical" href="https://tools.clawbuis.com/pdf-redact" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    .page-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: crosshair; }
+    .page-canvas { display: block; max-width: 100%; height: auto; }
+    .page-overlay { position: absolute; inset: 0; pointer-events: none; }
+    .redact-rect { position: absolute; background: #000; cursor: pointer; pointer-events: all; }
+    .redact-rect:hover { outline: 2px solid var(--risk); }
+    .pages-container { padding: 20px; max-height: 70vh; overflow-y: auto; background: var(--surf); }
+    .page-label { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; text-align: center; margin: 16px 0 8px; }
+    .nav-btn { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 11px; cursor: pointer; }
+    .nav-btn:hover { border-color: var(--magic); color: var(--magic); }
+    .help { padding: 12px 20px; background: var(--surf); border: 1px solid var(--border); font-size: 12px; color: var(--ink-2); margin: 16px 0; }
+    .help strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main class="app-main wide">
+    <section class="hero">
+      <div class="eyebrow">PDF · <span class="num">·</span> Schwärzen</div>
+      <h1>PDF schwärzen.<br><span class="accent">Dauerhaft. Echt schwarz.</span></h1>
+      <p class="lede">Ziehe schwarze Rechtecke über sensible Inhalte — Namen, Adressen, Kontonummern. Das Ergebnis ist kein Overlay sondern ein neu gerenderter PDF mit echten schwarzen Pixeln darunter. Niemand kann das rückgängig machen. 100% lokal.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="9" width="10" height="2" fill="currentColor"/><rect x="7" y="13" width="6" height="2" fill="currentColor"/>
+        </svg>
+        <div class="drop-title">PDF hier ablegen</div>
+        <div class="drop-hint">Anwälte · Steuerberater · HR · überall wo Schwärzen Pflicht ist</div>
+        <input type="file" id="fileInput" accept="application/pdf,.pdf" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div style="display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start;">
+        <div class="card">
+          <div class="card-head">
+            <h2 id="fileName">—</h2>
+            <span class="meta" id="rectMeta">0 Schwärzungen</span>
+          </div>
+          <div class="help">
+            <strong>So geht's:</strong> Ziehe mit der Maus ein Rechteck über jeden Bereich der geschwärzt werden soll. Klicke auf ein bestehendes Rechteck um es zu entfernen. Wenn fertig: "Schwärzen anwenden".
+          </div>
+          <div class="pages-container" id="pagesContainer"></div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Seiten</span><span class="val" id="statPages">—</span></div>
+              <div class="stat-row"><span class="lbl">Schwärzungen</span><span class="val" id="statRects">0</span></div>
+            </div>
+          </div>
+
+          <button class="btn" id="btnProcess" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor"/>
+            </svg>
+            <span id="btnLabel">Schwärzen anwenden</span>
+          </button>
+          <button class="btn btn-secondary" id="btnClearAll" style="margin-top: 8px;">Alle entfernen</button>
+
+          <div class="global-progress" id="globalProgress">
+            <div class="global-progress-head">
+              <span class="lbl" id="globalStage">Verarbeite…</span>
+              <span class="num" id="globalCount">0 / 0</span>
+            </div>
+            <div class="global-progress-bar"><div class="global-progress-fill" id="globalFill" style="right:100%"></div></div>
+          </div>
+
+          <div class="result" id="result">
+            <div class="result-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Geschwärzt
+            </div>
+            <div class="result-info" id="resultInfo"></div>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button class="btn btn-success" id="btnDownload">Herunterladen</button>
+              <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window.__tutorial = [
+      { target: '#dropzone', title: 'PDF wählen', text: 'Lade dein PDF — alle Seiten werden zum Bearbeiten angezeigt.', side: 'bottom' },
+      { target: '.pages-container', title: 'Schwärzen', text: 'Maus runterhalten und ein Rechteck über sensible Bereiche ziehen. Klick auf eine Schwärzung entfernt sie wieder.', side: 'top' },
+      { target: '#btnProcess', title: 'Anwenden', text: 'Wir rendern jede Seite neu mit den schwarzen Rechtecken eingebrannt. Echtes Schwärzen, kein Overlay.', side: 'left' }
+    ];
+
+    const state = { file: null, buffer: null, pages: [], rects: [], outBlob: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadFile(file) {
+      try {
+        state.file = file;
+        state.buffer = await file.arrayBuffer();
+        const pdfJsDoc = await pdfjsLib.getDocument({ data: state.buffer.slice(0) }).promise;
+        state.pages = [];
+        for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+          const page = await pdfJsDoc.getPage(i);
+          const vp = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = vp.width; canvas.height = vp.height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+          state.pages.push({ canvas, w: vp.width, h: vp.height, naturalW: page.getViewport({ scale: 1 }).width, naturalH: page.getViewport({ scale: 1 }).height });
+        }
+        $('emptyView').style.display = 'none';
+        $('editorView').style.display = 'block';
+        $('fileName').textContent = file.name;
+        $('statPages').textContent = state.pages.length;
+        renderPages();
+        $('btnProcess').disabled = false;
+      } catch (e) { Shell.Toast.show('PDF kaputt', true); }
+    }
+
+    function renderPages() {
+      const container = $('pagesContainer');
+      while (container.firstChild) container.removeChild(container.firstChild);
+      state.pages.forEach((p, idx) => {
+        const label = Shell.el('div', { class: 'page-label', text: `Seite ${idx + 1} von ${state.pages.length}` });
+        container.appendChild(label);
+
+        const wrap = Shell.el('div', { class: 'page-wrap', attrs: { 'data-page': idx } });
+        wrap.style.width = p.w + 'px';
+        wrap.style.maxWidth = '100%';
+        wrap.appendChild(p.canvas);
+        p.canvas.classList.add('page-canvas');
+
+        const overlay = Shell.el('div', { class: 'page-overlay' });
+        wrap.appendChild(overlay);
+
+        // Render existing rects
+        state.rects.filter(r => r.page === idx).forEach(r => {
+          overlay.appendChild(makeRectEl(r));
+        });
+
+        // Drag handler
+        let drawingRect = null;
+        wrap.addEventListener('mousedown', e => {
+          if (e.target.classList.contains('redact-rect')) return;
+          const rect = wrap.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width;
+          const y = (e.clientY - rect.top) / rect.height;
+          drawingRect = { page: idx, x, y, w: 0, h: 0, startX: x, startY: y };
+          const div = Shell.el('div', { class: 'redact-rect' });
+          div.style.left = (x * 100) + '%'; div.style.top = (y * 100) + '%';
+          div.style.width = '0'; div.style.height = '0';
+          overlay.appendChild(div);
+          drawingRect._el = div;
+          e.preventDefault();
+        });
+        wrap.addEventListener('mousemove', e => {
+          if (!drawingRect) return;
+          const rect = wrap.getBoundingClientRect();
+          const cx = (e.clientX - rect.left) / rect.width;
+          const cy = (e.clientY - rect.top) / rect.height;
+          const x = Math.min(drawingRect.startX, cx);
+          const y = Math.min(drawingRect.startY, cy);
+          const w = Math.abs(cx - drawingRect.startX);
+          const h = Math.abs(cy - drawingRect.startY);
+          drawingRect.x = x; drawingRect.y = y; drawingRect.w = w; drawingRect.h = h;
+          drawingRect._el.style.left = (x * 100) + '%';
+          drawingRect._el.style.top = (y * 100) + '%';
+          drawingRect._el.style.width = (w * 100) + '%';
+          drawingRect._el.style.height = (h * 100) + '%';
+        });
+        function finishDraw() {
+          if (!drawingRect) return;
+          if (drawingRect.w < 0.005 || drawingRect.h < 0.005) {
+            drawingRect._el.remove();
+          } else {
+            const id = Date.now() + Math.random();
+            const r = { id, page: drawingRect.page, x: drawingRect.x, y: drawingRect.y, w: drawingRect.w, h: drawingRect.h };
+            state.rects.push(r);
+            drawingRect._el.dataset.id = id;
+            drawingRect._el.addEventListener('click', e => {
+              e.stopPropagation();
+              state.rects = state.rects.filter(rr => rr.id !== id);
+              drawingRect._el.remove();
+              updateMeta();
+            });
+          }
+          drawingRect = null;
+          updateMeta();
+        }
+        wrap.addEventListener('mouseup', finishDraw);
+        wrap.addEventListener('mouseleave', finishDraw);
+
+        container.appendChild(wrap);
+      });
+      updateMeta();
+    }
+
+    function makeRectEl(r) {
+      const div = Shell.el('div', { class: 'redact-rect', attrs: { 'data-id': r.id } });
+      div.style.left = (r.x * 100) + '%';
+      div.style.top = (r.y * 100) + '%';
+      div.style.width = (r.w * 100) + '%';
+      div.style.height = (r.h * 100) + '%';
+      div.addEventListener('click', e => {
+        e.stopPropagation();
+        state.rects = state.rects.filter(rr => rr.id !== r.id);
+        div.remove();
+        updateMeta();
+      });
+      return div;
+    }
+
+    function updateMeta() {
+      $('rectMeta').textContent = state.rects.length === 1 ? '1 Schwärzung' : `${state.rects.length} Schwärzungen`;
+      $('statRects').textContent = state.rects.length;
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnClearAll').addEventListener('click', () => {
+      state.rects = [];
+      renderPages();
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      if (state.rects.length === 0) { Shell.Toast.show('Keine Schwärzungen markiert', true); return; }
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Verarbeite…';
+      $('globalProgress').classList.add('active');
+
+      try {
+        const newDoc = await PDFLib.PDFDocument.create();
+        const total = state.pages.length;
+        for (let i = 0; i < total; i++) {
+          $('globalStage').textContent = `Schwärze Seite ${i + 1}`;
+          $('globalCount').textContent = `${i + 1} / ${total}`;
+          $('globalFill').style.right = `${100 - ((i + 1) / total) * 100}%`;
+
+          const p = state.pages[i];
+          const canvas = document.createElement('canvas');
+          canvas.width = p.canvas.width; canvas.height = p.canvas.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(p.canvas, 0, 0);
+          ctx.fillStyle = '#000';
+          state.rects.filter(r => r.page === i).forEach(r => {
+            ctx.fillRect(r.x * canvas.width, r.y * canvas.height, r.w * canvas.width, r.h * canvas.height);
+          });
+
+          const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+          const jpg = await newDoc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+          const newPage = newDoc.addPage([p.naturalW, p.naturalH]);
+          newPage.drawImage(jpg, { x: 0, y: 0, width: p.naturalW, height: p.naturalH });
+
+          canvas.width = 0; canvas.height = 0;
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        newDoc.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
+        const bytes = await newDoc.save();
+        state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+        const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
+        $('resultInfo').textContent = `${total} Seiten · ${state.rects.length} Schwärzungen · ${sizeMB} MB`;
+        $('result').classList.add('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('Fehler beim Schwärzen', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Schwärzen anwenden';
+        $('globalProgress').classList.remove('active');
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.pdf$/i, '_geschwaerzt.pdf');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.buffer = null; state.pages = []; state.rects = []; state.outBlob = null;
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'PDF · SCHWÄRZEN', tour: true, toolName: 'PDF schwärzen' });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOCX zu PDF · CLAWBUIS Tools</title>
+  <meta name="description" content="Word-Dokumente in universal lesbares PDF konvertieren · 100% lokal" />
+  <link rel="canonical" href="https://tools.clawbuis.com/docx-zu-pdf" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    .preview-wrap { padding: 20px; max-height: 60vh; overflow-y: auto; background: var(--surf); }
+    .preview-page {
+      background: white;
+      width: 794px;
+      max-width: 100%;
+      min-height: 500px;
+      margin: 0 auto;
+      padding: 60px 80px;
+      box-shadow: var(--shadow-2);
+      font-family: 'Geist', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #0a0a0a;
+    }
+    .preview-page h1, .preview-page h2, .preview-page h3 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 600;
+      margin: 16px 0 8px;
+    }
+    .preview-page h1 { font-size: 22px; }
+    .preview-page h2 { font-size: 18px; }
+    .preview-page h3 { font-size: 16px; }
+    .preview-page p { margin: 8px 0; }
+    .preview-page table { border-collapse: collapse; margin: 8px 0; }
+    .preview-page td, .preview-page th { border: 1px solid #ccc; padding: 4px 8px; }
+    .preview-page img { max-width: 100%; height: auto; }
+    .preview-page ul, .preview-page ol { padding-left: 24px; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">DOK · <span class="num">·</span> Konvertierung</div>
+      <h1>DOCX zu PDF.<br><span class="accent">Word ohne Word.</span></h1>
+      <p class="lede">Word-Dokumente in universal lesbares PDF konvertieren — ohne Microsoft Office, ohne Login, ohne Server. Mammoth.js extrahiert Inhalt, DOMPurify reinigt jede HTML-Struktur, html2canvas rendert, pdf-lib speichert. 100% lokal.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <div class="drop-title">DOCX hier ablegen</div>
+        <div class="drop-hint">.docx · Word 2007+ · auch ODT-Export sollte gehen</div>
+        <input type="file" id="fileInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div style="display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start;">
+        <div class="card">
+          <div class="card-head">
+            <h2 id="fileName">—</h2>
+            <span class="meta" id="convMeta">Vorschau</span>
+          </div>
+          <div class="preview-wrap">
+            <div class="preview-page" id="previewPage"></div>
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Wörter</span><span class="val" id="statWords">—</span></div>
+              <div class="stat-row"><span class="lbl">Bilder</span><span class="val" id="statImages">—</span></div>
+              <div class="stat-row"><span class="lbl">Tabellen</span><span class="val" id="statTables">—</span></div>
+            </div>
+          </div>
+
+          <button class="btn" id="btnProcess" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span id="btnLabel">Als PDF speichern</span>
+          </button>
+
+          <div class="global-progress" id="globalProgress">
+            <div class="global-progress-head">
+              <span class="lbl" id="globalStage">Konvertiere…</span>
+              <span class="num">—</span>
+            </div>
+            <div class="global-progress-bar"><div class="global-progress-fill" style="right:50%"></div></div>
+          </div>
+
+          <div class="result" id="result">
+            <div class="result-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Fertig
+            </div>
+            <div class="result-info" id="resultInfo"></div>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button class="btn btn-success" id="btnDownload">Herunterladen</button>
+              <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'DOCX wählen', text: 'Word-Dokumente ab Version 2007 (.docx). Ältere .doc nicht unterstützt.', side: 'bottom' },
+      { target: '#previewPage', title: 'Vorschau prüfen', text: 'Schau ob die Formatierung passt. Komplexe Layouts können vereinfacht werden — wir sanitizen jeden HTML-Output.', side: 'top' },
+      { target: '#btnProcess', title: 'PDF erstellen', text: 'Vorschau wird via Canvas zu PDF gerendert. A4-Seiten werden auto-erstellt.', side: 'left' }
+    ];
+
+    const state = { file: null, outBlob: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+
+    function clearChildren(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+
+    async function loadFile(file) {
+      try {
+        $('globalProgress').classList.add('active');
+        $('globalStage').textContent = 'Lese DOCX…';
+        const buf = await file.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+        state.file = file;
+
+        // Sanitize mammoth output via DOMPurify, return as DocumentFragment (safe DOM)
+        const safeFragment = DOMPurify.sanitize(result.value, {
+          RETURN_DOM_FRAGMENT: true,
+          ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','hr','strong','em','b','i','u','s',
+                         'ul','ol','li','blockquote','pre','code','a','table','thead','tbody','tr','td','th',
+                         'img','figure','figcaption','div','span','sub','sup'],
+          ALLOWED_ATTR: ['href','src','alt','title','class','colspan','rowspan'],
+          ALLOWED_URI_REGEXP: /^(?:(?:https?|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i
+        });
+
+        const previewEl = $('previewPage');
+        clearChildren(previewEl);
+        previewEl.appendChild(safeFragment);
+
+        const text = previewEl.textContent || '';
+        const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+        const imgCount = previewEl.querySelectorAll('img').length;
+        const tableCount = previewEl.querySelectorAll('table').length;
+
+        $('emptyView').style.display = 'none';
+        $('editorView').style.display = 'block';
+        $('fileName').textContent = file.name;
+        $('statWords').textContent = wordCount.toLocaleString('de-DE');
+        $('statImages').textContent = imgCount;
+        $('statTables').textContent = tableCount;
+        $('btnProcess').disabled = false;
+        $('globalProgress').classList.remove('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('DOCX konnte nicht gelesen werden', true);
+        $('globalProgress').classList.remove('active');
+      }
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Erstelle PDF…';
+      $('globalProgress').classList.add('active');
+      $('globalStage').textContent = 'Rendere…';
+
+      try {
+        const previewEl = $('previewPage');
+        const oldShadow = previewEl.style.boxShadow;
+        previewEl.style.boxShadow = 'none';
+        const canvas = await html2canvas(previewEl, {
+          scale: 2, useCORS: true, backgroundColor: '#fff', logging: false
+        });
+        previewEl.style.boxShadow = oldShadow;
+
+        const A4_W = 794, A4_H = 1123;
+        const scale = canvas.width / A4_W;
+        const sliceH = A4_H * scale;
+
+        const pdf = await PDFLib.PDFDocument.create();
+        let yOffset = 0;
+        const total = Math.ceil(canvas.height / sliceH);
+
+        while (yOffset < canvas.height) {
+          $('globalStage').textContent = `Seite ${Math.ceil(yOffset / sliceH) + 1} / ${total}`;
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = Math.min(sliceH, canvas.height - yOffset);
+          const ctx = sliceCanvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+          ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
+
+          const blob = await new Promise(r => sliceCanvas.toBlob(r, 'image/jpeg', 0.92));
+          const jpg = await pdf.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+          const page = pdf.addPage([595.28, 841.89]);
+          const drawH = (sliceCanvas.height / canvas.width) * 595.28;
+          page.drawImage(jpg, { x: 0, y: 841.89 - drawH, width: 595.28, height: drawH });
+
+          sliceCanvas.width = 0; sliceCanvas.height = 0;
+          yOffset += sliceH;
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        pdf.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
+        pdf.setTitle(state.file.name.replace(/\.docx$/i, ''));
+        const bytes = await pdf.save();
+        state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+        const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
+        $('resultInfo').textContent = `${total} Seiten · ${sizeMB} MB`;
+        $('result').classList.add('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('PDF-Erstellung fehlgeschlagen', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Als PDF speichern';
+        $('globalProgress').classList.remove('active');
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.docx$/i, '.pdf');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.outBlob = null;
+      clearChildren($('previewPage'));
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'DOCX · PDF', tour: true, toolName: 'DOCX zu PDF' });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF signieren · CLAWBUIS Tools</title>
+  <meta name="description" content="Unterschrift auf PDF platzieren · 100% lokal · zeichne mit Maus oder Touch" />
+  <link rel="canonical" href="https://tools.clawbuis.com/pdf-sign" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    .sig-pad-wrap { padding: 16px; background: var(--surf); }
+    .sig-pad { width: 100%; height: 200px; background: white; border: 2px dashed var(--border-strong); cursor: crosshair; touch-action: none; display: block; }
+    .sig-pad-actions { display: flex; gap: 8px; margin-top: 12px; }
+    .page-canvas-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: copy; }
+    .page-canvas { display: block; max-width: 100%; height: auto; }
+    .placed-sig { position: absolute; cursor: move; outline: 2px solid var(--magic); }
+    .placed-sig img { width: 100%; height: 100%; pointer-events: none; }
+    .placed-sig .resize { position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; background: var(--magic); border: 2px solid white; cursor: nwse-resize; }
+    .placed-sig .delete { position: absolute; right: -8px; top: -8px; width: 16px; height: 16px; background: var(--risk); color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; }
+    .pages-container { padding: 20px; max-height: 60vh; overflow-y: auto; background: var(--surf); }
+    .help { padding: 12px 20px; background: var(--surf); border: 1px solid var(--border); font-size: 12px; color: var(--ink-2); margin: 16px 0; }
+    .help strong { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">PDF · <span class="num">·</span> Signieren</div>
+      <h1>PDF signieren.<br><span class="accent">Mit deiner echten Unterschrift.</span></h1>
+      <p class="lede">Zeichne deine Unterschrift mit Maus oder Touch — dann platziere sie per Klick auf jede Seite. Visuelle Signatur (kein Krypto-Cert), reicht für 95% aller Vertragssituationen. 100% lokal.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        <div class="drop-title">PDF hier ablegen</div>
+        <div class="drop-hint">Vertrag · Anmeldung · Erklärung — alles was unterschrieben wird</div>
+        <input type="file" id="fileInput" accept="application/pdf,.pdf" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div style="display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start;">
+        <div class="card">
+          <div class="card-head">
+            <h2 id="fileName">—</h2>
+            <span class="meta" id="placedMeta">0 platziert</span>
+          </div>
+          <div class="help">
+            <strong>So geht's:</strong> Erst rechts die Unterschrift zeichnen. Dann auf jede Seite an die Stelle klicken wo sie hin soll. Zum Verschieben: Drag. Größe ändern: Ecke ziehen. Entfernen: rotes X.
+          </div>
+          <div class="pages-container" id="pagesContainer"></div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Unterschrift</h2></div>
+            <div class="sig-pad-wrap">
+              <canvas id="sigPad" class="sig-pad"></canvas>
+              <div class="sig-pad-actions">
+                <button class="btn btn-secondary" id="btnClearSig" style="flex: 1;">Löschen</button>
+                <button class="btn btn-secondary" id="btnUploadSig" style="flex: 1;">Bild laden</button>
+                <input type="file" id="sigFileInput" accept="image/*" class="hidden" />
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Seiten</span><span class="val" id="statPages">—</span></div>
+              <div class="stat-row"><span class="lbl">Platziert</span><span class="val" id="statPlaced">0</span></div>
+            </div>
+          </div>
+
+          <button class="btn" id="btnProcess" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            <span id="btnLabel">Signieren + speichern</span>
+          </button>
+
+          <div class="result" id="result">
+            <div class="result-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Signiert
+            </div>
+            <div class="result-info" id="resultInfo"></div>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button class="btn btn-success" id="btnDownload">Herunterladen</button>
+              <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window.__tutorial = [
+      { target: '#dropzone', title: 'PDF wählen', text: 'Lade das Dokument das du unterschreiben willst.', side: 'bottom' },
+      { target: '#sigPad', title: 'Unterschreiben', text: 'Zeichne deine Signatur direkt im Browser. Funktioniert mit Maus und Touch (Tablet/Smartphone).', side: 'left' },
+      { target: '.pages-container', title: 'Platzieren', text: 'Klick auf die Stelle wo deine Unterschrift hin soll. Drag zum Verschieben, Ecke zum Skalieren.', side: 'top' }
+    ];
+
+    const state = { file: null, buffer: null, pages: [], placed: [], outBlob: null, sigDataUrl: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+
+    // Signature pad
+    const sigPad = $('sigPad');
+    let drawing = false, lastX = 0, lastY = 0;
+    function setupSigPad() {
+      const rect = sigPad.getBoundingClientRect();
+      sigPad.width = rect.width * 2; sigPad.height = rect.height * 2;
+      const ctx = sigPad.getContext('2d');
+      ctx.scale(2, 2);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    }
+    function getPos(e) {
+      const r = sigPad.getBoundingClientRect();
+      const t = e.touches ? e.touches[0] : e;
+      return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+    sigPad.addEventListener('mousedown', e => { drawing = true; ({ x: lastX, y: lastY } = getPos(e)); });
+    sigPad.addEventListener('mousemove', e => {
+      if (!drawing) return;
+      const { x, y } = getPos(e);
+      const ctx = sigPad.getContext('2d');
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+      lastX = x; lastY = y;
+    });
+    ['mouseup','mouseleave'].forEach(ev => sigPad.addEventListener(ev, () => { drawing = false; updateSig(); }));
+    sigPad.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; ({ x: lastX, y: lastY } = getPos(e)); });
+    sigPad.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!drawing) return;
+      const { x, y } = getPos(e);
+      const ctx = sigPad.getContext('2d');
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+      lastX = x; lastY = y;
+    });
+    sigPad.addEventListener('touchend', () => { drawing = false; updateSig(); });
+
+    function updateSig() {
+      // Trim and store
+      state.sigDataUrl = sigPad.toDataURL('image/png');
+    }
+
+    $('btnClearSig').addEventListener('click', () => {
+      const ctx = sigPad.getContext('2d');
+      ctx.clearRect(0, 0, sigPad.width, sigPad.height);
+      state.sigDataUrl = null;
+    });
+    $('btnUploadSig').addEventListener('click', () => $('sigFileInput').click());
+    $('sigFileInput').addEventListener('change', async e => {
+      const f = e.target.files[0]; if (!f) return;
+      const url = URL.createObjectURL(f);
+      const im = new Image();
+      im.onload = () => {
+        const ctx = sigPad.getContext('2d');
+        ctx.clearRect(0, 0, sigPad.width, sigPad.height);
+        const aspectRatio = im.naturalWidth / im.naturalHeight;
+        const padRect = sigPad.getBoundingClientRect();
+        let w = padRect.width, h = w / aspectRatio;
+        if (h > padRect.height) { h = padRect.height; w = h * aspectRatio; }
+        ctx.drawImage(im, (padRect.width - w) / 2, (padRect.height - h) / 2, w, h);
+        URL.revokeObjectURL(url);
+        updateSig();
+      };
+      im.src = url;
+      e.target.value = '';
+    });
+
+    async function loadFile(file) {
+      try {
+        state.file = file;
+        state.buffer = await file.arrayBuffer();
+        const pdfJsDoc = await pdfjsLib.getDocument({ data: state.buffer.slice(0) }).promise;
+        state.pages = [];
+        for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+          const page = await pdfJsDoc.getPage(i);
+          const vp = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = vp.width; canvas.height = vp.height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport: vp }).promise;
+          state.pages.push({ canvas, naturalW: page.getViewport({ scale: 1 }).width, naturalH: page.getViewport({ scale: 1 }).height });
+        }
+        $('emptyView').style.display = 'none';
+        $('editorView').style.display = 'block';
+        $('fileName').textContent = file.name;
+        $('statPages').textContent = state.pages.length;
+        renderPages();
+        $('btnProcess').disabled = false;
+        setTimeout(setupSigPad, 100);
+      } catch (e) { Shell.Toast.show('PDF kaputt', true); }
+    }
+
+    function renderPages() {
+      const container = $('pagesContainer');
+      while (container.firstChild) container.removeChild(container.firstChild);
+      state.pages.forEach((p, idx) => {
+        container.appendChild(Shell.el('div', {
+          style: { fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--ink-3)', textAlign: 'center', margin: '16px 0 8px', letterSpacing: '0.08em' },
+          text: `Seite ${idx + 1} von ${state.pages.length}`
+        }));
+        const wrap = Shell.el('div', { class: 'page-canvas-wrap', attrs: { 'data-page': idx } });
+        wrap.style.width = p.canvas.width + 'px';
+        wrap.appendChild(p.canvas);
+        p.canvas.classList.add('page-canvas');
+
+        // Render existing placements
+        state.placed.filter(pl => pl.page === idx).forEach(pl => wrap.appendChild(makePlaced(pl, wrap)));
+
+        wrap.addEventListener('click', e => {
+          if (e.target !== wrap && e.target !== p.canvas) return;
+          if (!state.sigDataUrl) { Shell.Toast.show('Erst Unterschrift zeichnen', true); return; }
+          const rect = wrap.getBoundingClientRect();
+          const x = (e.clientX - rect.left) / rect.width;
+          const y = (e.clientY - rect.top) / rect.height;
+          const id = Date.now() + Math.random();
+          const pl = { id, page: idx, x: x - 0.075, y: y - 0.025, w: 0.15, h: 0.05 };
+          state.placed.push(pl);
+          wrap.appendChild(makePlaced(pl, wrap));
+          updateMeta();
+        });
+        container.appendChild(wrap);
+      });
+      updateMeta();
+    }
+
+    function makePlaced(pl, wrap) {
+      const div = Shell.el('div', { class: 'placed-sig', attrs: { 'data-id': pl.id } });
+      div.style.left = (pl.x * 100) + '%'; div.style.top = (pl.y * 100) + '%';
+      div.style.width = (pl.w * 100) + '%'; div.style.height = (pl.h * 100) + '%';
+      const img = Shell.el('img', { attrs: { src: state.sigDataUrl, alt: 'Unterschrift' } });
+      div.appendChild(img);
+
+      const del = Shell.el('div', { class: 'delete', text: '×' });
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        state.placed = state.placed.filter(p => p.id !== pl.id);
+        div.remove();
+        updateMeta();
+      });
+      div.appendChild(del);
+
+      const resize = Shell.el('div', { class: 'resize' });
+      div.appendChild(resize);
+
+      // Drag
+      let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+      div.addEventListener('mousedown', e => {
+        if (e.target === resize || e.target === del) return;
+        dragging = true; sx = e.clientX; sy = e.clientY; ox = pl.x; oy = pl.y;
+        e.preventDefault(); e.stopPropagation();
+      });
+      const onMove = e => {
+        if (!dragging) return;
+        const rect = wrap.getBoundingClientRect();
+        const dx = (e.clientX - sx) / rect.width;
+        const dy = (e.clientY - sy) / rect.height;
+        pl.x = ox + dx; pl.y = oy + dy;
+        div.style.left = (pl.x * 100) + '%'; div.style.top = (pl.y * 100) + '%';
+      };
+      const onUp = () => { dragging = false; };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+
+      // Resize
+      let resizing = false, rsx = 0, rsy = 0, rsw = 0, rsh = 0;
+      resize.addEventListener('mousedown', e => {
+        resizing = true; rsx = e.clientX; rsy = e.clientY; rsw = pl.w; rsh = pl.h;
+        e.preventDefault(); e.stopPropagation();
+      });
+      window.addEventListener('mousemove', e => {
+        if (!resizing) return;
+        const rect = wrap.getBoundingClientRect();
+        const dw = (e.clientX - rsx) / rect.width;
+        pl.w = Math.max(0.03, rsw + dw);
+        pl.h = pl.w * (img.naturalHeight / img.naturalWidth || 0.3);
+        div.style.width = (pl.w * 100) + '%'; div.style.height = (pl.h * 100) + '%';
+      });
+      window.addEventListener('mouseup', () => { resizing = false; });
+
+      return div;
+    }
+
+    function updateMeta() {
+      $('placedMeta').textContent = state.placed.length === 1 ? '1 platziert' : `${state.placed.length} platziert`;
+      $('statPlaced').textContent = state.placed.length;
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      if (state.placed.length === 0) { Shell.Toast.show('Keine Unterschrift platziert', true); return; }
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Speichere…';
+
+      try {
+        const pdf = await PDFLib.PDFDocument.load(state.buffer, { ignoreEncryption: true });
+        const sigImg = await pdf.embedPng(state.sigDataUrl);
+        const pages = pdf.getPages();
+        for (const pl of state.placed) {
+          const page = pages[pl.page];
+          const { width, height } = page.getSize();
+          const x = pl.x * width;
+          const y = height - (pl.y * height) - (pl.h * height);
+          const w = pl.w * width;
+          const h = pl.h * height;
+          page.drawImage(sigImg, { x, y, width: w, height: h });
+        }
+        pdf.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
+        const bytes = await pdf.save();
+        state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+        const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
+        $('resultInfo').textContent = `${state.placed.length} Unterschriften platziert · ${sizeMB} MB`;
+        $('result').classList.add('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('Fehler', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Signieren + speichern';
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.pdf$/i, '_signiert.pdf');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.buffer = null; state.pages = []; state.placed = [];
+      state.outBlob = null; state.sigDataUrl = null;
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'PDF · SIGNIEREN', tour: true, toolName: 'PDF signieren' });
+    });
+  </script>
+</body>
+</html>
