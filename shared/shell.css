@@ -139,6 +139,47 @@ input, select, textarea { font: inherit; color: inherit; }
   line-height: 1.55; max-width: 640px;
 }
 
+/* ─── Hero Trust Badges ─────────────────────────── */
+.hero-trust-badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+  max-width: 720px;
+}
+.trust-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--magic);
+  border-radius: var(--r);
+  transition: all 0.2s var(--ease);
+}
+.trust-badge:hover {
+  border-color: var(--magic);
+  box-shadow: var(--shadow-magic);
+  transform: translateY(-1px);
+}
+.trust-num {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  color: var(--magic);
+  line-height: 1;
+}
+.trust-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
 /* ─── Hub-only: Smart-Suggest DropZone ───────────── */
 .suggest-zone {
   margin: 32px 0 56px;
@@ -651,11 +692,11 @@ input[type="file"].hidden { display: none; }
   color: var(--magic); font-weight: 600;
 }
 
-/* ─── Cosmos Strip ────────────────────────────────── */
+/* ─── Cosmos Strip — branded with name + insta ─── */
 .cosmos {
   display: block;
   margin-top: 80px;
-  height: 64px;
+  height: 80px;
   width: 100%;
   background: radial-gradient(
     ellipse 70% 100% at 50% 50%,
@@ -663,40 +704,102 @@ input[type="file"].hidden { display: none; }
   );
   position: relative;
   overflow: hidden;
-  cursor: pointer;
-  text-decoration: none;
   border-top: 1px solid rgba(255,255,255,0.06);
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  transition: filter 0.6s var(--ease);
 }
-.cosmos:hover { filter: brightness(1.18) saturate(1.15); }
 .cosmos-svg {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   display: block;
-}
-.cosmos-logo {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 22px; height: 26px;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  opacity: 0.78;
-  filter: drop-shadow(0 0 4px rgba(255,255,255,0.4));
-  transition: opacity 0.4s var(--ease), filter 0.4s var(--ease);
   pointer-events: none;
 }
-.cosmos:hover .cosmos-logo {
-  opacity: 1;
+.cosmos-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 2;
+  pointer-events: none;
+}
+.cosmos-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-pill);
+  text-decoration: none;
+  pointer-events: all;
+  transition: all 0.3s var(--ease);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.cosmos-brand:hover {
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(45, 212, 191, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(45, 212, 191, 0.2);
+}
+.cosmos-logo {
+  display: inline-flex;
+  width: 22px; height: 26px;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.3));
+  transition: filter 0.3s var(--ease);
+}
+.cosmos-brand:hover .cosmos-logo {
   filter:
     drop-shadow(0 0 6px rgba(45, 212, 191, 0.7))
     drop-shadow(0 0 14px rgba(194, 155, 98, 0.4));
 }
+.cosmos-logo svg { width: 100%; height: 100%; }
+.cosmos-name {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.cosmos-insta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.78);
+  pointer-events: all;
+  transition: all 0.3s var(--ease);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.cosmos-insta:hover {
+  background: rgba(194, 155, 98, 0.15);
+  border-color: rgba(194, 155, 98, 0.5);
+  color: rgba(255, 255, 255, 1);
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 4px 16px rgba(194, 155, 98, 0.3);
+}
+.cosmos-insta svg { width: 20px; height: 20px; }
 @keyframes twinkle {
   0%, 100% { opacity: var(--o, 0.6); }
   50%      { opacity: calc(var(--o, 0.6) * 0.3); }
 }
 .cosmos-svg .star { animation: twinkle var(--d, 3s) ease-in-out infinite; }
+@media (max-width: 480px) {
+  .cosmos { height: 72px; }
+  .cosmos-center { gap: 12px; }
+  .cosmos-brand { padding: 6px 14px; gap: 8px; }
+  .cosmos-name { font-size: 13px; }
+  .cosmos-insta { width: 38px; height: 38px; }
+  .cosmos-insta svg { width: 17px; height: 17px; }
+}
 
 /* ─── Footer ──────────────────────────────────────── */
 .app-footer {
@@ -830,11 +933,44 @@ input[type="file"].hidden { display: none; }
 }
 .tour-welcome-actions { display: flex; gap: 8px; }
 
-/* Mobile */
+/* ───────── Mobile responsiveness ───────── */
+@media (max-width: 960px) {
+  .work-grid { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+}
 @media (max-width: 768px) {
-  .app-main { padding: 32px 16px 60px; }
+  .app-main { padding: 28px 14px 48px; }
+  .app-header-inner { padding: 0 14px; }
   .header-meta-label { display: none; }
+  .header-meta { font-size: 10px; }
+  .brand-tag { font-size: 9px; }
   .hub-tile-grid { grid-template-columns: 1fr; }
+  .hub-section { margin-bottom: 40px; }
+  .hub-section-title { font-size: 22px; }
   .tour-tooltip { width: calc(100vw - 32px); left: 16px !important; right: 16px; }
   .tour-welcome { left: 16px; right: 16px; width: auto; bottom: 16px; }
+  .hero h1 { font-size: 28px; line-height: 1.15; }
+  .hero .lede { font-size: 15px; }
+  .hero-trust-badges { grid-template-columns: 1fr; gap: 8px; margin-top: 20px; }
+  .trust-badge { padding: 12px 14px; }
+  .trust-num { font-size: 22px; }
+  .suggest-zone { padding: 24px 16px; margin: 20px 0 36px; }
+  .suggest-zone h2 { font-size: 18px; }
+  .suggest-cards { grid-template-columns: 1fr; }
+  .hub-featured { padding: 20px; gap: 18px; }
+  .hub-featured-headline { font-size: 26px; }
+  .hub-featured-tagline { font-size: 14px; }
+  .work-grid { gap: 16px; }
+  .card-head { padding: 12px 16px; }
+  .card-body { padding: 16px; }
+  .dropzone { padding: 32px 16px; }
+  .drop-icon { width: 36px; height: 36px; }
+  .privacy { padding: 16px; grid-template-columns: 1fr; }
+  .privacy-icon { margin: 0 auto; }
+  .app-footer-inner { flex-direction: column; gap: 8px; text-align: center; }
+}
+@media (max-width: 480px) {
+  .hero h1 { font-size: 24px; }
+  .hub-featured-headline { font-size: 22px; }
+  .eyebrow { font-size: 10px; padding: 3px 8px; }
 }

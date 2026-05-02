@@ -144,6 +144,11 @@
     }
 
     async function regen() {
+      // Wait for library to load
+      if (typeof QRCode === 'undefined') {
+        $('qrSize').textContent = 'Lade…';
+        return;
+      }
       const content = buildContent();
       const size = parseInt($('optSize').value, 10);
       const ec = $('optEC').value;
@@ -161,7 +166,13 @@
           color: { dark: fg, light: bg }, margin: 2
         });
       } catch (e) {
-        Shell.Toast.show('QR-Generation fehlgeschlagen — Inhalt zu lang?', true);
+        // Show real error so user knows what's actually happening
+        const msg = e && e.message ? e.message : String(e);
+        if (/too big|big to be stored|exceed/i.test(msg)) {
+          Shell.Toast.show('Inhalt zu lang für QR-Code — kürzer machen oder Fehlerkorrektur runtersetzen', true);
+        } else {
+          Shell.Toast.show('QR-Generation fehlgeschlagen: ' + msg, true);
+        }
       }
     }
 
@@ -190,9 +201,24 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
 
+    function waitForQRCode(maxRetries = 50) {
+      let tries = 0;
+      const interval = setInterval(() => {
+        tries++;
+        if (typeof QRCode !== 'undefined') {
+          clearInterval(interval);
+          regen();
+        } else if (tries > maxRetries) {
+          clearInterval(interval);
+          Shell.Toast.show('QR-Code Library konnte nicht geladen werden — bitte neu laden', true);
+        }
+      }, 100);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'QR-CODE', tour: true, toolName: 'QR-Code Generator' });
-      regen();
+      // Wait for QRCode to be available, then trigger initial render
+      waitForQRCode();
     });
   </script>
 </body>

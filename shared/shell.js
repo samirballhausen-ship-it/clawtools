@@ -48,6 +48,12 @@
 
   const COSMOS_SVG_FRAME = `<svg viewBox="0 0 1200 64" preserveAspectRatio="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"></svg>`;
 
+  const INSTA_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+  </svg>`;
+
   // ────────────────────────────────────────────────
   // SVG Parser — DOMParser-based, XSS-safe
   // ────────────────────────────────────────────────
@@ -198,22 +204,44 @@
   function injectFooter(toolName) {
     if (document.querySelector('.app-footer')) return;
 
-    // Cosmos
-    const cosmos = el('a', {
+    // Cosmos band — div container with stars + branded center
+    const cosmos = el('div', {
       class: 'cosmos',
+      attrs: { 'aria-label': 'CLAWBUIS Brand-Strip' }
+    });
+    const cosmosSvg = parseSVG(COSMOS_SVG_FRAME);
+    cosmosSvg.classList.add('cosmos-svg');
+    cosmos.appendChild(cosmosSvg);
+
+    // Center content: brand link + instagram link
+    const cosmosCenter = el('div', { class: 'cosmos-center' });
+
+    const brandLink = el('a', {
+      class: 'cosmos-brand',
       attrs: {
         href: 'https://clawbuis.com',
         target: '_blank', rel: 'noopener noreferrer',
         'aria-label': 'CLAWBUIS Hauptseite'
       }
     });
-    const cosmosSvg = parseSVG(COSMOS_SVG_FRAME);
-    cosmosSvg.classList.add('cosmos-svg');
-    cosmos.appendChild(cosmosSvg);
+    const brandLogo = el('span', { class: 'cosmos-logo' });
+    brandLogo.appendChild(parseSVG(BRAND_LOGO_LIGHT));
+    brandLink.appendChild(brandLogo);
+    brandLink.appendChild(el('span', { class: 'cosmos-name', text: 'CLAWBUIS' }));
+    cosmosCenter.appendChild(brandLink);
 
-    const cosmosLogo = el('span', { class: 'cosmos-logo' });
-    cosmosLogo.appendChild(parseSVG(BRAND_LOGO_LIGHT));
-    cosmos.appendChild(cosmosLogo);
+    const instaLink = el('a', {
+      class: 'cosmos-insta',
+      attrs: {
+        href: 'https://instagram.com/clawbuis',
+        target: '_blank', rel: 'noopener noreferrer',
+        'aria-label': 'CLAWBUIS auf Instagram'
+      }
+    });
+    instaLink.appendChild(parseSVG(INSTA_ICON_SVG));
+    cosmosCenter.appendChild(instaLink);
+
+    cosmos.appendChild(cosmosCenter);
     document.body.appendChild(cosmos);
 
     buildCosmos(cosmosSvg);
