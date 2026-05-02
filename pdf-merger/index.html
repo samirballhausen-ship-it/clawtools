@@ -43,6 +43,12 @@
       font-size: 14px;
       user-select: none;
     }
+    button.file-pos {
+      cursor: pointer; font: inherit; appearance: none; outline: none;
+      transition: background .15s ease, color .15s ease, transform .1s ease;
+    }
+    button.file-pos:hover { background: var(--magic); color: white; transform: scale(1.05); }
+    button.file-pos:focus-visible { outline: 2px solid var(--magic); outline-offset: 2px; }
     .file-pos {
       width: 28px; height: 28px;
       display: flex; align-items: center; justify-content: center;
@@ -305,7 +311,32 @@
       const handle = Shell.el('div', { class: 'file-handle', text: '⋮⋮' });
       row.appendChild(handle);
 
-      const pos = Shell.el('div', { class: 'file-pos', text: String(idx + 1).padStart(2, '0') });
+      const pos = Shell.el('button', {
+        class: 'file-pos',
+        attrs: { type: 'button', title: 'Position ändern (klicken zum Eintippen)', 'aria-label': `Position ${idx + 1} von ${state.files.length} — klicken um zu ändern` },
+        text: String(idx + 1).padStart(2, '0'),
+        on: {
+          click: (e) => {
+            e.stopPropagation();
+            if (state.processing) return;
+            const total = state.files.length;
+            const newPosStr = prompt(`Neue Position für „${entry.name}" (1–${total}):`, String(idx + 1));
+            if (newPosStr == null) return;
+            const newPos = parseInt(String(newPosStr).trim(), 10);
+            if (isNaN(newPos) || newPos < 1 || newPos > total) {
+              Shell.Toast.show(`Bitte Zahl zwischen 1 und ${total} eingeben`, true);
+              return;
+            }
+            const targetIdx = newPos - 1;
+            if (targetIdx === idx) return;
+            const moved = state.files.splice(idx, 1)[0];
+            state.files.splice(targetIdx, 0, moved);
+            state.mergedBlob = null;
+            resultPanel.classList.remove('active');
+            render();
+          }
+        }
+      });
       row.appendChild(pos);
 
       const info = Shell.el('div', { class: 'file-info' });

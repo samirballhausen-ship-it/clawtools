@@ -558,42 +558,87 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .card-body { padding: 20px; }
 
-/* Dropzone */
+/* Dropzone — visually prominent CTA */
 .dropzone {
   position: relative;
-  padding: 48px 24px;
+  padding: 64px 32px;
   text-align: center; cursor: pointer;
-  transition: background .2s var(--ease), border-color .2s var(--ease);
-  border: 1.5px dashed var(--border-strong);
-  background: var(--surf);
+  transition: background .2s var(--ease), border-color .2s var(--ease), transform .15s var(--ease), box-shadow .15s var(--ease);
+  border: 2px dashed var(--magic);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--ok-soft) 100%);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+.dropzone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, var(--magic) 0%, transparent 35%),
+    radial-gradient(circle at 80% 70%, var(--magic) 0%, transparent 35%);
+  opacity: 0.04;
+  pointer-events: none;
+  transition: opacity .25s var(--ease);
 }
 .dropzone:hover {
-  background: var(--bg);
-  border-color: var(--ink);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--ok-soft) 100%);
+  border-color: var(--magic);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(21, 128, 61, 0.12);
 }
+.dropzone:hover::before { opacity: 0.08; }
 .dropzone.dragover {
   background: var(--ok-soft);
   border-color: var(--magic);
   border-style: solid;
+  border-width: 2px;
+  transform: scale(1.005);
+  box-shadow: 0 8px 24px rgba(21, 128, 61, 0.18);
 }
+.dropzone.dragover::before { opacity: 0.14; }
 .dropzone.processing { pointer-events: none; opacity: 0.6; }
 .drop-icon {
-  width: 44px; height: 44px;
-  margin: 0 auto 16px;
-  color: var(--ink-2); display: block;
+  width: 56px; height: 56px;
+  margin: 0 auto 18px;
+  color: var(--magic); display: block;
+  position: relative; z-index: 1;
+  transition: transform .2s var(--ease);
 }
-.dropzone:hover .drop-icon { color: var(--ink); }
-.dropzone.dragover .drop-icon { color: var(--magic); }
-.drop-title { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
-.drop-hint { font-size: 13px; color: var(--ink-2); }
+.dropzone:hover .drop-icon { transform: translateY(-2px) scale(1.04); }
+.dropzone.dragover .drop-icon { color: var(--magic); transform: scale(1.1); }
+.drop-title {
+  font-size: 18px; font-weight: 600; margin-bottom: 6px;
+  position: relative; z-index: 1; color: var(--ink);
+}
+.drop-hint {
+  font-size: 14px; color: var(--ink-2);
+  position: relative; z-index: 1;
+}
 .drop-hint kbd {
   font-family: var(--font-mono);
-  font-size: 11px; padding: 2px 6px;
+  font-size: 11px; padding: 3px 8px;
   background: var(--bg);
   border: 1px solid var(--border-strong);
-  border-radius: 2px; color: var(--ink);
+  border-bottom-width: 2px;
+  border-radius: 3px; color: var(--ink);
+  font-weight: 500;
 }
 input[type="file"].hidden { display: none; }
+
+/* Active file rows — visually elevated card */
+.file-row, .queue-row {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--magic);
+  margin-bottom: 6px;
+  transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.file-row:hover, .queue-row:hover {
+  border-color: var(--border-strong);
+  border-left-color: var(--magic);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
 
 /* Sidebar */
 .sidebar {
@@ -1055,8 +1100,10 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   .work-grid { gap: 16px; }
   .card-head { padding: 12px 16px; }
   .card-body { padding: 16px; }
-  .dropzone { padding: 32px 16px; }
-  .drop-icon { width: 36px; height: 36px; }
+  .dropzone { padding: 40px 20px; }
+  .drop-icon { width: 44px; height: 44px; margin-bottom: 14px; }
+  .drop-title { font-size: 16px; }
+  .drop-hint { font-size: 13px; }
   .privacy-summary { padding: 12px 14px; gap: 10px; }
   .privacy-body { padding: 0 14px 14px 14px; }
   .app-footer-inner { flex-direction: column; gap: 8px; text-align: center; }

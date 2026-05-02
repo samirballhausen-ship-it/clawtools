@@ -13,10 +13,51 @@
   <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
-    .preview-pages { padding: 20px; max-height: 50vh; overflow-y: auto; background: var(--surf); }
-    .preview-page { background: white; padding: 24px 32px; margin-bottom: 16px; box-shadow: var(--shadow-1); font-family: 'Geist', sans-serif; font-size: 13px; line-height: 1.6; }
-    .preview-page h4 { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.12em; margin-bottom: 12px; text-transform: uppercase; }
-    .preview-page p { margin: 6px 0; white-space: pre-wrap; word-break: break-word; }
+    .preview-pages {
+      padding: 32px 20px; max-height: 60vh; overflow-y: auto;
+      background: linear-gradient(180deg, #2a2a2e 0%, #1a1a1e 100%);
+    }
+    .preview-page {
+      background: white;
+      padding: 48px 56px;
+      margin: 0 auto 24px;
+      width: 100%;
+      max-width: 540px;
+      min-height: 720px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
+      font-family: 'Geist', 'Helvetica', sans-serif;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #1a1a1a;
+      position: relative;
+    }
+    .preview-page::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--magic) 0%, transparent 60%);
+    }
+    .preview-page-label {
+      position: absolute;
+      top: -28px; left: 0;
+      font-family: var(--font-mono);
+      font-size: 10px; color: rgba(255,255,255,0.5);
+      letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .preview-page h4 {
+      font-family: var(--font-mono); font-size: 9px; color: #999;
+      letter-spacing: 0.14em; margin-bottom: 20px; text-transform: uppercase;
+      padding-bottom: 8px; border-bottom: 1px solid #e8e8e8;
+    }
+    .preview-page p { margin: 8px 0; white-space: pre-wrap; word-break: break-word; }
+    .preview-page .heading-1 { font-size: 22px; font-weight: 700; margin: 16px 0 10px; color: #0a0a0a; line-height: 1.25; }
+    .preview-page .heading-2 { font-size: 17px; font-weight: 600; margin: 14px 0 8px; color: #1a1a1a; }
+    .preview-empty { color: #aaa; font-style: italic; }
+    @media (max-width: 768px) {
+      .preview-pages { padding: 20px 12px; }
+      .preview-page { padding: 32px 28px; min-height: 480px; }
+    }
     .info-banner { padding: 14px 18px; background: var(--warn-soft); border: 1px solid var(--warn); margin: 16px 0; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
     .info-banner strong { color: var(--warn); }
   </style>
@@ -173,8 +214,41 @@
         while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
         state.pages.forEach(p => {
           const pageEl = Shell.el('div', { class: 'preview-page' });
-          pageEl.appendChild(Shell.el('h4', { text: `Seite ${p.idx}` }));
-          pageEl.appendChild(Shell.el('p', { text: p.text || '— kein Text gefunden —' }));
+          // Page number label OUTSIDE the page (on the gradient)
+          const label = Shell.el('div', { class: 'preview-page-label', text: `Seite ${p.idx} von ${state.pages.length}` });
+          pageEl.appendChild(label);
+          // Header within page
+          pageEl.appendChild(Shell.el('h4', { text: `${p.idx} / ${state.pages.length}` }));
+          // Render structured lines with heading levels
+          if (p.lines && p.lines.length) {
+            p.lines.forEach(line => {
+              if (!line.text.trim()) return;
+              if (line.heading === 1) {
+                pageEl.appendChild(Shell.el('div', { class: 'heading-1', text: line.text }));
+              } else if (line.heading === 2) {
+                pageEl.appendChild(Shell.el('div', { class: 'heading-2', text: line.text }));
+              } else {
+                const para = Shell.el('p');
+                if (line.runs && line.runs.length) {
+                  line.runs.forEach(r => {
+                    if (!r.str) return;
+                    const span = document.createElement('span');
+                    if (r.bold) span.style.fontWeight = '700';
+                    if (r.italic) span.style.fontStyle = 'italic';
+                    span.textContent = r.str + ' ';
+                    para.appendChild(span);
+                  });
+                } else {
+                  para.textContent = line.text;
+                }
+                pageEl.appendChild(para);
+              }
+            });
+          } else if (p.text) {
+            pageEl.appendChild(Shell.el('p', { text: p.text }));
+          } else {
+            pageEl.appendChild(Shell.el('p', { class: 'preview-empty', text: '— Diese Seite enthält keinen erkennbaren Text. Wahrscheinlich ein eingescanntes Bild. Tipp: durch das Werkzeug „PDF durchsuchbar machen" laufen lassen, danach hier nochmal versuchen.' }));
+          }
           wrap.appendChild(pageEl);
         });
         $('btnExport').disabled = false;

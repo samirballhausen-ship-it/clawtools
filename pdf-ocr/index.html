@@ -89,6 +89,14 @@
               Fertig
             </div>
             <div class="result-info" id="resultInfo"></div>
+            <div id="topWordsBox" style="margin-top: 14px; display: none;">
+              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;">Häufigste Wörter im Dokument</div>
+              <div id="topWords" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            </div>
+            <div id="snippetBox" style="margin-top: 14px; display: none;">
+              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;">Erkannter Text — Anfang</div>
+              <div id="snippetText" style="padding: 12px; background: var(--surf); border: 1px solid var(--border); font-family: var(--font-body); font-size: 13px; line-height: 1.5; color: var(--ink); max-height: 160px; overflow-y: auto;"></div>
+            </div>
             <div style="display:flex; gap:8px; margin-top:14px; flex-wrap: wrap;">
               <button class="btn btn-success" id="btnDownloadTxt" style="flex: 1; min-width: 120px;">Text (.txt)</button>
               <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
@@ -217,6 +225,36 @@
         state.allText = allText.join('\n');
         $('statChars').textContent = state.allText.length.toLocaleString('de-DE');
         $('resultInfo').textContent = `${state.pages.length} Seiten · ${state.allText.length.toLocaleString('de-DE')} Zeichen erkannt`;
+
+        // Top-Wörter-Cloud + Text-Snippet zur Verifikation
+        const STOPWORDS = new Set(('der die das den dem des ein eine einen einer eines und oder aber ist sind war waren bin bist hat haben hatte hatten wird werden wurde wurden ich du er sie es wir ihr nicht von zu mit für auf bei aus an in im am vom zum zur sich nur auch noch wenn als so wie um über unter zwischen kein keine nach vor nach wir').split(' '));
+        const wordCounts = new Map();
+        state.allText.toLowerCase().match(/[a-zäöüß]{3,}/gi)?.forEach(w => {
+          const k = w.toLowerCase();
+          if (STOPWORDS.has(k)) return;
+          wordCounts.set(k, (wordCounts.get(k) || 0) + 1);
+        });
+        const top = Array.from(wordCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 12);
+        const tw = $('topWords');
+        while (tw.firstChild) tw.removeChild(tw.firstChild);
+        if (top.length > 0) {
+          $('topWordsBox').style.display = 'block';
+          top.forEach(([word, count]) => {
+            const tag = document.createElement('span');
+            tag.style.cssText = 'padding: 4px 10px; background: var(--ok-soft); border: 1px solid var(--magic); color: var(--magic); font-size: 12px; font-family: var(--font-body); border-radius: 99px;';
+            tag.textContent = `${word} · ${count}`;
+            tw.appendChild(tag);
+          });
+        }
+
+        const snippet = state.allText.replace(/\s+/g, ' ').trim().slice(0, 400);
+        if (snippet) {
+          $('snippetBox').style.display = 'block';
+          $('snippetText').textContent = snippet + (state.allText.length > 400 ? '…' : '');
+        }
+
         $('result').classList.add('active');
       } catch (e) {
         console.error(e);

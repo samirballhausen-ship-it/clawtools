@@ -119,11 +119,13 @@
 
     <section class="hero">
       <div class="eyebrow">DATENSCHUTZ · <span class="num">·</span> Bild-Werkzeug</div>
-      <h1>Foto-Daten entfernen.<br><span class="accent">Standort. Kamera. Datum. Weg.</span></h1>
+      <h1>Versteckte Foto-Daten löschen.<br><span class="accent">Standort. Kamera. Datum. Weg.</span></h1>
       <p class="lede">
-        Bilder enthalten unsichtbare Metadaten — wo das Foto gemacht wurde, mit welchem Gerät,
-        wann genau. Vor Web-Upload, Foren-Posts oder Mailversand: alles entfernen.
-        Sichtbares Bild bleibt 100% identisch. Verarbeitung lokal im Browser.
+        Jedes Foto enthält versteckte Informationen — wo es aufgenommen wurde (GPS-Koordinaten),
+        mit welcher Kamera oder welchem iPhone, an welchem Datum, sogar mit welcher App es bearbeitet wurde.
+        Bevor du Fotos im Internet teilst, per Mail verschickst oder in ein Forum lädst: hier mal kurz durchjagen.
+        Das sichtbare Bild bleibt 100% gleich — nur die unsichtbaren Daten verschwinden.
+        Alles direkt in deinem Browser, keine Datei verlässt deinen Rechner.
       </p>
     </section>
 
@@ -132,7 +134,7 @@
       <div>
         <div class="card" id="dropCard">
           <div class="card-head">
-            <h2>Bilder mit EXIF</h2>
+            <h2>Fotos zum Reinigen</h2>
             <span class="meta" id="queueMeta">0 Dateien</span>
           </div>
 
@@ -149,8 +151,11 @@
           <div class="file-list" id="fileList"></div>
 
           <div class="exif-preview" id="exifPreview" style="display:none;">
-            <h4 id="exifPreviewTitle">EXIF-Daten erkannt</h4>
+            <h4 id="exifPreviewTitle">Diese versteckten Daten haben wir gefunden</h4>
             <ul id="exifPreviewList"></ul>
+            <div style="margin-top: 10px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); font-size: 11px; color: var(--ink-2);">
+              Das wird beim Verarbeiten alles entfernt. Das sichtbare Bild bleibt unverändert.
+            </div>
           </div>
         </div>
       </div>
@@ -161,7 +166,7 @@
           <div class="card-head"><h2>Übersicht</h2></div>
           <div class="card-body">
             <div class="stat-row"><span class="lbl">Dateien</span><span class="val" id="statFiles">0</span></div>
-            <div class="stat-row"><span class="lbl">Mit EXIF</span><span class="val" id="statHasExif">—</span></div>
+            <div class="stat-row"><span class="lbl">Mit Daten drin</span><span class="val" id="statHasExif">—</span></div>
             <div class="stat-row"><span class="lbl">Größe gesamt</span><span class="val" id="statSize">—</span></div>
           </div>
         </div>
@@ -187,7 +192,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
-          <span id="btnProcessLabel">EXIF entfernen</span>
+          <span id="btnProcessLabel">Daten löschen</span>
         </button>
 
         <div class="global-progress" id="globalProgress">
@@ -262,7 +267,7 @@
       if (state.files.length === 0) {
         dropzone.style.display = 'block';
         btnProcess.disabled = true;
-        btnProcessLabel.textContent = 'EXIF entfernen';
+        btnProcessLabel.textContent = 'Daten löschen';
         exifPreview.style.display = 'none';
         updateStats();
         return;
@@ -291,7 +296,7 @@
       // EXIF badge
       const badge = Shell.el('div', {
         class: 'exif-badge',
-        text: entry.exifSummary === null ? 'Prüfe…' : (entry.hasExif ? 'EXIF drin' : 'kein EXIF'),
+        text: entry.exifSummary === null ? 'Prüfe…' : (entry.hasExif ? 'Daten drin' : 'sauber'),
         attrs: { 'data-has': entry.exifSummary === null ? 'unknown' : (entry.hasExif ? 'yes' : 'no') }
       });
       row.appendChild(badge);

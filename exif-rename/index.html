@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bilder nach Aufnahmedatum umbenennen · CLAWBUIS Tools</title>
-  <meta name="description" content="Foto-Archiv aufräumen: IMG_4523.HEIC → 2026-04-15_001.jpg. Aus EXIF-Daten gelesen. 100% lokal." />
+  <title>Dateien umbenennen · Bulk · CLAWBUIS Tools</title>
+  <meta name="description" content="Viele Dateien auf einmal umbenennen — nach Aufnahmedatum, fortlaufend nummeriert oder mit eigenem Muster. 100% lokal." />
   <link rel="canonical" href="https://tools.clawbuis.com/exif-rename" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
 
@@ -84,10 +84,9 @@
   <main class="app-main">
     <section class="hero">
       <div class="eyebrow">BILD · <span class="num">·</span> Sortieren</div>
-      <h1>Bilder umbenennen<br><span class="accent">nach Aufnahmedatum.</span></h1>
+      <h1>Dateien umbenennen.<br><span class="accent">Viele auf einmal.</span></h1>
       <p class="lede">
-        Aus IMG_4523.HEIC wird 2026-04-15_001.jpg. EXIF-Datum wird gelesen, neuer Name generiert,
-        Reihenfolge bleibt chronologisch. Falls kein EXIF: Fallback auf Datei-Datum. 100% im Browser.
+        Aus „IMG_4523.HEIC" und „DSC_8472.jpg" wird „2026-04-15_001.jpg" und „2026-04-15_002.jpg" — sortiert nach Aufnahmedatum oder einfach durchnummeriert mit deinem eigenen Wunsch-Namen. Funktioniert mit Fotos, Videos, Dokumenten — allen Dateien. 100% im Browser, deine Dateien bleiben auf deinem Rechner.
       </p>
     </section>
 
@@ -95,7 +94,7 @@
       <div>
         <div class="card">
           <div class="card-head">
-            <h2>Bilder zum Umbenennen</h2>
+            <h2>Dateien zum Umbenennen</h2>
             <span class="meta" id="queueMeta">0 Dateien</span>
           </div>
           <div class="dropzone" id="dropzone">
@@ -104,9 +103,9 @@
               <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            <div class="drop-title">Bilder hier ablegen</div>
-            <div class="drop-hint">Wir lesen das Aufnahmedatum aus jedem Foto · sortieren · benennen um</div>
-            <input type="file" id="fileInput" accept="image/*,.heic,.heif" multiple class="hidden" />
+            <div class="drop-title">Dateien hier ablegen</div>
+            <div class="drop-hint">Fotos, Videos, Dokumente — alles geht. Mehrere auf einmal.</div>
+            <input type="file" id="fileInput" multiple class="hidden" />
           </div>
           <div class="file-list" id="fileList"></div>
         </div>
@@ -116,40 +115,58 @@
         <div class="card">
           <div class="card-head"><h2>Übersicht</h2></div>
           <div class="card-body">
-            <div class="stat-row"><span class="lbl">Bilder</span><span class="val" id="statFiles">0</span></div>
-            <div class="stat-row"><span class="lbl">Mit EXIF-Datum</span><span class="val" id="statExif">—</span></div>
+            <div class="stat-row"><span class="lbl">Dateien</span><span class="val" id="statFiles">0</span></div>
+            <div class="stat-row"><span class="lbl">Mit Aufnahme-Datum</span><span class="val" id="statExif">—</span></div>
             <div class="stat-row"><span class="lbl">Datum-Spanne</span><span class="val" id="statRange">—</span></div>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-head"><h2>Pattern</h2></div>
+          <div class="card-head"><h2>Wie umbenennen?</h2></div>
           <div class="card-body">
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <label class="option" style="padding: 8px 0;">
                 <input type="radio" name="pattern" value="date_counter" checked />
                 <span class="option-text">
-                  <code style="font-family: var(--font-mono); color: var(--magic);">YYYY-MM-DD_NNN</code>
-                  <span class="option-sub">2026-04-15_001.jpg</span>
+                  <strong>Datum + Nummer</strong>
+                  <span class="option-sub">2026-04-15_001.jpg · sortiert nach Aufnahme</span>
                 </span>
               </label>
               <label class="option" style="padding: 8px 0;">
                 <input type="radio" name="pattern" value="datetime" />
                 <span class="option-text">
-                  <code style="font-family: var(--font-mono); color: var(--magic);">YYYY-MM-DD_HH-MM-SS</code>
-                  <span class="option-sub">2026-04-15_14-32-08.jpg</span>
+                  <strong>Datum + Uhrzeit</strong>
+                  <span class="option-sub">2026-04-15_14-32-08.jpg · genauer Zeitstempel</span>
                 </span>
               </label>
               <label class="option" style="padding: 8px 0;">
                 <input type="radio" name="pattern" value="date_orig" />
                 <span class="option-text">
-                  <code style="font-family: var(--font-mono); color: var(--magic);">YYYY-MM-DD_original</code>
+                  <strong>Datum + Original-Name</strong>
                   <span class="option-sub">2026-04-15_IMG_4523.jpg</span>
                 </span>
               </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="pattern" value="counter_only" />
+                <span class="option-text">
+                  <strong>Nur Nummerierung</strong>
+                  <span class="option-sub">001.jpg, 002.jpg, 003.jpg…</span>
+                </span>
+              </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="pattern" value="prefix_counter" />
+                <span class="option-text">
+                  <strong>Eigener Name + Nummer</strong>
+                  <span class="option-sub">Urlaub-Kreta_001.jpg, Urlaub-Kreta_002.jpg…</span>
+                </span>
+              </label>
             </div>
-            <div class="pattern-hint">
-              Bei fehlendem EXIF nutzen wir das Datei-Änderungsdatum als Fallback.
+            <div class="input-row" id="customPrefixRow" style="margin-top: 12px; display: none;">
+              <label style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; display: block;">Dein Wunsch-Name</label>
+              <input type="text" id="optPrefix" placeholder="z.B. Urlaub-Kreta" maxlength="40" style="width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-body); font-size: 14px;" />
+            </div>
+            <div class="pattern-hint" style="margin-top: 12px;">
+              Wenn keine Aufnahmezeit lesbar ist (z.B. bei normalen Dokumenten), nehmen wir das Datei-Änderungs-Datum als Ersatz.
             </div>
           </div>
         </div>
@@ -197,8 +214,12 @@
     const resultPanel = $('result'), resultInfo = $('resultInfo');
 
     document.querySelectorAll('input[name="pattern"]').forEach(r =>
-      r.addEventListener('change', () => render())
+      r.addEventListener('change', () => {
+        $('customPrefixRow').style.display = getPattern() === 'prefix_counter' ? 'block' : 'none';
+        render();
+      })
     );
+    $('optPrefix') && $('optPrefix').addEventListener('input', () => render());
 
     const pad = (n, l = 2) => String(n).padStart(l, '0');
     const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
@@ -208,6 +229,22 @@
     }
 
     function buildNewName(entry, idx) {
+      const m = entry.name.match(/\.([^.]+)$/);
+      const ext = m ? '.' + m[1].toLowerCase() : '';
+      const baseOrig = entry.name.replace(/\.[^.]+$/, '');
+      const counter = pad(idx + 1, 3);
+      const pattern = getPattern();
+
+      // Patterns die KEIN Datum brauchen
+      if (pattern === 'counter_only') {
+        return `${counter}${ext}`;
+      }
+      if (pattern === 'prefix_counter') {
+        const prefixRaw = ($('optPrefix')?.value || '').trim();
+        const prefix = prefixRaw ? sanitizeFilename(prefixRaw) : 'datei';
+        return `${prefix}_${counter}${ext}`;
+      }
+
       const d = entry.date;
       if (!d) return entry.name;
       const Y = d.getFullYear();
@@ -216,17 +253,17 @@
       const H = pad(d.getHours());
       const Mi = pad(d.getMinutes());
       const S = pad(d.getSeconds());
-      const m = entry.name.match(/\.([^.]+)$/);
-      const ext = m ? '.' + m[1].toLowerCase() : '';
-      const baseOrig = entry.name.replace(/\.[^.]+$/, '');
-      const counter = pad(idx + 1, 3);
 
-      switch (getPattern()) {
+      switch (pattern) {
         case 'datetime': return `${Y}-${M}-${D}_${H}-${Mi}-${S}${ext}`;
-        case 'date_orig': return `${Y}-${M}-${D}_${baseOrig}${ext}`;
+        case 'date_orig': return `${Y}-${M}-${D}_${sanitizeFilename(baseOrig)}${ext}`;
         case 'date_counter':
         default: return `${Y}-${M}-${D}_${counter}${ext}`;
       }
+    }
+
+    function sanitizeFilename(s) {
+      return String(s).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/\s+/g, '-').slice(0, 60);
     }
 
     async function readExifDate(entry) {

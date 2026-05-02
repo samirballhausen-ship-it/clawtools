@@ -39,8 +39,23 @@
     .qr-input:focus { outline: none; border-color: var(--magic); }
     .qr-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
     .qr-row .qr-input { margin-bottom: 0; }
-    .qr-canvas-wrap { display: flex; align-items: center; justify-content: center; padding: 32px; background: var(--surf); border: 1px solid var(--border); min-height: 300px; }
-    #qrCanvas { background: white; padding: 12px; box-shadow: var(--shadow-2); max-width: 100%; height: auto; }
+    .qr-canvas-wrap {
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px;
+      background: var(--surf); border: 1px solid var(--border);
+      aspect-ratio: 1 / 1;
+      max-width: 100%;
+    }
+    #qrCanvas {
+      background: white; padding: 12px;
+      box-shadow: var(--shadow-2);
+      max-width: 100%; max-height: 100%;
+      width: auto; height: auto;
+      object-fit: contain;
+    }
+    @media (max-width: 768px) {
+      .qr-canvas-wrap { padding: 16px; aspect-ratio: 1 / 1; max-width: 360px; margin: 0 auto; }
+    }
     .field-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
   </style>
 </head>

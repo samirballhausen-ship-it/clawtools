@@ -97,6 +97,7 @@
     <section class="hero">
       <div class="eyebrow">BILD · <span class="num">·</span> Konvertierung</div>
       <h1>iPhone-Foto zu JPG.<br><span class="accent">Überall öffnen können.</span></h1>
+      <p class="lede" style="font-size: 14px; color: var(--ink-2);">Hinweis: Neuere iPhones (16, manchmal auch ältere mit iCloud-Foto-Stream) speichern Bilder oft schon direkt als JPG. Wenn deine Fotos `IMG_xxxx.jpg` heißen, brauchst du dieses Werkzeug nicht — du kannst sie überall öffnen.</p>
       <p class="lede">
         Apple-Fotos im HEIC/HEIF-Format in universal lesbare JPGs umwandeln.
         Batch-fähig, mit Qualitätswahl. Verarbeitung 100 % lokal — eure Bilder
@@ -121,7 +122,7 @@
             </svg>
             <div class="drop-title">iPhone-Fotos hier ablegen</div>
             <div class="drop-hint">oder <kbd>Klicken</kbd> · viele auf einmal (bis 100)</div>
-            <input type="file" id="fileInput" accept=".heic,.heif,image/heic,image/heif" multiple class="hidden" />
+            <input type="file" id="fileInput" accept=".heic,.heif,.heix,image/heic,image/heif,image/*" multiple class="hidden" />
           </div>
 
           <div class="file-list" id="fileList"></div>
@@ -357,7 +358,7 @@
     // ────────────────────────────────────────────────
     async function addFiles(fileList) {
       const incoming = Array.from(fileList);
-      let added = 0, skipped = 0;
+      let added = 0, skipped = 0, alreadyJpg = 0;
       for (const file of incoming) {
         if (state.files.length >= MAX_FILES) {
           Shell.Toast.show(`Maximum ${MAX_FILES} Dateien erreicht`, true);
@@ -365,6 +366,14 @@
         }
         const isHeic = /\.(heic|heif|heix)$/i.test(file.name) ||
                         file.type === 'image/heic' || file.type === 'image/heif';
+        const isJpg = /\.(jpg|jpeg)$/i.test(file.name) ||
+                        file.type === 'image/jpeg' || file.type === 'image/jpg';
+        const isPng = /\.png$/i.test(file.name) || file.type === 'image/png';
+        if (isJpg || isPng) {
+          alreadyJpg++;
+          skipped++;
+          continue;
+        }
         if (!isHeic) { skipped++; continue; }
         if (file.size > MAX_FILE_SIZE) {
           Shell.Toast.show(`${file.name}: zu groß`, true);
@@ -377,7 +386,13 @@
         });
         added++;
       }
-      if (skipped > 0 && added === 0) Shell.Toast.show('Nur HEIC/HEIF-Dateien sind erlaubt', true);
+      if (alreadyJpg > 0 && added === 0) {
+        Shell.Toast.show(`Diese Bilder sind schon JPG (${alreadyJpg} ${alreadyJpg === 1 ? 'Datei' : 'Dateien'}) — neuere iPhones speichern oft direkt JPG. Du brauchst dieses Werkzeug nicht.`, false);
+      } else if (skipped > 0 && added === 0) {
+        Shell.Toast.show('Bitte iPhone-Fotos (HEIC/HEIF) ablegen — JPG/PNG sind schon im richtigen Format.', true);
+      } else if (alreadyJpg > 0) {
+        Shell.Toast.show(`${alreadyJpg} ${alreadyJpg === 1 ? 'Bild war' : 'Bilder waren'} schon JPG und ${alreadyJpg === 1 ? 'wurde' : 'wurden'} übersprungen.`, false);
+      }
       render();
       resultPanel.classList.remove('active');
     }

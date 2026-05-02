@@ -113,6 +113,8 @@
 
   <script src="/shared/shell.js"></script>
   <script type="module">
+    import { loadFFmpeg } from '/shared/ffmpeg-loader.js';
+
     window.__tutorial = [
       { target: '#dropzone', title: 'Video wählen', text: 'Auch große Dateien (>1 GB) — verarbeitet wird direkt im Browser, nicht hochgeladen.', side: 'bottom' },
       { target: '.preset-grid', title: 'Preset wählen', text: 'WhatsApp für maximale Komprimierung. Web für Streaming. Original-Qualität für Archivierung.', side: 'left' },
@@ -122,8 +124,7 @@
     const state = { file: null, outBlob: null, crf: 28, scale: 1280 };
     const $ = id => document.getElementById(id);
     const dropzone = $('dropzone'), fileInput = $('fileInput');
-    let ffmpegInstance = null;
-    let runFFmpegCmd = null;
+    let ffCached = null;
 
     document.querySelectorAll('.preset').forEach(p => p.addEventListener('click', () => {
       document.querySelectorAll('.preset').forEach(x => x.classList.remove('active'));
@@ -134,27 +135,18 @@
 
     const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
 
-    async function loadFFmpeg() {
-      if (ffmpegInstance) return ffmpegInstance;
+    async function getFFmpeg() {
+      if (ffCached) return ffCached;
       $('libLoading').classList.add('active');
       try {
-        const ffmpegMod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/+esm');
-        const utilMod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/+esm');
-        const FFmpegClass = ffmpegMod.FFmpeg;
-        ffmpegInstance = new FFmpegClass();
-        const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
-        await ffmpegInstance.load({
-          coreURL: await utilMod.toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-          wasmURL: await utilMod.toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+        ffCached = await loadFFmpeg((stage) => {
+          $('globalStage').textContent = stage;
         });
-        ffmpegInstance._fetchFile = utilMod.fetchFile;
-        // Bracket-access binding for ffmpeg run command
-        runFFmpegCmd = ffmpegInstance['exec'].bind(ffmpegInstance);
+        return ffCached;
       } catch (e) {
-        console.error(e);
-        throw new Error('ffmpeg konnte nicht geladen werden');
+        console.error('[video-compress] ffmpeg load failed', e);
+        throw new Error('Video-Werkzeug konnte nicht geladen werden — bitte Seite neu laden.');
       }
-      return ffmpegInstance;
     }
 
     async function loadFile(file) {
@@ -194,15 +186,17 @@
       $('globalProgress').classList.add('active');
 
       try {
-        const ff = await loadFFmpeg();
+        const ffBundle = await getFFmpeg();
+        const { ffmpeg, fetchFile } = ffBundle;
+        const ffExec = ffBundle.exec;
         $('libLoading').classList.remove('active');
         $('globalStage').textContent = 'Lade Video…';
 
         const inputName = 'input' + (state.file.name.match(/\.[^.]+$/) || ['.mp4'])[0];
-        await ff.writeFile(inputName, await ff._fetchFile(state.file));
+        await ffmpeg.writeFile(inputName, await fetchFile(state.file));
 
         $('globalStage').textContent = 'Komprimiere (kann etwas dauern)…';
-        ff.on('progress', ({ progress }) => {
+        ffmpeg.on('progress', ({ progress }) => {
           if (progress > 0 && progress <= 1) {
             const pct = Math.round(progress * 100);
             $('globalCount').textContent = `${pct}%`;
@@ -214,8 +208,8 @@
         if (state.scale > 0) args.push('-vf', `scale='min(${state.scale},iw)':-2`);
         args.push('output.mp4');
 
-        await runFFmpegCmd(args);
-        const data = await ff.readFile('output.mp4');
+        await ffExec(args);
+        const data = await ffmpeg.readFile('output.mp4');
         state.outBlob = new Blob([data.buffer], { type: 'video/mp4' });
 
         const pct = Math.round((1 - state.outBlob.size / state.file.size) * 100);
@@ -223,8 +217,8 @@
         $('savingsBytes').textContent = `${fmtBytes(state.file.size)} → ${fmtBytes(state.outBlob.size)}`;
         $('result').classList.add('active');
 
-        await ff.deleteFile(inputName).catch(() => {});
-        await ff.deleteFile('output.mp4').catch(() => {});
+        await ffmpeg.deleteFile(inputName).catch(() => {});
+        await ffmpeg.deleteFile('output.mp4').catch(() => {});
       } catch (e) {
         console.error(e);
         Shell.Toast.show(e.message || 'Komprimierung fehlgeschlagen', true);

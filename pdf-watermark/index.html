@@ -43,6 +43,10 @@
             <div style="font-size: 14px; font-weight: 500;" id="fileName">—</div>
             <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 4px;" id="fileInfo">—</div>
           </div>
+          <div id="previewWrap" style="padding: 20px; background: var(--surf); display: none;">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; margin-bottom: 10px;">VORSCHAU</div>
+            <canvas id="wmPreview" width="420" height="594" style="width: 100%; max-width: 420px; height: auto; background: white; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: block; margin: 0 auto;"></canvas>
+          </div>
         </div>
       </div>
 
@@ -74,7 +78,19 @@
               </div>
             </div>
             <div class="input-row"><label>Farbe</label>
-              <input type="color" id="optColor" value="#991b1b" style="width: 100%; height: 40px; padding: 4px; cursor: pointer; border: 1px solid var(--border-strong);" />
+              <div style="display: grid; grid-template-columns: 56px 1fr; gap: 8px; align-items: stretch;">
+                <input type="color" id="optColor" value="#991b1b" style="width: 100%; height: 44px; padding: 4px; cursor: pointer; border: 1px solid var(--border-strong);" />
+                <div class="color-swatches" id="colorSwatches" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+                  <button type="button" class="swatch" data-color="#991b1b" style="background:#991b1b; border:1px solid var(--border); height:44px; cursor:pointer;" title="Rot"></button>
+                  <button type="button" class="swatch" data-color="#000000" style="background:#000000; border:1px solid var(--border); height:44px; cursor:pointer;" title="Schwarz"></button>
+                  <button type="button" class="swatch" data-color="#374151" style="background:#374151; border:1px solid var(--border); height:44px; cursor:pointer;" title="Anthrazit"></button>
+                  <button type="button" class="swatch" data-color="#1e40af" style="background:#1e40af; border:1px solid var(--border); height:44px; cursor:pointer;" title="Blau"></button>
+                  <button type="button" class="swatch" data-color="#15803d" style="background:#15803d; border:1px solid var(--border); height:44px; cursor:pointer;" title="Grün"></button>
+                  <button type="button" class="swatch" data-color="#a16207" style="background:#a16207; border:1px solid var(--border); height:44px; cursor:pointer;" title="Gold"></button>
+                  <button type="button" class="swatch" data-color="#7c3aed" style="background:#7c3aed; border:1px solid var(--border); height:44px; cursor:pointer;" title="Violett"></button>
+                </div>
+              </div>
+              <div style="font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-top: 6px;">Schnell-Auswahl oder Farbpicker für jede Wunschfarbe</div>
             </div>
           </div>
         </div>
@@ -116,7 +132,67 @@
     const dropzone = $('dropzone'), fileInput = $('fileInput');
     const fileLoaded = $('fileLoaded'), fileName = $('fileName'), fileInfo = $('fileInfo'), fileMeta = $('fileMeta');
 
-    $('optOpacity').addEventListener('input', e => $('opacityVal').textContent = e.target.value);
+    $('optOpacity').addEventListener('input', e => { $('opacityVal').textContent = e.target.value; updatePreview(); });
+    ['optText', 'optPosition', 'optFontSize', 'optColor'].forEach(id => {
+      $(id).addEventListener('input', updatePreview);
+      $(id).addEventListener('change', updatePreview);
+    });
+    document.querySelectorAll('.swatch').forEach(b => b.addEventListener('click', () => {
+      const c = b.dataset.color;
+      $('optColor').value = c;
+      updatePreview();
+    }));
+
+    function updatePreview() {
+      const cv = $('wmPreview');
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      const W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      // Background "page" with hint lines
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#e8e8e8';
+      // Sample text lines for context
+      const lineY = [60, 100, 140, 180, 220, 260, 300, 340, 380, 420, 460, 500, 540];
+      ctx.font = '12px sans-serif';
+      lineY.forEach((y, i) => {
+        const lineWidth = 100 + ((i * 37) % 200);
+        ctx.fillRect(40, y, lineWidth, 6);
+      });
+      // Watermark
+      const text = ($('optText').value || 'VERTRAULICH').slice(0, 40);
+      const fontSize = parseInt($('optFontSize').value, 10) * 0.42;  // scale for preview
+      const opacity = parseInt($('optOpacity').value, 10) / 100;
+      const color = $('optColor').value;
+      const position = $('optPosition').value;
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = color;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (position === 'diagonal') {
+        ctx.translate(W / 2, H / 2);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillText(text, 0, 0);
+      } else if (position === 'top') {
+        ctx.fillText(text, W / 2, 50);
+      } else if (position === 'bottom') {
+        ctx.fillText(text, W / 2, H - 50);
+      } else if (position === 'grid') {
+        ctx.translate(0, 0);
+        ctx.rotate(-Math.PI / 9);
+        const stepX = fontSize * text.length * 0.8;
+        const stepY = fontSize * 4;
+        for (let y = -H; y < H * 2; y += stepY) {
+          for (let x = -W; x < W * 2; x += stepX) {
+            ctx.fillText(text, x, y);
+          }
+        }
+      }
+      ctx.restore();
+    }
 
     const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
 
@@ -133,6 +209,8 @@
         fileMeta.textContent = `${state.pageCount} Seiten`;
         $('btnProcess').disabled = false;
         $('result').classList.remove('active');
+        $('previewWrap').style.display = 'block';
+        updatePreview();
       } catch (e) {
         Shell.Toast.show('PDF kaputt oder geschützt', true);
       }

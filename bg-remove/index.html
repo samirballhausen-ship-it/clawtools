@@ -25,7 +25,7 @@
     <section class="hero">
       <div class="eyebrow">BILD · <span class="num">·</span> KI-Editor</div>
       <h1>Hintergrund entfernen.<br><span class="accent">KI im Browser.</span></h1>
-      <p class="lede">Person, Produkt oder Objekt aus dem Hintergrund freistellen — automatisch erkannt per KI. Alles läuft direkt in deinem Browser. Kein Upload, keine Cloud, deine Bilder verlassen deinen Rechner nicht. Beim ersten Mal lädt die KI (~50 MB) — danach sofort einsatzbereit.</p>
+      <p class="lede">Person, Produkt oder Objekt aus dem Hintergrund freistellen. Funktioniert am besten bei klar erkennbaren Motiven mit gutem Kontrast — Personen, Produkt-Fotos, Tiere. Alles läuft direkt in deinem Browser. Kein Upload, keine Cloud, deine Bilder verlassen deinen Rechner nicht. Beim ersten Mal lädt das Werkzeug (~50 MB) — danach sofort einsatzbereit.</p>
     </section>
 
     <div id="emptyView">
@@ -201,9 +201,24 @@
         const fn = await loadEngine();
         $('libLoading').classList.remove('active');
         $('globalStage').textContent = 'Entferne Hintergrund…';
+        const STAGE_LABELS = {
+          'fetch': 'Lade Daten',
+          'compute': 'Berechne',
+          'inference': 'Erkenne Motiv',
+        };
         const blob = await fn(state.file, {
+          // proxyToWorker:false → läuft im Main-Thread, vermeidet Cross-Origin-Worker-Block
+          proxyToWorker: false,
+          model: 'isnet_quint8',
+          output: { format: 'image/png', quality: 0.9 },
           progress: (key, current, total) => {
-            $('globalStage').textContent = `${key}: ${current}/${total}`;
+            const head = STAGE_LABELS[String(key).split(':')[0]] || 'Verarbeite';
+            const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+            $('globalStage').textContent = `${head}… ${pct}%`;
+            if (total > 0) {
+              $('globalCount').textContent = `${pct}%`;
+              $('globalFill').style.right = `${100 - pct}%`;
+            }
           }
         });
         state.resultBlob = blob;

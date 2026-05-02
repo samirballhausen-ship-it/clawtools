@@ -12,12 +12,23 @@
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
-    .preset-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 0; }
-    .preset { padding: 12px 10px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; text-align: center; transition: all .15s var(--ease); }
-    .preset:hover { border-color: var(--magic); }
-    .preset.active { background: var(--magic-soft); border-color: var(--magic); }
-    .preset .label { font-family: var(--font-heading); font-size: 14px; font-weight: 500; }
-    .preset .desc { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.04em; }
+    .preset-list { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+    .preset {
+      display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 12px;
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--bg); border: 1px solid var(--border);
+      cursor: pointer; text-align: left;
+      transition: border-color .15s var(--ease), background .15s var(--ease);
+      font: inherit; color: inherit;
+    }
+    .preset:hover { border-color: var(--magic); background: var(--ok-soft); }
+    .preset.active { background: var(--ok-soft); border-color: var(--magic); border-left: 3px solid var(--magic); padding-left: 12px; }
+    .preset-icon { font-size: 20px; line-height: 1; text-align: center; }
+    .preset-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .preset-label { font-family: var(--font-heading); font-size: 14px; font-weight: 600; color: var(--ink); }
+    .preset-desc { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+    .preset-tag { font-family: var(--font-mono); font-size: 10px; color: var(--magic); letter-spacing: 0.06em; white-space: nowrap; padding: 3px 6px; background: var(--bg); border: 1px solid var(--magic); }
     .savings-display { padding: 16px; background: var(--ok-soft); border: 1px solid var(--magic); margin-top: 8px; text-align: center; }
     .savings-percent { font-family: var(--font-heading); font-size: 36px; font-weight: 300; color: var(--magic); line-height: 1; }
     .savings-bytes { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); margin-top: 4px; }
@@ -52,13 +63,41 @@
 
       <aside class="sidebar">
         <div class="card">
-          <div class="card-head"><h2>Qualitäts-Preset</h2></div>
+          <div class="card-head"><h2>Wie soll's werden?</h2></div>
           <div class="card-body">
-            <div class="preset-row">
-              <div class="preset" data-quality="0.5" data-scale="1.0"><div class="label">Mail</div><div class="desc">≈85% kleiner</div></div>
-              <div class="preset active" data-quality="0.75" data-scale="1.5"><div class="label">Web</div><div class="desc">≈60% kleiner</div></div>
-              <div class="preset" data-quality="0.85" data-scale="2.0"><div class="label">Standard</div><div class="desc">≈40% kleiner</div></div>
-              <div class="preset" data-quality="0.92" data-scale="2.5"><div class="label">Druck</div><div class="desc">≈20% kleiner</div></div>
+            <div class="preset-list">
+              <button type="button" class="preset" data-quality="0.5" data-scale="1.0">
+                <span class="preset-icon">✉</span>
+                <span class="preset-text">
+                  <span class="preset-label">Klein für Mail</span>
+                  <span class="preset-desc">Maximale Verkleinerung — gut für E-Mail-Anhänge bis 10 MB</span>
+                </span>
+                <span class="preset-tag">~85% kleiner</span>
+              </button>
+              <button type="button" class="preset active" data-quality="0.75" data-scale="1.5">
+                <span class="preset-icon">⚖</span>
+                <span class="preset-text">
+                  <span class="preset-label">Ausgewogen</span>
+                  <span class="preset-desc">Klein und gut lesbar — Empfehlung für die meisten Fälle</span>
+                </span>
+                <span class="preset-tag">~60% kleiner</span>
+              </button>
+              <button type="button" class="preset" data-quality="0.85" data-scale="2.0">
+                <span class="preset-icon">★</span>
+                <span class="preset-text">
+                  <span class="preset-label">Hohe Qualität</span>
+                  <span class="preset-desc">Schärfere Schrift und Bilder — leicht reduzierte Größe</span>
+                </span>
+                <span class="preset-tag">~40% kleiner</span>
+              </button>
+              <button type="button" class="preset" data-quality="0.92" data-scale="2.5">
+                <span class="preset-icon">🖨</span>
+                <span class="preset-text">
+                  <span class="preset-label">Druck-tauglich</span>
+                  <span class="preset-desc">Wie das Original — nur leichte Komprimierung</span>
+                </span>
+                <span class="preset-tag">~20% kleiner</span>
+              </button>
             </div>
           </div>
         </div>

@@ -195,12 +195,24 @@
 
       try {
         const previewEl = $('previewPage');
-        const oldShadow = previewEl.style.boxShadow;
-        previewEl.style.boxShadow = 'none';
-        const canvas = await html2canvas(previewEl, {
-          scale: 2, useCORS: true, backgroundColor: '#fff', logging: false
-        });
-        previewEl.style.boxShadow = oldShadow;
+        // CRITICAL: render in dedicated off-screen container at FIXED 794px width.
+        // Previous bug: max-width:100% shrank preview on mobile (322px), text wrapped 2-3× more,
+        // generating 36 pages from a 4-page document.
+        const renderHost = document.createElement('div');
+        renderHost.style.cssText = 'position:fixed; left:-99999px; top:0; width:794px; background:white; padding:60px 80px; box-sizing:border-box; font-family:"Geist",sans-serif; font-size:14px; line-height:1.6; color:#0a0a0a;';
+        // Clone preview content (skip the preview-page wrapper which has max-width)
+        Array.from(previewEl.childNodes).forEach(n => renderHost.appendChild(n.cloneNode(true)));
+        document.body.appendChild(renderHost);
+
+        let canvas;
+        try {
+          canvas = await html2canvas(renderHost, {
+            scale: 2, useCORS: true, backgroundColor: '#fff', logging: false,
+            width: 794, windowWidth: 794
+          });
+        } finally {
+          document.body.removeChild(renderHost);
+        }
 
         const A4_W = 794, A4_H = 1123;
         const scale = canvas.width / A4_W;

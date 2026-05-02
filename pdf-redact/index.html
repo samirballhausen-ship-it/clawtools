@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
-    .page-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: crosshair; }
+    .page-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: crosshair; touch-action: none; user-select: none; }
     .page-canvas { display: block; max-width: 100%; height: auto; width: 100%; }
     .page-overlay { position: absolute; inset: 0; pointer-events: none; }
     .redact-rect { position: absolute; background: #000; cursor: pointer; pointer-events: all; }
@@ -167,9 +167,10 @@
           overlay.appendChild(makeRectEl(r));
         });
 
-        // Drag handler
+        // Drag handler — Pointer-Events (Mouse + Touch + Stylus)
         let drawingRect = null;
-        wrap.addEventListener('mousedown', e => {
+        let drawPointerId = null;
+        wrap.addEventListener('pointerdown', e => {
           if (e.target.classList.contains('redact-rect')) return;
           const rect = wrap.getBoundingClientRect();
           const x = (e.clientX - rect.left) / rect.width;
@@ -180,10 +181,12 @@
           div.style.width = '0'; div.style.height = '0';
           overlay.appendChild(div);
           drawingRect._el = div;
+          drawPointerId = e.pointerId;
+          try { wrap.setPointerCapture(e.pointerId); } catch {}
           e.preventDefault();
         });
-        wrap.addEventListener('mousemove', e => {
-          if (!drawingRect) return;
+        wrap.addEventListener('pointermove', e => {
+          if (!drawingRect || e.pointerId !== drawPointerId) return;
           const rect = wrap.getBoundingClientRect();
           const cx = (e.clientX - rect.left) / rect.width;
           const cy = (e.clientY - rect.top) / rect.height;
@@ -196,28 +199,33 @@
           drawingRect._el.style.top = (y * 100) + '%';
           drawingRect._el.style.width = (w * 100) + '%';
           drawingRect._el.style.height = (h * 100) + '%';
+          e.preventDefault();
         });
-        function finishDraw() {
+        function finishDraw(e) {
           if (!drawingRect) return;
-          if (drawingRect.w < 0.005 || drawingRect.h < 0.005) {
+          if (e && e.pointerId !== undefined && e.pointerId !== drawPointerId) return;
+          if (drawingRect.w < 0.01 || drawingRect.h < 0.01) {
             drawingRect._el.remove();
           } else {
             const id = Date.now() + Math.random();
             const r = { id, page: drawingRect.page, x: drawingRect.x, y: drawingRect.y, w: drawingRect.w, h: drawingRect.h };
             state.rects.push(r);
             drawingRect._el.dataset.id = id;
-            drawingRect._el.addEventListener('click', e => {
-              e.stopPropagation();
+            const elRef = drawingRect._el;
+            elRef.addEventListener('click', evt => {
+              evt.stopPropagation();
               state.rects = state.rects.filter(rr => rr.id !== id);
-              drawingRect._el.remove();
+              elRef.remove();
               updateMeta();
             });
           }
           drawingRect = null;
+          drawPointerId = null;
           updateMeta();
         }
-        wrap.addEventListener('mouseup', finishDraw);
-        wrap.addEventListener('mouseleave', finishDraw);
+        wrap.addEventListener('pointerup', finishDraw);
+        wrap.addEventListener('pointercancel', finishDraw);
+        wrap.addEventListener('pointerleave', finishDraw);
 
         container.appendChild(wrap);
       });

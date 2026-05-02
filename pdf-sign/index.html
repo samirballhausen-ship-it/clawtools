@@ -15,15 +15,23 @@
     .sig-pad-wrap { padding: 16px; background: var(--surf); }
     .sig-pad { width: 100%; height: 200px; background: white; border: 2px dashed var(--border-strong); cursor: crosshair; touch-action: none; display: block; }
     .sig-pad-actions { display: flex; gap: 8px; margin-top: 12px; }
-    .page-canvas-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: copy; }
-    .page-canvas { display: block; max-width: 100%; height: auto; }
-    .placed-sig { position: absolute; cursor: move; outline: 2px solid var(--magic); }
+    .page-canvas-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: copy; touch-action: manipulation; }
+    .page-canvas { display: block; max-width: 100%; height: auto; width: 100%; }
+    .placed-sig { position: absolute; cursor: move; outline: 2px solid var(--magic); touch-action: none; }
     .placed-sig img { width: 100%; height: 100%; pointer-events: none; }
-    .placed-sig .resize { position: absolute; right: -8px; bottom: -8px; width: 16px; height: 16px; background: var(--magic); border: 2px solid white; cursor: nwse-resize; }
-    .placed-sig .delete { position: absolute; right: -8px; top: -8px; width: 16px; height: 16px; background: var(--risk); color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; }
-    .pages-container { padding: 20px; max-height: 60vh; overflow-y: auto; background: var(--surf); }
+    .placed-sig .resize { position: absolute; right: -10px; bottom: -10px; width: 22px; height: 22px; background: var(--magic); border: 2px solid white; cursor: nwse-resize; touch-action: none; }
+    .placed-sig .delete { position: absolute; right: -10px; top: -10px; width: 22px; height: 22px; background: var(--risk); color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 1; }
+    .pages-container { padding: 20px; max-height: 60vh; overflow-y: auto; overflow-x: auto; background: var(--surf); width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
     .help { padding: 12px 20px; background: var(--surf); border: 1px solid var(--border); font-size: 12px; color: var(--ink-2); margin: 16px 0; }
     .help strong { color: var(--ink); }
+    .signing-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+    .signing-grid > * { min-width: 0; }
+    @media (max-width: 768px) {
+      .signing-grid { grid-template-columns: 1fr; gap: 16px; }
+      .signing-grid aside.sidebar { position: sticky; top: 60px; z-index: 10; background: var(--bg); border: 1px solid var(--border); }
+      .pages-container { padding: 12px; max-height: 70vh; }
+      .sig-pad { height: 140px; }
+    }
   </style>
 </head>
 <body>
@@ -47,7 +55,7 @@
     </div>
 
     <div id="editorView" style="display: none;">
-      <div style="display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start;">
+      <div class="signing-grid">
         <div class="card">
           <div class="card-head">
             <h2 id="fileName">—</h2>
@@ -119,51 +127,76 @@
     const $ = id => document.getElementById(id);
     const dropzone = $('dropzone'), fileInput = $('fileInput');
 
-    // Signature pad
+    // Signature pad — unified Pointer-Events (Mouse + Touch + Stylus)
     const sigPad = $('sigPad');
-    let drawing = false, lastX = 0, lastY = 0;
+    let drawing = false, lastX = 0, lastY = 0, hasStrokes = false;
+
     function setupSigPad() {
       const rect = sigPad.getBoundingClientRect();
-      sigPad.width = rect.width * 2; sigPad.height = rect.height * 2;
+      const dpr = window.devicePixelRatio || 1;
+      sigPad.width = Math.max(rect.width, 1) * dpr;
+      sigPad.height = Math.max(rect.height, 1) * dpr;
       const ctx = sigPad.getContext('2d');
-      ctx.scale(2, 2);
+      ctx.scale(dpr, dpr);
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5;
     }
-    function getPos(e) {
+
+    function getPosFromEvent(e) {
       const r = sigPad.getBoundingClientRect();
-      const t = e.touches ? e.touches[0] : e;
-      return { x: t.clientX - r.left, y: t.clientY - r.top };
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
     }
-    sigPad.addEventListener('mousedown', e => { drawing = true; ({ x: lastX, y: lastY } = getPos(e)); });
-    sigPad.addEventListener('mousemove', e => {
-      if (!drawing) return;
-      const { x, y } = getPos(e);
-      const ctx = sigPad.getContext('2d');
-      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
-      lastX = x; lastY = y;
-    });
-    ['mouseup','mouseleave'].forEach(ev => sigPad.addEventListener(ev, () => { drawing = false; updateSig(); }));
-    sigPad.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; ({ x: lastX, y: lastY } = getPos(e)); });
-    sigPad.addEventListener('touchmove', e => {
+
+    sigPad.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      sigPad.setPointerCapture(e.pointerId);
+      drawing = true;
+      const { x, y } = getPosFromEvent(e);
+      lastX = x; lastY = y;
+      // Single-tap dot — minimal stroke for legibility
+      const ctx = sigPad.getContext('2d');
+      ctx.beginPath(); ctx.arc(x, y, 1.2, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill();
+    });
+    sigPad.addEventListener('pointermove', (e) => {
       if (!drawing) return;
-      const { x, y } = getPos(e);
+      e.preventDefault();
+      const { x, y } = getPosFromEvent(e);
       const ctx = sigPad.getContext('2d');
       ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
       lastX = x; lastY = y;
+      hasStrokes = true;
     });
-    sigPad.addEventListener('touchend', () => { drawing = false; updateSig(); });
+    function endDraw(e) {
+      if (!drawing) return;
+      drawing = false;
+      try { sigPad.releasePointerCapture(e.pointerId); } catch {}
+      updateSig();
+    }
+    sigPad.addEventListener('pointerup', endDraw);
+    sigPad.addEventListener('pointercancel', endDraw);
+    sigPad.addEventListener('pointerleave', endDraw);
 
     function updateSig() {
-      // Trim and store
+      if (!hasStrokes) return;
       state.sigDataUrl = sigPad.toDataURL('image/png');
     }
+
+    window.addEventListener('resize', () => {
+      // Re-init canvas resolution on rotate/resize but preserve current strokes
+      const dataUrl = state.sigDataUrl;
+      setupSigPad();
+      if (dataUrl) {
+        const img = new Image();
+        img.onload = () => sigPad.getContext('2d').drawImage(img, 0, 0, sigPad.getBoundingClientRect().width, sigPad.getBoundingClientRect().height);
+        img.src = dataUrl;
+      }
+    });
 
     $('btnClearSig').addEventListener('click', () => {
       const ctx = sigPad.getContext('2d');
       ctx.clearRect(0, 0, sigPad.width, sigPad.height);
       state.sigDataUrl = null;
+      hasStrokes = false;
     });
     $('btnUploadSig').addEventListener('click', () => $('sigFileInput').click());
     $('sigFileInput').addEventListener('change', async e => {
@@ -263,40 +296,47 @@
       const resize = Shell.el('div', { class: 'resize' });
       div.appendChild(resize);
 
-      // Drag
-      let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
-      div.addEventListener('mousedown', e => {
+      // Drag — Pointer-Events (Mouse + Touch + Stylus)
+      let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0, dragPointerId = null;
+      div.addEventListener('pointerdown', e => {
         if (e.target === resize || e.target === del) return;
         dragging = true; sx = e.clientX; sy = e.clientY; ox = pl.x; oy = pl.y;
+        dragPointerId = e.pointerId;
+        div.setPointerCapture(e.pointerId);
         e.preventDefault(); e.stopPropagation();
       });
-      const onMove = e => {
-        if (!dragging) return;
+      div.addEventListener('pointermove', e => {
+        if (!dragging || e.pointerId !== dragPointerId) return;
         const rect = wrap.getBoundingClientRect();
         const dx = (e.clientX - sx) / rect.width;
         const dy = (e.clientY - sy) / rect.height;
-        pl.x = ox + dx; pl.y = oy + dy;
+        pl.x = Math.max(0, Math.min(1 - pl.w, ox + dx));
+        pl.y = Math.max(0, Math.min(1 - pl.h, oy + dy));
         div.style.left = (pl.x * 100) + '%'; div.style.top = (pl.y * 100) + '%';
-      };
-      const onUp = () => { dragging = false; };
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+      });
+      ['pointerup', 'pointercancel'].forEach(ev => div.addEventListener(ev, e => {
+        if (e.pointerId === dragPointerId) { dragging = false; dragPointerId = null; }
+      }));
 
-      // Resize
-      let resizing = false, rsx = 0, rsy = 0, rsw = 0, rsh = 0;
-      resize.addEventListener('mousedown', e => {
-        resizing = true; rsx = e.clientX; rsy = e.clientY; rsw = pl.w; rsh = pl.h;
+      // Resize — Pointer-Events
+      let resizing = false, rsx = 0, rsw = 0, resizePointerId = null;
+      resize.addEventListener('pointerdown', e => {
+        resizing = true; rsx = e.clientX; rsw = pl.w;
+        resizePointerId = e.pointerId;
+        resize.setPointerCapture(e.pointerId);
         e.preventDefault(); e.stopPropagation();
       });
-      window.addEventListener('mousemove', e => {
-        if (!resizing) return;
+      resize.addEventListener('pointermove', e => {
+        if (!resizing || e.pointerId !== resizePointerId) return;
         const rect = wrap.getBoundingClientRect();
         const dw = (e.clientX - rsx) / rect.width;
-        pl.w = Math.max(0.03, rsw + dw);
+        pl.w = Math.max(0.05, Math.min(0.6, rsw + dw));
         pl.h = pl.w * (img.naturalHeight / img.naturalWidth || 0.3);
         div.style.width = (pl.w * 100) + '%'; div.style.height = (pl.h * 100) + '%';
       });
-      window.addEventListener('mouseup', () => { resizing = false; });
+      ['pointerup', 'pointercancel'].forEach(ev => resize.addEventListener(ev, e => {
+        if (e.pointerId === resizePointerId) { resizing = false; resizePointerId = null; }
+      }));
 
       return div;
     }
@@ -321,7 +361,8 @@
     });
 
     $('btnProcess').addEventListener('click', async () => {
-      if (state.placed.length === 0) { Shell.Toast.show('Keine Unterschrift platziert', true); return; }
+      if (!state.sigDataUrl) { Shell.Toast.show('Bitte zuerst eine Unterschrift zeichnen.', true); return; }
+      if (state.placed.length === 0) { Shell.Toast.show('Bitte tippe auf eine Stelle im PDF, um die Unterschrift zu platzieren.', true); return; }
       $('btnProcess').disabled = true;
       $('btnLabel').textContent = 'Speichere…';
 
