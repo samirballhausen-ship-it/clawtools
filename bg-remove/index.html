@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hintergrund entfernen · CLAWBUIS Tools</title>
+  <meta name="description" content="Bild-Hintergrund entfernen · KI-Modell läuft im Browser · 100% lokal" />
+  <link rel="canonical" href="https://tools.clawbuis.com/bg-remove" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <style>
+    .preview-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; }
+    .preview-col { background: var(--surf); border: 1px solid var(--border); padding: 16px; }
+    .preview-col h3 { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+    .preview-img { width: 100%; height: 300px; object-fit: contain; background: repeating-conic-gradient(#f5f5f5 0% 25%, white 0% 50%) 50% / 16px 16px; }
+    .lib-loading { padding: 16px 20px; background: var(--surf); border: 1px solid var(--border); margin-top: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); display: none; }
+    .lib-loading.active { display: block; }
+    .lib-loading strong { color: var(--magic); }
+    @media (max-width: 768px) { .preview-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">BILD · <span class="num">·</span> KI-Editor</div>
+      <h1>Hintergrund entfernen.<br><span class="accent">KI im Browser.</span></h1>
+      <p class="lede">Person, Produkt, Objekt freistellen — automatisch erkannt. Modell läuft via WebAssembly/WebGPU im Browser. Kein Upload, keine Cloud, keine Daten verlassen den Rechner. Beim ersten Mal lädt das Modell (~50 MB) — danach sofort verfügbar.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/>
+          <circle cx="12" cy="11" r="3"/>
+          <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/>
+        </svg>
+        <div class="drop-title">Bild hier ablegen</div>
+        <div class="drop-hint">JPG · PNG · WebP · ein Bild zur Zeit · max. 4096×4096</div>
+        <input type="file" id="fileInput" accept="image/*" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div class="work-grid">
+        <div class="card">
+          <div class="card-head"><h2 id="fileName">—</h2><span class="meta" id="fileMeta">—</span></div>
+          <div class="preview-grid">
+            <div class="preview-col">
+              <h3>Vorher</h3>
+              <img id="origPreview" class="preview-img" alt="" />
+            </div>
+            <div class="preview-col">
+              <h3>Nachher</h3>
+              <img id="resultPreview" class="preview-img" alt="" style="display: none;" />
+              <div id="placeholderRight" style="height: 300px; display: flex; align-items: center; justify-content: center; color: var(--ink-3); font-family: var(--font-mono); font-size: 12px;">— noch nicht verarbeitet —</div>
+            </div>
+          </div>
+          <div class="lib-loading" id="libLoading">
+            <strong>Lade KI-Modell…</strong> @imgly/background-removal Engine (~50 MB). Wird einmalig geladen, dann gecacht.
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Auflösung</span><span class="val" id="statRes">—</span></div>
+              <div class="stat-row"><span class="lbl">Größe</span><span class="val" id="statSize">—</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Modell</h2></div>
+            <div class="card-body">
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="model" value="isnet" checked />
+                <span class="option-text">Schnell<span class="option-sub">isnet · gute Qualität · schneller</span></span>
+              </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="model" value="isnet_quint8" />
+                <span class="option-text">Standard<span class="option-sub">8-bit · weniger Speicher</span></span>
+              </label>
+            </div>
+          </div>
+
+          <button class="btn" id="btnProcess" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/>
+              <circle cx="12" cy="11" r="3"/>
+            </svg>
+            <span id="btnLabel">Hintergrund entfernen</span>
+          </button>
+
+          <div class="global-progress" id="globalProgress">
+            <div class="global-progress-head">
+              <span class="lbl" id="globalStage">Verarbeite…</span>
+              <span class="num">—</span>
+            </div>
+            <div class="global-progress-bar"><div class="global-progress-fill" style="right:50%"></div></div>
+          </div>
+
+          <div class="result" id="result">
+            <div class="result-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Fertig
+            </div>
+            <div class="result-info" id="resultInfo"></div>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button class="btn btn-success" id="btnDownload">PNG herunterladen</button>
+              <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Bild wählen', text: 'JPG, PNG oder WebP. Funktioniert besonders gut bei Personen, Tieren, Produkten.', side: 'bottom' },
+      { target: '#btnProcess', title: 'Erstes Mal', text: 'Beim ersten Klick lädt das KI-Modell (~50 MB). Folgende Bilder gehen sofort. Alles im Browser, kein Upload.', side: 'left' }
+    ];
+
+    const state = { file: null, origUrl: null, resultBlob: null, resultUrl: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+    let removeBg = null;
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadEngine() {
+      if (removeBg) return removeBg;
+      $('libLoading').classList.add('active');
+      try {
+        // Use ESM dynamic import
+        const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
+        removeBg = mod.removeBackground || mod.default?.removeBackground || mod.default;
+        if (!removeBg) throw new Error('removeBackground export not found');
+      } catch (e) {
+        console.error(e);
+        throw new Error('Engine konnte nicht geladen werden — eventuell WebGPU/WebAssembly nicht supported');
+      }
+      return removeBg;
+    }
+
+    async function loadFile(file) {
+      state.file = file;
+      if (state.origUrl) URL.revokeObjectURL(state.origUrl);
+      state.origUrl = URL.createObjectURL(file);
+      $('origPreview').src = state.origUrl;
+      $('emptyView').style.display = 'none';
+      $('editorView').style.display = 'block';
+      $('fileName').textContent = file.name;
+      $('fileMeta').textContent = fmtBytes(file.size);
+      $('statSize').textContent = fmtBytes(file.size);
+      const im = new Image();
+      im.onload = () => {
+        $('statRes').textContent = `${im.naturalWidth}×${im.naturalHeight}`;
+      };
+      im.src = state.origUrl;
+      $('btnProcess').disabled = false;
+      $('result').classList.remove('active');
+      $('resultPreview').style.display = 'none';
+      $('placeholderRight').style.display = 'flex';
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Verarbeite…';
+      $('globalProgress').classList.add('active');
+      $('globalStage').textContent = 'Lade Modell…';
+
+      try {
+        const fn = await loadEngine();
+        $('libLoading').classList.remove('active');
+        $('globalStage').textContent = 'Entferne Hintergrund…';
+        const blob = await fn(state.file, {
+          progress: (key, current, total) => {
+            $('globalStage').textContent = `${key}: ${current}/${total}`;
+          }
+        });
+        state.resultBlob = blob;
+        if (state.resultUrl) URL.revokeObjectURL(state.resultUrl);
+        state.resultUrl = URL.createObjectURL(blob);
+        $('resultPreview').src = state.resultUrl;
+        $('resultPreview').style.display = 'block';
+        $('placeholderRight').style.display = 'none';
+        $('resultInfo').textContent = `Original ${fmtBytes(state.file.size)} → freigestellt ${fmtBytes(blob.size)}`;
+        $('result').classList.add('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show(e.message || 'Hintergrund-Entfernung fehlgeschlagen', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Hintergrund entfernen';
+        $('globalProgress').classList.remove('active');
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.resultBlob) return;
+      const url = URL.createObjectURL(state.resultBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.[^.]+$/, '_freigestellt.png');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    $('btnReset').addEventListener('click', () => {
+      if (state.origUrl) URL.revokeObjectURL(state.origUrl);
+      if (state.resultUrl) URL.revokeObjectURL(state.resultUrl);
+      state.file = null; state.origUrl = null; state.resultBlob = null; state.resultUrl = null;
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'BG · REMOVE', tour: true, toolName: 'Hintergrund entfernen' });
+    });
+  </script>
+</body>
+</html>

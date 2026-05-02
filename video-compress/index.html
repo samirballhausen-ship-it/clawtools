@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video komprimieren · CLAWBUIS Tools</title>
+  <meta name="description" content="Video-Dateien für Mail/WhatsApp schrumpfen · ffmpeg.wasm im Browser · 100% lokal" />
+  <link rel="canonical" href="https://tools.clawbuis.com/video-compress" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <style>
+    .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 0; }
+    .preset { padding: 14px 12px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; text-align: center; transition: all .15s var(--ease); }
+    .preset:hover { border-color: var(--magic); }
+    .preset.active { background: var(--magic-soft); border-color: var(--magic); }
+    .preset .label { font-family: var(--font-heading); font-size: 14px; font-weight: 500; }
+    .preset .desc { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.04em; }
+    .lib-loading { padding: 16px 20px; background: var(--surf); border: 1px solid var(--border); margin-top: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); display: none; }
+    .lib-loading.active { display: block; }
+    .lib-loading strong { color: var(--magic); }
+    .video-preview { width: 100%; max-height: 50vh; background: #000; }
+    .savings-display { padding: 16px; background: var(--ok-soft); border: 1px solid var(--magic); margin-top: 8px; text-align: center; }
+    .savings-percent { font-family: var(--font-heading); font-size: 36px; font-weight: 300; color: var(--magic); line-height: 1; }
+    .savings-bytes { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">VIDEO · <span class="num">·</span> Komprimieren</div>
+      <h1>Video komprimieren.<br><span class="accent">Mail/WhatsApp-tauglich.</span></h1>
+      <p class="lede">Große Videos für Versand schrumpfen. ffmpeg.wasm läuft komplett im Browser — auch 500-MB-Videos verlassen euren Rechner nicht. Beim ersten Mal lädt der Codec (~25 MB).</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+        <div class="drop-title">Video hier ablegen</div>
+        <div class="drop-hint">MP4 · MOV · WebM · AVI · MKV — auch große Dateien (1 GB+)</div>
+        <input type="file" id="fileInput" accept="video/*" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div class="work-grid">
+        <div class="card">
+          <div class="card-head"><h2 id="fileName">—</h2><span class="meta" id="fileMeta">—</span></div>
+          <div style="padding: 16px 20px;">
+            <video id="videoPreview" class="video-preview" controls></video>
+          </div>
+          <div class="lib-loading" id="libLoading">
+            <strong>Lade Video-Codec…</strong> ffmpeg.wasm (~25 MB). Wird einmalig geladen, dann gecacht.
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Größe</span><span class="val" id="statSize">—</span></div>
+              <div class="stat-row"><span class="lbl">Dauer</span><span class="val" id="statDuration">—</span></div>
+              <div class="stat-row"><span class="lbl">Auflösung</span><span class="val" id="statRes">—</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Qualität</h2></div>
+            <div class="card-body">
+              <div class="preset-grid">
+                <div class="preset" data-crf="32" data-scale="640"><div class="label">WhatsApp</div><div class="desc">≈90% kleiner · 640px</div></div>
+                <div class="preset active" data-crf="28" data-scale="1280"><div class="label">Mail</div><div class="desc">≈75% kleiner · HD</div></div>
+                <div class="preset" data-crf="24" data-scale="1920"><div class="label">Web</div><div class="desc">≈50% kleiner · FullHD</div></div>
+                <div class="preset" data-crf="20" data-scale="0"><div class="label">Maximum</div><div class="desc">≈25% kleiner · Original</div></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn" id="btnProcess" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            <span id="btnLabel">Komprimieren</span>
+          </button>
+
+          <div class="global-progress" id="globalProgress">
+            <div class="global-progress-head">
+              <span class="lbl" id="globalStage">Verarbeite…</span>
+              <span class="num" id="globalCount">0%</span>
+            </div>
+            <div class="global-progress-bar"><div class="global-progress-fill" id="globalFill" style="right:100%"></div></div>
+          </div>
+
+          <div class="result" id="result">
+            <div class="result-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Fertig
+            </div>
+            <div class="savings-display"><div class="savings-percent" id="savingsPct">—</div><div class="savings-bytes" id="savingsBytes">—</div></div>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button class="btn btn-success" id="btnDownload">Herunterladen</button>
+              <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script type="module">
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Video wählen', text: 'Auch große Dateien (>1 GB) — verarbeitet wird direkt im Browser, nicht hochgeladen.', side: 'bottom' },
+      { target: '.preset-grid', title: 'Preset wählen', text: 'WhatsApp für maximale Komprimierung. Web für Streaming. Original-Qualität für Archivierung.', side: 'left' },
+      { target: '#btnProcess', title: 'Erstes Mal', text: 'Codec wird beim ersten Klick geladen (~25 MB). Folgende Videos gehen sofort.', side: 'top' }
+    ];
+
+    const state = { file: null, outBlob: null, crf: 28, scale: 1280 };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+    let ffmpegInstance = null;
+    let runFFmpegCmd = null;
+
+    document.querySelectorAll('.preset').forEach(p => p.addEventListener('click', () => {
+      document.querySelectorAll('.preset').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      state.crf = parseInt(p.dataset.crf, 10);
+      state.scale = parseInt(p.dataset.scale, 10);
+    }));
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadFFmpeg() {
+      if (ffmpegInstance) return ffmpegInstance;
+      $('libLoading').classList.add('active');
+      try {
+        const ffmpegMod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/+esm');
+        const utilMod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/+esm');
+        const FFmpegClass = ffmpegMod.FFmpeg;
+        ffmpegInstance = new FFmpegClass();
+        const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+        await ffmpegInstance.load({
+          coreURL: await utilMod.toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await utilMod.toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+        });
+        ffmpegInstance._fetchFile = utilMod.fetchFile;
+        // Bracket-access binding for ffmpeg run command
+        runFFmpegCmd = ffmpegInstance['exec'].bind(ffmpegInstance);
+      } catch (e) {
+        console.error(e);
+        throw new Error('ffmpeg konnte nicht geladen werden');
+      }
+      return ffmpegInstance;
+    }
+
+    async function loadFile(file) {
+      state.file = file;
+      $('videoPreview').src = URL.createObjectURL(file);
+      $('emptyView').style.display = 'none';
+      $('editorView').style.display = 'block';
+      $('fileName').textContent = file.name;
+      $('fileMeta').textContent = fmtBytes(file.size);
+      $('statSize').textContent = fmtBytes(file.size);
+      $('videoPreview').addEventListener('loadedmetadata', () => {
+        const v = $('videoPreview');
+        $('statDuration').textContent = `${Math.floor(v.duration / 60)}:${String(Math.floor(v.duration % 60)).padStart(2, '0')}`;
+        $('statRes').textContent = `${v.videoWidth}×${v.videoHeight}`;
+      }, { once: true });
+      $('btnProcess').disabled = false;
+      $('result').classList.remove('active');
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Komprimiere…';
+      $('globalProgress').classList.add('active');
+
+      try {
+        const ff = await loadFFmpeg();
+        $('libLoading').classList.remove('active');
+        $('globalStage').textContent = 'Lade Video…';
+
+        const inputName = 'input' + (state.file.name.match(/\.[^.]+$/) || ['.mp4'])[0];
+        await ff.writeFile(inputName, await ff._fetchFile(state.file));
+
+        $('globalStage').textContent = 'Komprimiere (kann etwas dauern)…';
+        ff.on('progress', ({ progress }) => {
+          if (progress > 0 && progress <= 1) {
+            const pct = Math.round(progress * 100);
+            $('globalCount').textContent = `${pct}%`;
+            $('globalFill').style.right = `${100 - pct}%`;
+          }
+        });
+
+        const args = ['-i', inputName, '-c:v', 'libx264', '-crf', String(state.crf), '-preset', 'fast', '-c:a', 'aac', '-b:a', '128k'];
+        if (state.scale > 0) args.push('-vf', `scale='min(${state.scale},iw)':-2`);
+        args.push('output.mp4');
+
+        await runFFmpegCmd(args);
+        const data = await ff.readFile('output.mp4');
+        state.outBlob = new Blob([data.buffer], { type: 'video/mp4' });
+
+        const pct = Math.round((1 - state.outBlob.size / state.file.size) * 100);
+        $('savingsPct').textContent = pct > 0 ? `−${pct}%` : '0%';
+        $('savingsBytes').textContent = `${fmtBytes(state.file.size)} → ${fmtBytes(state.outBlob.size)}`;
+        $('result').classList.add('active');
+
+        await ff.deleteFile(inputName).catch(() => {});
+        await ff.deleteFile('output.mp4').catch(() => {});
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show(e.message || 'Komprimierung fehlgeschlagen', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Komprimieren';
+        $('globalProgress').classList.remove('active');
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.[^.]+$/, '_komprimiert.mp4');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.outBlob = null;
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'VIDEO · KOMPRIMIEREN', tour: true, toolName: 'Video komprimieren' });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video zu GIF · CLAWBUIS Tools</title>
+  <meta name="description" content="Video-Clips zu GIF konvertieren · trimmen · ffmpeg im Browser" />
+  <link rel="canonical" href="https://tools.clawbuis.com/video-zu-gif" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <style>
+    .lib-loading { padding: 16px 20px; background: var(--surf); border: 1px solid var(--border); margin-top: 16px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); display: none; }
+    .lib-loading.active { display: block; }
+    .lib-loading strong { color: var(--magic); }
+    .video-preview { width: 100%; max-height: 50vh; background: #000; }
+    .trim-row { padding: 8px 0; }
+    .trim-row label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; display: block; }
+    .trim-row input, .trim-row select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 13px; }
+    .gif-preview { display: block; max-width: 100%; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">VIDEO · <span class="num">·</span> Zu GIF</div>
+      <h1>Video zu GIF.<br><span class="accent">Für Social Media & Chat.</span></h1>
+      <p class="lede">Beliebigen Videoabschnitt zu animiertem GIF exportieren. Trim per Sekunden-Eingabe, Größe und FPS einstellbar. Optimierte Palette für scharfe GIFs trotz Größenlimit. ffmpeg.wasm im Browser — kein Upload.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <text x="12" y="16" text-anchor="middle" font-size="8" font-weight="bold" fill="currentColor" stroke="none">GIF</text>
+        </svg>
+        <div class="drop-title">Video hier ablegen</div>
+        <div class="drop-hint">MP4 · MOV · WebM — Trim-Bereich danach wählen</div>
+        <input type="file" id="fileInput" accept="video/*" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div class="work-grid">
+        <div class="card">
+          <div class="card-head"><h2 id="fileName">—</h2><span class="meta" id="fileMeta">—</span></div>
+          <div style="padding: 16px 20px;">
+            <video id="videoPreview" class="video-preview" controls></video>
+          </div>
+          <div id="gifResult" style="display:none; padding: 16px 20px; background: var(--surf); border-top: 1px solid var(--border);">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; margin-bottom: 12px;">GIF-VORSCHAU</div>
+            <img id="gifPreview" class="gif-preview" alt="" />
+          </div>
+          <div class="lib-loading" id="libLoading">
+            <strong>Lade Video-Engine…</strong> ffmpeg.wasm (~25 MB). Falls schon einmal geladen: instant.
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Trim</h2></div>
+            <div class="card-body">
+              <div class="trim-row"><label>Start (Sekunden)</label><input type="number" id="trimStart" min="0" step="0.1" value="0" /></div>
+              <div class="trim-row"><label>Dauer (Sekunden, max 30)</label><input type="number" id="trimDuration" min="0.5" max="30" step="0.1" value="3" /></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Output</h2></div>
+            <div class="card-body">
+              <div class="trim-row"><label>Breite (px)</label>
+                <select id="optWidth">
+                  <option value="240">240 (klein)</option>
+                  <option value="320">320 (mittel)</option>
+                  <option value="480" selected>480 (Standard)</option>
+                  <option value="640">640 (groß)</option>
+                  <option value="800">800 (HD)</option>
+                </select>
+              </div>
+              <div class="trim-row"><label>FPS</label>
+                <select id="optFps">
+                  <option value="10">10 fps (klein)</option>
+                  <option value="15" selected>15 fps (Standard)</option>
+                  <option value="24">24 fps (smooth)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn" id="btnProcess" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            <span id="btnLabel">GIF erstellen</span>
+          </button>
+
+          <div class="global-progress" id="globalProgress">
+            <div class="global-progress-head">
+              <span class="lbl" id="globalStage">Verarbeite…</span>
+              <span class="num" id="globalCount">0%</span>
+            </div>
+            <div class="global-progress-bar"><div class="global-progress-fill" id="globalFill" style="right:100%"></div></div>
+          </div>
+
+          <div class="result" id="result">
+            <div class="result-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Fertig
+            </div>
+            <div class="result-info" id="resultInfo"></div>
+            <div style="display:flex; gap:8px; margin-top:14px;">
+              <button class="btn btn-success" id="btnDownload">GIF herunterladen</button>
+              <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script type="module">
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Video wählen', text: 'Lade ein Video — du wählst danach welcher Abschnitt zum GIF wird.', side: 'bottom' },
+      { target: '#trimStart', title: 'Start + Dauer', text: 'Welcher Abschnitt soll zum GIF? Maximal 30 Sekunden für vernünftige Dateigröße.', side: 'left' },
+      { target: '#optWidth', title: 'Größe + FPS', text: 'Kleinere Breite + niedrige FPS = kleines GIF. Für Social Media reichen oft 320×15fps.', side: 'left' }
+    ];
+
+    const state = { file: null, outBlob: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+    let ffmpegInstance = null;
+    let runFFmpegCmd = null;
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadFFmpeg() {
+      if (ffmpegInstance) return ffmpegInstance;
+      $('libLoading').classList.add('active');
+      const ffmpegMod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/+esm');
+      const utilMod = await import('https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/+esm');
+      const FFmpegClass = ffmpegMod.FFmpeg;
+      ffmpegInstance = new FFmpegClass();
+      const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+      await ffmpegInstance.load({
+        coreURL: await utilMod.toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await utilMod.toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+      });
+      ffmpegInstance._fetchFile = utilMod.fetchFile;
+      runFFmpegCmd = ffmpegInstance['exec'].bind(ffmpegInstance);
+      return ffmpegInstance;
+    }
+
+    async function loadFile(file) {
+      state.file = file;
+      $('videoPreview').src = URL.createObjectURL(file);
+      $('emptyView').style.display = 'none';
+      $('editorView').style.display = 'block';
+      $('fileName').textContent = file.name;
+      $('fileMeta').textContent = fmtBytes(file.size);
+      $('videoPreview').addEventListener('loadedmetadata', () => {
+        const v = $('videoPreview');
+        $('trimDuration').max = Math.min(30, v.duration);
+        $('trimDuration').value = Math.min(3, v.duration);
+      }, { once: true });
+      $('btnProcess').disabled = false;
+      $('result').classList.remove('active');
+      $('gifResult').style.display = 'none';
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Erstelle GIF…';
+      $('globalProgress').classList.add('active');
+
+      try {
+        const ff = await loadFFmpeg();
+        $('libLoading').classList.remove('active');
+
+        const inputName = 'input' + (state.file.name.match(/\.[^.]+$/) || ['.mp4'])[0];
+        await ff.writeFile(inputName, await ff._fetchFile(state.file));
+
+        const start = parseFloat($('trimStart').value);
+        const duration = parseFloat($('trimDuration').value);
+        const width = parseInt($('optWidth').value, 10);
+        const fps = parseInt($('optFps').value, 10);
+
+        $('globalStage').textContent = 'Generiere Palette…';
+        ff.on('progress', ({ progress }) => {
+          if (progress > 0 && progress <= 1) {
+            const pct = Math.round(progress * 100);
+            $('globalCount').textContent = `${pct}%`;
+            $('globalFill').style.right = `${100 - pct}%`;
+          }
+        });
+
+        await runFFmpegCmd([
+          '-ss', String(start), '-t', String(duration), '-i', inputName,
+          '-vf', `fps=${fps},scale=${width}:-1:flags=lanczos,palettegen`,
+          'palette.png'
+        ]);
+
+        $('globalStage').textContent = 'Erstelle GIF…';
+        await runFFmpegCmd([
+          '-ss', String(start), '-t', String(duration), '-i', inputName, '-i', 'palette.png',
+          '-lavfi', `fps=${fps},scale=${width}:-1:flags=lanczos[x];[x][1:v]paletteuse`,
+          'output.gif'
+        ]);
+
+        const data = await ff.readFile('output.gif');
+        state.outBlob = new Blob([data.buffer], { type: 'image/gif' });
+
+        $('gifPreview').src = URL.createObjectURL(state.outBlob);
+        $('gifResult').style.display = 'block';
+        $('resultInfo').textContent = `${duration.toFixed(1)}s · ${width}px @ ${fps}fps · ${fmtBytes(state.outBlob.size)}`;
+        $('result').classList.add('active');
+
+        await ff.deleteFile(inputName).catch(() => {});
+        await ff.deleteFile('palette.png').catch(() => {});
+        await ff.deleteFile('output.gif').catch(() => {});
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show(e.message || 'GIF-Erstellung fehlgeschlagen', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'GIF erstellen';
+        $('globalProgress').classList.remove('active');
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.[^.]+$/, '.gif');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.outBlob = null;
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+      $('result').classList.remove('active');
+      $('gifResult').style.display = 'none';
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'VIDEO · GIF', tour: true, toolName: 'Video zu GIF' });
+    });
+  </script>
+</body>
+</html>

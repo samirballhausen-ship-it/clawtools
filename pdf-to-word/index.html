@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF zu Word/Excel · CLAWBUIS Tools</title>
+  <meta name="description" content="PDF-Text in DOCX oder TXT extrahieren · 100% lokal · keine Cloud" />
+  <link rel="canonical" href="https://tools.clawbuis.com/pdf-to-word" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    .preview-pages { padding: 20px; max-height: 50vh; overflow-y: auto; background: var(--surf); }
+    .preview-page { background: white; padding: 24px 32px; margin-bottom: 16px; box-shadow: var(--shadow-1); font-family: 'Geist', sans-serif; font-size: 13px; line-height: 1.6; }
+    .preview-page h4 { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); letter-spacing: 0.12em; margin-bottom: 12px; text-transform: uppercase; }
+    .preview-page p { margin: 6px 0; white-space: pre-wrap; word-break: break-word; }
+    .info-banner { padding: 14px 18px; background: var(--warn-soft); border: 1px solid var(--warn); margin: 16px 0; font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+    .info-banner strong { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">PDF · <span class="num">·</span> Konvertierung</div>
+      <h1>PDF zu Word.<br><span class="accent">Bearbeitbar machen.</span></h1>
+      <p class="lede">Text aus PDFs extrahieren und in DOCX (Word), XLSX (Excel) oder TXT speichern. Bei Scan-PDFs (Bild-only) erst durch <a href="/pdf-ocr" style="color: var(--magic); text-decoration: underline;">PDF-OCR</a> jagen — sonst kommt nichts raus.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13l2 4 2-4 2 4 2-4"/>
+        </svg>
+        <div class="drop-title">PDF hier ablegen</div>
+        <div class="drop-hint">Text-PDFs · keine Scans · Layout wird vereinfacht</div>
+        <input type="file" id="fileInput" accept="application/pdf,.pdf" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display: none;">
+      <div class="work-grid">
+        <div class="card">
+          <div class="card-head"><h2 id="fileName">—</h2><span class="meta" id="fileMeta">—</span></div>
+          <div class="info-banner" id="ocrHint" style="display: none;">
+            <strong>Hinweis:</strong> Wenig oder kein Text gefunden — vermutlich ein Scan-PDF. Lass es erst durch <a href="/pdf-ocr" style="color: var(--magic);">PDF-OCR</a> laufen, dann hier wieder rein.
+          </div>
+          <div class="preview-pages" id="previewPages"></div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Seiten</span><span class="val" id="statPages">—</span></div>
+              <div class="stat-row"><span class="lbl">Text gesamt</span><span class="val" id="statChars">—</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Format</h2></div>
+            <div class="card-body">
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="format" value="docx" checked />
+                <span class="option-text">Word (.docx)<span class="option-sub">In Word/LibreOffice öffnen</span></span>
+              </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="format" value="txt" />
+                <span class="option-text">Plain Text (.txt)<span class="option-sub">Reiner Text ohne Format</span></span>
+              </label>
+            </div>
+          </div>
+
+          <button class="btn" id="btnExport" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span id="btnLabel">Exportieren</span>
+          </button>
+          <button class="btn btn-secondary" id="btnReset" style="margin-top: 8px;">Andere Datei</button>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window.__tutorial = [
+      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert mit Text-PDFs (aus Word, LibreOffice etc). Scan-PDFs erst durch OCR jagen.', side: 'bottom' },
+      { target: '.preview-pages', title: 'Vorschau', text: 'Hier siehst du was extrahiert wurde — vor dem Export prüfen ob alles dabei ist.', side: 'top' },
+      { target: '#btnExport', title: 'Format wählen', text: 'DOCX für Word-Bearbeitung. TXT für reinen Text. Layout/Formatierung wird vereinfacht.', side: 'left' }
+    ];
+
+    const state = { file: null, pages: [] };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadFile(file) {
+      try {
+        state.file = file;
+        const buf = await file.arrayBuffer();
+        const pdfJsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+        state.pages = [];
+        let totalChars = 0;
+        for (let i = 1; i <= pdfJsDoc.numPages; i++) {
+          const page = await pdfJsDoc.getPage(i);
+          const content = await page.getTextContent();
+          let lastY = null;
+          const lines = [];
+          let curLine = [];
+          content.items.forEach(it => {
+            if (lastY !== null && Math.abs(it.transform[5] - lastY) > 2) {
+              if (curLine.length) lines.push(curLine.join(' '));
+              curLine = [];
+            }
+            curLine.push(it.str);
+            lastY = it.transform[5];
+          });
+          if (curLine.length) lines.push(curLine.join(' '));
+          const text = lines.join('\n').replace(/[ \t]+/g, ' ').trim();
+          state.pages.push({ idx: i, text });
+          totalChars += text.length;
+        }
+        $('emptyView').style.display = 'none';
+        $('editorView').style.display = 'block';
+        $('fileName').textContent = file.name;
+        $('fileMeta').textContent = `${fmtBytes(file.size)} · ${state.pages.length} Seiten`;
+        $('statPages').textContent = state.pages.length;
+        $('statChars').textContent = totalChars.toLocaleString('de-DE');
+        $('ocrHint').style.display = totalChars < 100 ? 'block' : 'none';
+
+        const wrap = $('previewPages');
+        while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+        state.pages.forEach(p => {
+          const pageEl = Shell.el('div', { class: 'preview-page' });
+          pageEl.appendChild(Shell.el('h4', { text: `Seite ${p.idx}` }));
+          pageEl.appendChild(Shell.el('p', { text: p.text || '— kein Text gefunden —' }));
+          wrap.appendChild(pageEl);
+        });
+        $('btnExport').disabled = false;
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('PDF kaputt', true);
+      }
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnExport').addEventListener('click', async () => {
+      const format = document.querySelector('input[name="format"]:checked').value;
+      const baseName = state.file.name.replace(/\.pdf$/i, '');
+
+      if (format === 'txt') {
+        const txt = state.pages.map(p => `=== Seite ${p.idx} ===\n\n${p.text}\n`).join('\n');
+        download(new Blob([txt], { type: 'text/plain;charset=utf-8' }), `${baseName}.txt`);
+        return;
+      }
+
+      // DOCX via docx library
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = window.docx;
+      const docxParagraphs = [];
+      state.pages.forEach((p, idx) => {
+        if (idx > 0) docxParagraphs.push(new Paragraph({ children: [], pageBreakBefore: true }));
+        docxParagraphs.push(new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun({ text: `Seite ${p.idx}`, bold: true })]
+        }));
+        const lines = (p.text || '').split('\n');
+        lines.forEach(line => {
+          docxParagraphs.push(new Paragraph({
+            children: [new TextRun({ text: line || ' ' })]
+          }));
+        });
+      });
+      const doc = new Document({
+        creator: 'CLAWBUIS Tools',
+        title: baseName,
+        sections: [{ children: docxParagraphs }]
+      });
+      const blob = await Packer.toBlob(doc);
+      download(blob, `${baseName}.docx`);
+    });
+
+    function download(blob, name) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.pages = [];
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'PDF · ZU WORD', tour: true, toolName: 'PDF zu Word' });
+    });
+  </script>
+</body>
+</html>
