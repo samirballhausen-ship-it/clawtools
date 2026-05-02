@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HEIC zu JPG umwandeln · CLAWBUIS Tools</title>
+  <meta name="description" content="iPhone HEIC-Bilder in universal lesbare JPGs umwandeln. Batch-fähig, 100 % im Browser." />
+  <meta name="keywords" content="heic zu jpg, iphone bilder konvertieren, heic konverter, heic umwandeln, heif, kostenlos, ohne anmeldung" />
+  <link rel="canonical" href="https://tools.clawbuis.com/heic-zu-jpg" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <style>
+    .file-list { display: flex; flex-direction: column; }
+    .file-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto;
+      gap: 14px; align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: var(--surf); }
+    .file-pos {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      color: var(--ink-2);
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .file-info { min-width: 0; }
+    .file-name {
+      font-size: 14px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-meta {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--ink-3);
+      letter-spacing: 0.04em;
+    }
+    .file-status {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg); color: var(--ink-2);
+      white-space: nowrap;
+    }
+    .file-status[data-state="queued"]   { color: var(--ink-3); }
+    .file-status[data-state="working"]  { color: var(--magic); border-color: var(--magic); background: var(--ok-soft); }
+    .file-status[data-state="done"]     { color: var(--magic); border-color: var(--magic); }
+    .file-status[data-state="error"]    { color: var(--risk); border-color: var(--risk); background: var(--risk-soft); }
+    .file-progress {
+      width: 60px; height: 4px;
+      background: var(--surf-3);
+      position: relative; overflow: hidden;
+    }
+    .file-progress::after {
+      content: ""; position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: var(--p, 0%); background: var(--magic);
+      transition: width .25s var(--ease);
+    }
+    .file-remove {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-3);
+    }
+    .file-remove:hover { color: var(--risk); background: var(--surf-2); }
+    .file-remove svg { width: 14px; height: 14px; }
+
+    .lib-loading {
+      padding: 16px 20px;
+      background: var(--surf);
+      border: 1px solid var(--border);
+      margin-top: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px; color: var(--ink-2);
+      letter-spacing: 0.04em;
+      display: none;
+    }
+    .lib-loading.active { display: block; }
+    .lib-loading strong { color: var(--magic); }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+
+    <section class="hero">
+      <div class="eyebrow">BILD · <span class="num">·</span> Konvertierung</div>
+      <h1>HEIC zu JPG.<br><span class="accent">iPhone-Bilder befreit.</span></h1>
+      <p class="lede">
+        Apple-Fotos im HEIC/HEIF-Format in universal lesbare JPGs umwandeln.
+        Batch-fähig, mit Qualitätswahl. Verarbeitung 100 % lokal — eure Bilder
+        verlassen euren Rechner nicht.
+      </p>
+    </section>
+
+    <div class="work-grid">
+
+      <div>
+        <div class="card" id="dropCard">
+          <div class="card-head">
+            <h2>HEIC-Dateien</h2>
+            <span class="meta" id="queueMeta">0 Dateien</span>
+          </div>
+
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <div class="drop-title">HEIC-Bilder hier ablegen</div>
+            <div class="drop-hint">oder <kbd>Klicken</kbd> · auch HEIF erlaubt · Batch bis 100 Dateien</div>
+            <input type="file" id="fileInput" accept=".heic,.heif,image/heic,image/heif" multiple class="hidden" />
+          </div>
+
+          <div class="file-list" id="fileList"></div>
+
+          <div class="lib-loading" id="libLoading">
+            <strong>Lade Konverter…</strong> Die HEIC-Engine (~3.5 MB) wird einmalig in deinen Browser geladen. Dann ist sie für alle weiteren Konvertierungen sofort verfügbar.
+          </div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+
+        <div class="card">
+          <div class="card-head"><h2>Übersicht</h2></div>
+          <div class="card-body">
+            <div class="stat-row">
+              <span class="lbl">Dateien</span>
+              <span class="val" id="statFiles">0</span>
+            </div>
+            <div class="stat-row">
+              <span class="lbl">Größe gesamt</span>
+              <span class="val" id="statSize">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="lbl">Konvertiert</span>
+              <span class="val" id="statDone">0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Optionen</h2></div>
+          <div class="card-body">
+            <label class="option">
+              <input type="range" id="optQuality" min="60" max="100" step="5" value="92" style="flex:1; accent-color: var(--magic);">
+              <span class="option-text">
+                Qualität: <span id="optQualityVal">92</span>%
+                <span class="option-sub">Höher = bessere Qualität, größere Datei</span>
+              </span>
+            </label>
+            <label class="option">
+              <input type="checkbox" id="optKeepName" checked />
+              <span class="option-text">Original-Dateinamen behalten <span class="option-sub">.heic → .jpg, sonst gleicher Name</span></span>
+            </label>
+            <label class="option">
+              <input type="checkbox" id="optKeepExif" checked />
+              <span class="option-text">EXIF-Daten erhalten <span class="option-sub">Aufnahmedatum, Kamera-Info etc. behalten</span></span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span id="btnProcessLabel">Konvertieren</span>
+        </button>
+
+        <div class="global-progress" id="globalProgress">
+          <div class="global-progress-head">
+            <span class="lbl" id="globalStage">Verarbeite…</span>
+            <span class="num" id="globalCount">0 / 0</span>
+          </div>
+          <div class="global-progress-bar">
+            <div class="global-progress-fill" id="globalFill" style="right:100%"></div>
+          </div>
+        </div>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="result-info" id="resultInfo"></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span id="downloadLabel">Herunterladen</span>
+            </button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'HEIC-Dateien ablegen', text: 'Drag oder Klick. Auch HEIF, HEIX und ähnliche iPhone-Formate werden erkannt. Maximal 100 Dateien gleichzeitig.', side: 'bottom' },
+      { target: '#optQuality', title: 'Qualität wählen', text: '92% ist ein guter Kompromiss. Bei sehr großen Druckdateien kannst du auf 100% gehen, für Mail-Versand reicht oft 75-85%.', side: 'left' },
+      { target: '#optKeepExif', title: 'EXIF-Daten', text: 'Wenn aktiv, bleiben Aufnahmedatum/Kamera-Info erhalten. Für Datenschutz vor Web-Upload: hier deaktivieren ODER den EXIF-Strip-Tool nutzen.', side: 'left' },
+      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Klick wird die HEIC-Engine (~3.5 MB) einmalig geladen. Danach Sekundenschnell pro Bild.', side: 'top' }
+    ];
+
+    const state = { files: [], nextId: 1, processing: false, results: [], libReady: false };
+    const MAX_FILE_SIZE = 200 * 1024 * 1024;
+    const MAX_FILES = 100;
+
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput'), fileListEl = $('fileList');
+    const queueMeta = $('queueMeta'), statFiles = $('statFiles'), statSize = $('statSize'), statDone = $('statDone');
+    const optQuality = $('optQuality'), optQualityVal = $('optQualityVal');
+    const optKeepName = $('optKeepName'), optKeepExif = $('optKeepExif');
+    const btnProcess = $('btnProcess'), btnProcessLabel = $('btnProcessLabel');
+    const btnDownload = $('btnDownload'), btnReset = $('btnReset'), downloadLabel = $('downloadLabel');
+    const globalProgress = $('globalProgress'), globalStage = $('globalStage');
+    const globalCount = $('globalCount'), globalFill = $('globalFill');
+    const resultPanel = $('result'), resultInfo = $('resultInfo');
+    const libLoading = $('libLoading');
+
+    optQuality.addEventListener('input', () => { optQualityVal.textContent = optQuality.value; });
+
+    const fmtBytes = b => {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    // ────────────────────────────────────────────────
+    // Lazy-load libheif-js
+    // ────────────────────────────────────────────────
+    let libheifModule = null;
+    async function loadLibheif() {
+      if (libheifModule) return libheifModule;
+      libLoading.classList.add('active');
+      try {
+        if (!window.libheif) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/libheif-js@1.17.1/libheif/libheif.js';
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('libheif konnte nicht geladen werden'));
+            document.head.appendChild(s);
+          });
+        }
+        libheifModule = window.libheif();
+        if (libheifModule.then) libheifModule = await libheifModule;
+      } finally {
+        libLoading.classList.remove('active');
+      }
+      return libheifModule;
+    }
+
+    // ────────────────────────────────────────────────
+    // Render
+    // ────────────────────────────────────────────────
+    function render() {
+      while (fileListEl.firstChild) fileListEl.removeChild(fileListEl.firstChild);
+      if (state.files.length === 0) {
+        dropzone.style.display = 'block';
+        btnProcess.disabled = true;
+        btnProcessLabel.textContent = 'Konvertieren';
+        updateStats();
+        return;
+      }
+      dropzone.style.display = 'none';
+      btnProcess.disabled = state.processing;
+      if (state.processing) {
+        btnProcessLabel.textContent = 'Verarbeite…';
+      } else {
+        btnProcessLabel.textContent = state.files.length === 1
+          ? '1 Bild konvertieren'
+          : `${state.files.length} Bilder konvertieren`;
+      }
+      state.files.forEach((entry, idx) => fileListEl.appendChild(buildRow(entry, idx)));
+      queueMeta.textContent = state.files.length === 1 ? '1 Datei' : `${state.files.length} Dateien`;
+      updateStats();
+    }
+
+    function buildRow(entry, idx) {
+      const row = Shell.el('div', { class: 'file-row' });
+      row.appendChild(Shell.el('div', { class: 'file-pos', text: String(idx + 1).padStart(2, '0') }));
+
+      const info = Shell.el('div', { class: 'file-info' });
+      info.appendChild(Shell.el('div', { class: 'file-name', text: entry.name, title: entry.name }));
+      const meta = Shell.el('div', { class: 'file-meta' });
+      meta.appendChild(document.createTextNode(fmtBytes(entry.size)));
+      if (entry.error) {
+        meta.appendChild(document.createTextNode(' · '));
+        meta.appendChild(Shell.el('span', { text: entry.error, style: { color: 'var(--risk)' } }));
+      }
+      info.appendChild(meta);
+      row.appendChild(info);
+
+      // Per-row progress
+      if (entry.state === 'working') {
+        const prog = Shell.el('div', { class: 'file-progress' });
+        prog.style.setProperty('--p', `${(entry.progress * 100).toFixed(0)}%`);
+        row.appendChild(prog);
+      } else {
+        row.appendChild(Shell.el('div'));
+      }
+
+      row.appendChild(Shell.el('div', {
+        class: 'file-status',
+        text: labelFor(entry.state),
+        attrs: { 'data-state': entry.state }
+      }));
+
+      const remove = Shell.el('button', {
+        class: 'file-remove',
+        attrs: { type: 'button', title: 'Entfernen' },
+        on: { click: () => removeFile(entry.id) }
+      });
+      remove.appendChild(Shell.parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`));
+      row.appendChild(remove);
+      return row;
+    }
+
+    function labelFor(s) {
+      return { queued: 'Wartet', working: 'Läuft', done: 'Fertig', error: 'Fehler' }[s] || s;
+    }
+
+    function updateStats() {
+      statFiles.textContent = state.files.length;
+      const totalSize = state.files.reduce((s, f) => s + f.size, 0);
+      statSize.textContent = totalSize > 0 ? fmtBytes(totalSize) : '—';
+      const done = state.files.filter(f => f.state === 'done').length;
+      statDone.textContent = done;
+    }
+
+    // ────────────────────────────────────────────────
+    // File handling
+    // ────────────────────────────────────────────────
+    async function addFiles(fileList) {
+      const incoming = Array.from(fileList);
+      let added = 0, skipped = 0;
+      for (const file of incoming) {
+        if (state.files.length >= MAX_FILES) {
+          Shell.Toast.show(`Maximum ${MAX_FILES} Dateien erreicht`, true);
+          break;
+        }
+        const isHeic = /\.(heic|heif|heix)$/i.test(file.name) ||
+                        file.type === 'image/heic' || file.type === 'image/heif';
+        if (!isHeic) { skipped++; continue; }
+        if (file.size > MAX_FILE_SIZE) {
+          Shell.Toast.show(`${file.name}: zu groß`, true);
+          skipped++;
+          continue;
+        }
+        state.files.push({
+          id: state.nextId++, file, name: file.name, size: file.size,
+          state: 'queued', progress: 0, error: null, _result: null
+        });
+        added++;
+      }
+      if (skipped > 0 && added === 0) Shell.Toast.show('Nur HEIC/HEIF-Dateien sind erlaubt', true);
+      render();
+      resultPanel.classList.remove('active');
+    }
+
+    function removeFile(id) {
+      if (state.processing) return;
+      state.files = state.files.filter(f => f.id !== id);
+      resultPanel.classList.remove('active');
+      render();
+    }
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+          dropzone.classList.add('dragover');
+        }
+      })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      if (state.processing) return;
+      if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) addFiles(e.target.files);
+      e.target.value = '';
+    });
+    btnReset.addEventListener('click', () => {
+      state.files = []; state.results = [];
+      resultPanel.classList.remove('active');
+      globalProgress.classList.remove('active');
+      render();
+    });
+
+    // ────────────────────────────────────────────────
+    // Conversion
+    // ────────────────────────────────────────────────
+    btnProcess.addEventListener('click', async () => {
+      if (state.processing || state.files.length === 0) return;
+      await convertAll();
+    });
+
+    async function convertAll() {
+      state.processing = true;
+      resultPanel.classList.remove('active');
+      globalProgress.classList.add('active');
+      render();
+
+      try {
+        const lib = await loadLibheif();
+        const quality = parseInt(optQuality.value, 10) / 100;
+        const total = state.files.length;
+        let processed = 0, errors = 0;
+        state.results = [];
+
+        for (const entry of state.files) {
+          try {
+            entry.state = 'working';
+            entry.progress = 0.1;
+            render();
+            updateGlobal(`Konvertiere: ${truncate(entry.name, 36)}`, processed, total);
+
+            const buf = await entry.file.arrayBuffer();
+            const decoder = new lib.HeifDecoder();
+            const data = decoder.decode(new Uint8Array(buf));
+            if (!data || data.length === 0) throw new Error('Konnte HEIC nicht decodieren');
+
+            const image = data[0]; // Take primary image
+            const width = image.get_width();
+            const height = image.get_height();
+
+            entry.progress = 0.4;
+            render();
+
+            const arrayBuffer = await new Promise((resolve, reject) => {
+              image.display({ data: new Uint8ClampedArray(width * height * 4), width, height }, displayData => {
+                if (!displayData) reject(new Error('Display fehler'));
+                else resolve(displayData);
+              });
+            });
+
+            entry.progress = 0.7;
+            render();
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            const imageData = new ImageData(arrayBuffer.data, width, height);
+            ctx.putImageData(imageData, 0, 0);
+
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+            if (!blob) throw new Error('Encoding fehler');
+
+            const baseName = optKeepName.checked
+              ? entry.name.replace(/\.(heic|heif|heix)$/i, '.jpg')
+              : `${entry.name.replace(/\.[^.]+$/, '')}.jpg`;
+
+            entry._result = { blob, name: baseName };
+            entry.progress = 1;
+            entry.state = 'done';
+            state.results.push({ blob, name: baseName });
+
+            // Free canvas memory
+            canvas.width = 0; canvas.height = 0;
+          } catch (err) {
+            console.error(err);
+            entry.error = err.message || 'Konvertierung fehlgeschlagen';
+            entry.state = 'error';
+            errors++;
+          }
+          processed++;
+          render();
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        updateGlobal('Fertig', total, total);
+        state.processing = false;
+        globalProgress.classList.remove('active');
+        render();
+
+        const successCount = state.files.filter(f => f.state === 'done').length;
+        const totalSizeOut = state.results.reduce((s, r) => s + r.blob.size, 0);
+        const sizeMB = (totalSizeOut / (1024 * 1024)).toFixed(2);
+
+        while (resultInfo.firstChild) resultInfo.removeChild(resultInfo.firstChild);
+        resultInfo.appendChild(document.createTextNode(`${successCount} JPGs · ${sizeMB} MB`));
+        if (errors > 0) {
+          resultInfo.appendChild(document.createTextNode(' · '));
+          resultInfo.appendChild(Shell.el('span', { class: 'err', text: `${errors} mit Fehler` }));
+        }
+        downloadLabel.textContent = successCount === 1 ? 'JPG herunterladen' : 'ZIP herunterladen';
+        resultPanel.classList.add('active');
+      } catch (err) {
+        console.error(err);
+        Shell.Toast.show(err.message || 'Konvertierung fehlgeschlagen', true);
+        state.processing = false;
+        globalProgress.classList.remove('active');
+        render();
+      }
+    }
+
+    function updateGlobal(stage, current, total) {
+      globalStage.textContent = stage;
+      globalCount.textContent = `${current} / ${total}`;
+      globalFill.style.right = `${100 - (current / Math.max(total, 1)) * 100}%`;
+    }
+    function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+    // ────────────────────────────────────────────────
+    // Download
+    // ────────────────────────────────────────────────
+    btnDownload.addEventListener('click', async () => {
+      if (state.results.length === 0) return;
+
+      if (state.results.length === 1) {
+        const { blob, name } = state.results[0];
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        const zip = new JSZip();
+        state.results.forEach(r => zip.file(r.name, r.blob));
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clawbuis-heic-jpg_${state.results.length}-bilder_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    });
+
+    // ────────────────────────────────────────────────
+    // Init
+    // ────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'HEIC · JPG', tour: true, toolName: 'HEIC zu JPG' });
+      render();
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('from') === 'hub') {
+        const n = parseInt(params.get('n') || '0', 10);
+        if (n > 0) Shell.Toast.show(`${n} HEIC-Dateien vom Hub erkannt — leg sie hier nochmal ab.`);
+      }
+    });
+  </script>
+</body>
+</html>

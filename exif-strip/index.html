@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EXIF entfernen · CLAWBUIS Tools</title>
+  <meta name="description" content="EXIF-Daten (Standort, Kamera, Datum) aus Bildern entfernen vor Web-Upload. 100 % im Browser." />
+  <meta name="keywords" content="exif entfernen, metadaten löschen, bilder anonymisieren, datenschutz fotos, gps standort entfernen, kostenlos" />
+  <link rel="canonical" href="https://tools.clawbuis.com/exif-strip" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <style>
+    .file-list { display: flex; flex-direction: column; }
+    .file-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto auto;
+      gap: 14px; align-items: center;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .file-row:last-child { border-bottom: none; }
+    .file-row:hover { background: var(--surf); }
+    .file-pos {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--surf-2);
+      border: 1px solid var(--border);
+      color: var(--ink-2);
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 600;
+    }
+    .file-info { min-width: 0; }
+    .file-name {
+      font-size: 14px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-meta {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--ink-3);
+      letter-spacing: 0.04em;
+    }
+    .exif-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 3px 7px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .exif-badge[data-has="yes"] {
+      background: var(--warn-soft);
+      color: var(--warn);
+      border: 1px solid var(--warn);
+    }
+    .exif-badge[data-has="no"] {
+      background: var(--ok-soft);
+      color: var(--magic);
+      border: 1px solid var(--magic);
+    }
+    .file-status {
+      font-family: var(--font-mono);
+      font-size: 10px; letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg); color: var(--ink-2);
+      white-space: nowrap;
+    }
+    .file-status[data-state="working"] { color: var(--magic); border-color: var(--magic); background: var(--ok-soft); }
+    .file-status[data-state="done"] { color: var(--magic); border-color: var(--magic); }
+    .file-status[data-state="error"] { color: var(--risk); border-color: var(--risk); }
+    .file-remove {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--ink-3);
+    }
+    .file-remove:hover { color: var(--risk); background: var(--surf-2); }
+    .file-remove svg { width: 14px; height: 14px; }
+
+    .exif-preview {
+      margin: 16px 20px 0;
+      padding: 14px 16px;
+      background: var(--surf);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-2);
+      line-height: 1.5;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .exif-preview h4 {
+      font-family: var(--font-heading);
+      font-size: 13px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .exif-preview ul { list-style: none; }
+    .exif-preview li {
+      padding: 3px 0;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 12px;
+    }
+    .exif-preview li:last-child { border-bottom: none; }
+    .exif-preview .lbl { color: var(--ink-3); }
+    .exif-preview .val { color: var(--ink); }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+
+    <section class="hero">
+      <div class="eyebrow">DATENSCHUTZ · <span class="num">·</span> Bild-Werkzeug</div>
+      <h1>EXIF entfernen.<br><span class="accent">Standort. Kamera. Datum. Weg.</span></h1>
+      <p class="lede">
+        Bilder enthalten unsichtbare Metadaten — wo das Foto gemacht wurde, mit welchem Gerät,
+        wann genau. Vor Web-Upload, Foren-Posts oder Mailversand: alles entfernen.
+        Sichtbares Bild bleibt 100% identisch. Verarbeitung lokal im Browser.
+      </p>
+    </section>
+
+    <div class="work-grid">
+
+      <div>
+        <div class="card" id="dropCard">
+          <div class="card-head">
+            <h2>Bilder mit EXIF</h2>
+            <span class="meta" id="queueMeta">0 Dateien</span>
+          </div>
+
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2 4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+            <div class="drop-title">Bilder hier ablegen</div>
+            <div class="drop-hint">JPG · PNG · WebP · TIFF — wir prüfen welche EXIF-Daten drin sind und entfernen sie</div>
+            <input type="file" id="fileInput" accept="image/*" multiple class="hidden" />
+          </div>
+
+          <div class="file-list" id="fileList"></div>
+
+          <div class="exif-preview" id="exifPreview" style="display:none;">
+            <h4 id="exifPreviewTitle">EXIF-Daten erkannt</h4>
+            <ul id="exifPreviewList"></ul>
+          </div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+
+        <div class="card">
+          <div class="card-head"><h2>Übersicht</h2></div>
+          <div class="card-body">
+            <div class="stat-row"><span class="lbl">Dateien</span><span class="val" id="statFiles">0</span></div>
+            <div class="stat-row"><span class="lbl">Mit EXIF</span><span class="val" id="statHasExif">—</span></div>
+            <div class="stat-row"><span class="lbl">Größe gesamt</span><span class="val" id="statSize">—</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>Was wird entfernt</h2></div>
+          <div class="card-body">
+            <div style="font-size: 12px; color: var(--ink-2); line-height: 1.6;">
+              <div style="margin-bottom: 6px;"><span style="color: var(--magic); font-weight: 600;">✓</span> GPS-Koordinaten (Standort)</div>
+              <div style="margin-bottom: 6px;"><span style="color: var(--magic); font-weight: 600;">✓</span> Kamera-Hersteller + Modell</div>
+              <div style="margin-bottom: 6px;"><span style="color: var(--magic); font-weight: 600;">✓</span> Aufnahmedatum + Uhrzeit</div>
+              <div style="margin-bottom: 6px;"><span style="color: var(--magic); font-weight: 600;">✓</span> Belichtungs-Settings</div>
+              <div style="margin-bottom: 6px;"><span style="color: var(--magic); font-weight: 600;">✓</span> Software/Bearbeitungs-Spuren</div>
+              <div style="margin-bottom: 6px;"><span style="color: var(--magic); font-weight: 600;">✓</span> XMP/IPTC-Metadaten</div>
+              <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--ink-3); font-size: 11px;">
+                Sichtbares Bild bleibt unverändert. Pixel werden nicht angefasst.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+          <span id="btnProcessLabel">EXIF entfernen</span>
+        </button>
+
+        <div class="global-progress" id="globalProgress">
+          <div class="global-progress-head">
+            <span class="lbl" id="globalStage">Verarbeite…</span>
+            <span class="num" id="globalCount">0 / 0</span>
+          </div>
+          <div class="global-progress-bar">
+            <div class="global-progress-fill" id="globalFill" style="right:100%"></div>
+          </div>
+        </div>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="result-info" id="resultInfo"></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span id="downloadLabel">Herunterladen</span>
+            </button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'Bilder ablegen', text: 'JPG, PNG, WebP, TIFF — alle gängigen Foto-Formate werden geprüft. Drag oder Klick.', side: 'bottom' },
+      { target: '#exifPreview', title: 'EXIF-Vorschau', text: 'Sobald Bilder geladen sind, zeigen wir dir was an Metadaten drinsteckt — bevor wir es entfernen.', side: 'top' },
+      { target: '#btnProcess', title: 'Strippen', text: 'Ein Klick und alle EXIF-/XMP-/IPTC-Daten werden entfernt. Das sichtbare Bild bleibt unverändert.', side: 'top' }
+    ];
+
+    const state = { files: [], nextId: 1, processing: false, results: [] };
+    const MAX_FILE_SIZE = 200 * 1024 * 1024;
+    const MAX_FILES = 100;
+
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput'), fileListEl = $('fileList');
+    const queueMeta = $('queueMeta'), statFiles = $('statFiles'), statHasExif = $('statHasExif'), statSize = $('statSize');
+    const btnProcess = $('btnProcess'), btnProcessLabel = $('btnProcessLabel');
+    const btnDownload = $('btnDownload'), btnReset = $('btnReset'), downloadLabel = $('downloadLabel');
+    const globalProgress = $('globalProgress'), globalStage = $('globalStage');
+    const globalCount = $('globalCount'), globalFill = $('globalFill');
+    const resultPanel = $('result'), resultInfo = $('resultInfo');
+    const exifPreview = $('exifPreview'), exifPreviewList = $('exifPreviewList'), exifPreviewTitle = $('exifPreviewTitle');
+
+    const fmtBytes = b => {
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    // ────────────────────────────────────────────────
+    // Render
+    // ────────────────────────────────────────────────
+    function render() {
+      while (fileListEl.firstChild) fileListEl.removeChild(fileListEl.firstChild);
+      if (state.files.length === 0) {
+        dropzone.style.display = 'block';
+        btnProcess.disabled = true;
+        btnProcessLabel.textContent = 'EXIF entfernen';
+        exifPreview.style.display = 'none';
+        updateStats();
+        return;
+      }
+      dropzone.style.display = 'none';
+      btnProcess.disabled = state.processing;
+      btnProcessLabel.textContent = state.processing
+        ? 'Verarbeite…'
+        : `${state.files.length} ${state.files.length === 1 ? 'Bild' : 'Bilder'} bereinigen`;
+      state.files.forEach((entry, idx) => fileListEl.appendChild(buildRow(entry, idx)));
+      queueMeta.textContent = state.files.length === 1 ? '1 Datei' : `${state.files.length} Dateien`;
+      updateStats();
+      renderExifPreview();
+    }
+
+    function buildRow(entry, idx) {
+      const row = Shell.el('div', { class: 'file-row' });
+      row.appendChild(Shell.el('div', { class: 'file-pos', text: String(idx + 1).padStart(2, '0') }));
+
+      const info = Shell.el('div', { class: 'file-info' });
+      info.appendChild(Shell.el('div', { class: 'file-name', text: entry.name, title: entry.name }));
+      const meta = Shell.el('div', { class: 'file-meta', text: fmtBytes(entry.size) });
+      info.appendChild(meta);
+      row.appendChild(info);
+
+      // EXIF badge
+      const badge = Shell.el('div', {
+        class: 'exif-badge',
+        text: entry.exifSummary === null ? 'Prüfe…' : (entry.hasExif ? 'EXIF drin' : 'kein EXIF'),
+        attrs: { 'data-has': entry.exifSummary === null ? 'unknown' : (entry.hasExif ? 'yes' : 'no') }
+      });
+      row.appendChild(badge);
+
+      const status = Shell.el('div', {
+        class: 'file-status',
+        text: { queued: '–', working: 'Läuft', done: 'Fertig', error: 'Fehler' }[entry.state] || '–',
+        attrs: { 'data-state': entry.state }
+      });
+      row.appendChild(status);
+
+      const remove = Shell.el('button', {
+        class: 'file-remove',
+        attrs: { type: 'button', title: 'Entfernen' },
+        on: { click: () => removeFile(entry.id) }
+      });
+      remove.appendChild(Shell.parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`));
+      row.appendChild(remove);
+      return row;
+    }
+
+    function renderExifPreview() {
+      const withExif = state.files.filter(f => f.hasExif && f.exifSummary && Object.keys(f.exifSummary).length > 0);
+      if (withExif.length === 0) {
+        exifPreview.style.display = 'none';
+        return;
+      }
+      // Show first file's EXIF as preview
+      const f = withExif[0];
+      exifPreviewTitle.textContent = `EXIF-Vorschau: ${f.name}`;
+      while (exifPreviewList.firstChild) exifPreviewList.removeChild(exifPreviewList.firstChild);
+      const labels = {
+        Make: 'Hersteller', Model: 'Kamera', LensModel: 'Objektiv',
+        DateTimeOriginal: 'Aufnahme', Software: 'Software',
+        latitude: 'GPS Lat.', longitude: 'GPS Lon.',
+        ISO: 'ISO', FNumber: 'Blende', ExposureTime: 'Belichtung'
+      };
+      Object.entries(f.exifSummary).slice(0, 12).forEach(([k, v]) => {
+        const li = Shell.el('li');
+        li.appendChild(Shell.el('span', { class: 'lbl', text: labels[k] || k }));
+        let valStr = '';
+        if (v instanceof Date) valStr = v.toLocaleString('de-DE');
+        else if (typeof v === 'number') valStr = v.toString();
+        else valStr = String(v).slice(0, 60);
+        li.appendChild(Shell.el('span', { class: 'val', text: valStr }));
+        exifPreviewList.appendChild(li);
+      });
+      if (withExif.length > 1) {
+        const li = Shell.el('li');
+        li.appendChild(Shell.el('span', { class: 'lbl', text: '…' }));
+        li.appendChild(Shell.el('span', { class: 'val', text: `+${withExif.length - 1} weitere Dateien mit EXIF` }));
+        exifPreviewList.appendChild(li);
+      }
+      exifPreview.style.display = 'block';
+    }
+
+    function updateStats() {
+      statFiles.textContent = state.files.length;
+      const withExif = state.files.filter(f => f.hasExif).length;
+      statHasExif.textContent = state.files.length === 0 ? '—' : `${withExif} / ${state.files.length}`;
+      const totalSize = state.files.reduce((s, f) => s + f.size, 0);
+      statSize.textContent = totalSize > 0 ? fmtBytes(totalSize) : '—';
+    }
+
+    // ────────────────────────────────────────────────
+    // EXIF check (read-only, for preview)
+    // ────────────────────────────────────────────────
+    async function checkExif(entry) {
+      try {
+        const buf = await entry.file.arrayBuffer();
+        const data = await window.exifr.parse(buf, { gps: true, ifd0: true, exif: true, xmp: true });
+        if (data && Object.keys(data).length > 0) {
+          entry.hasExif = true;
+          entry.exifSummary = data;
+        } else {
+          entry.hasExif = false;
+          entry.exifSummary = {};
+        }
+      } catch (e) {
+        entry.hasExif = false;
+        entry.exifSummary = {};
+      }
+      render();
+    }
+
+    // ────────────────────────────────────────────────
+    // EXIF strip (re-encode via canvas — bulletproof)
+    // ────────────────────────────────────────────────
+    async function stripExif(entry) {
+      // Method: load into Image, draw to canvas, export — strips ALL metadata
+      // Works for JPG, PNG, WebP. For TIFF we fall back to JPEG output.
+      const url = URL.createObjectURL(entry.file);
+      try {
+        const img = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = () => reject(new Error('Bild kaputt oder Format nicht unterstützt'));
+          im.src = url;
+        });
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        // Determine output format
+        let outType = entry.file.type;
+        let outExt = '';
+        const m = entry.name.match(/\.([^.]+)$/);
+        const ext = m ? m[1].toLowerCase() : '';
+        if (ext === 'png') { outType = 'image/png'; outExt = '.png'; }
+        else if (ext === 'webp') { outType = 'image/webp'; outExt = '.webp'; }
+        else { outType = 'image/jpeg'; outExt = '.jpg'; }
+
+        const outBlob = await new Promise(r => canvas.toBlob(r, outType, 0.95));
+        if (!outBlob) throw new Error('Encoding fehler');
+
+        // Free canvas
+        canvas.width = 0; canvas.height = 0;
+
+        const baseName = entry.name.replace(/\.[^.]+$/, outExt);
+        return { blob: outBlob, name: baseName };
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    // ────────────────────────────────────────────────
+    // File handling
+    // ────────────────────────────────────────────────
+    async function addFiles(fileList) {
+      const incoming = Array.from(fileList);
+      let added = 0, skipped = 0;
+      for (const file of incoming) {
+        if (state.files.length >= MAX_FILES) {
+          Shell.Toast.show(`Maximum ${MAX_FILES} Dateien erreicht`, true);
+          break;
+        }
+        if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|tiff?|heic|heif)$/i.test(file.name)) {
+          skipped++;
+          continue;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          Shell.Toast.show(`${file.name}: zu groß`, true);
+          skipped++;
+          continue;
+        }
+        const entry = {
+          id: state.nextId++, file, name: file.name, size: file.size,
+          state: 'queued', error: null, hasExif: false, exifSummary: null,
+          _result: null
+        };
+        state.files.push(entry);
+        added++;
+        checkExif(entry).catch(() => {});
+      }
+      if (skipped > 0 && added === 0) Shell.Toast.show('Nur Bilder erlaubt (JPG, PNG, WebP, TIFF)', true);
+      render();
+      resultPanel.classList.remove('active');
+    }
+
+    function removeFile(id) {
+      if (state.processing) return;
+      state.files = state.files.filter(f => f.id !== id);
+      resultPanel.classList.remove('active');
+      render();
+    }
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => {
+        e.preventDefault();
+        if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+          dropzone.classList.add('dragover');
+        }
+      })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      if (state.processing) return;
+      if (e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files.length) addFiles(e.target.files);
+      e.target.value = '';
+    });
+    btnReset.addEventListener('click', () => {
+      state.files = []; state.results = [];
+      resultPanel.classList.remove('active');
+      globalProgress.classList.remove('active');
+      render();
+    });
+
+    // ────────────────────────────────────────────────
+    // Strip
+    // ────────────────────────────────────────────────
+    btnProcess.addEventListener('click', async () => {
+      if (state.processing || state.files.length === 0) return;
+      await stripAll();
+    });
+
+    async function stripAll() {
+      state.processing = true;
+      resultPanel.classList.remove('active');
+      globalProgress.classList.add('active');
+      render();
+
+      const total = state.files.length;
+      let processed = 0, errors = 0;
+      state.results = [];
+
+      for (const entry of state.files) {
+        try {
+          entry.state = 'working';
+          render();
+          updateGlobal(`Bereinige: ${truncate(entry.name, 36)}`, processed, total);
+          const result = await stripExif(entry);
+          entry._result = result;
+          entry.state = 'done';
+          state.results.push(result);
+        } catch (err) {
+          console.error(err);
+          entry.error = err.message || 'Fehler';
+          entry.state = 'error';
+          errors++;
+        }
+        processed++;
+        render();
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      updateGlobal('Fertig', total, total);
+      state.processing = false;
+      globalProgress.classList.remove('active');
+      render();
+
+      const successCount = state.files.filter(f => f.state === 'done').length;
+      const totalSizeOut = state.results.reduce((s, r) => s + r.blob.size, 0);
+      const sizeMB = (totalSizeOut / (1024 * 1024)).toFixed(2);
+
+      while (resultInfo.firstChild) resultInfo.removeChild(resultInfo.firstChild);
+      resultInfo.appendChild(document.createTextNode(`${successCount} Bilder bereinigt · ${sizeMB} MB`));
+      if (errors > 0) {
+        resultInfo.appendChild(document.createTextNode(' · '));
+        resultInfo.appendChild(Shell.el('span', { class: 'err', text: `${errors} mit Fehler` }));
+      }
+      downloadLabel.textContent = successCount === 1 ? 'Bild herunterladen' : 'ZIP herunterladen';
+      resultPanel.classList.add('active');
+    }
+
+    function updateGlobal(stage, current, total) {
+      globalStage.textContent = stage;
+      globalCount.textContent = `${current} / ${total}`;
+      globalFill.style.right = `${100 - (current / Math.max(total, 1)) * 100}%`;
+    }
+    function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+    // ────────────────────────────────────────────────
+    // Download
+    // ────────────────────────────────────────────────
+    btnDownload.addEventListener('click', async () => {
+      if (state.results.length === 0) return;
+      if (state.results.length === 1) {
+        const { blob, name } = state.results[0];
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        const zip = new JSZip();
+        state.results.forEach(r => zip.file(r.name, r.blob));
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 1 } });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `clawbuis-exif-strip_${state.results.length}-bilder_${new Date().toISOString().slice(0, 10)}.zip`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    });
+
+    // ────────────────────────────────────────────────
+    // Init
+    // ────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'EXIF · STRIP', tour: true, toolName: 'EXIF entfernen' });
+      render();
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('from') === 'hub') {
+        const n = parseInt(params.get('n') || '0', 10);
+        if (n > 0) Shell.Toast.show(`${n} Bilder vom Hub erkannt — leg sie hier nochmal ab.`);
+      }
+    });
+  </script>
+</body>
+</html>
