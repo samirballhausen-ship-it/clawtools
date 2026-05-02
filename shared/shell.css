@@ -139,6 +139,22 @@ input, select, textarea { font: inherit; color: inherit; }
   line-height: 1.55; max-width: 640px;
 }
 
+/* ─── Shared row-thumb (image preview in file rows) ─── */
+.row-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  background: var(--surf-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: block;
+  flex-shrink: 0;
+}
+.row-thumb-large {
+  width: 56px;
+  height: 56px;
+}
+
 /* ─── Hero Trust Badges ─────────────────────────── */
 .hero-trust-badges {
   display: grid;

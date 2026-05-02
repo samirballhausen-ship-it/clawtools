@@ -16,7 +16,7 @@
     .file-list { display: flex; flex-direction: column; }
     .file-row {
       display: grid;
-      grid-template-columns: auto 1fr auto auto auto;
+      grid-template-columns: auto auto 1fr auto auto auto;
       gap: 14px; align-items: center;
       padding: 12px 20px;
       border-bottom: 1px solid var(--border);
@@ -247,6 +247,10 @@
     function buildRow(entry, idx) {
       const row = Shell.el('div', { class: 'file-row' });
       row.appendChild(Shell.el('div', { class: 'file-pos', text: String(idx + 1).padStart(2, '0') }));
+      row.appendChild(Shell.el('img', {
+        class: 'row-thumb',
+        attrs: { src: entry.thumbUrl, alt: '', loading: 'lazy' }
+      }));
 
       const info = Shell.el('div', { class: 'file-info' });
       info.appendChild(Shell.el('div', { class: 'file-name', text: entry.name, title: entry.name }));
@@ -365,7 +369,8 @@
         }
         state.files.push({
           id: state.nextId++, file, name: file.name, size: file.size,
-          state: 'queued', error: null, outSize: null, _result: null
+          state: 'queued', error: null, outSize: null, _result: null,
+          thumbUrl: URL.createObjectURL(file)
         });
         added++;
       }
@@ -376,6 +381,8 @@
 
     function removeFile(id) {
       if (state.processing) return;
+      const e = state.files.find(f => f.id === id);
+      if (e && e.thumbUrl) URL.revokeObjectURL(e.thumbUrl);
       state.files = state.files.filter(f => f.id !== id);
       resultPanel.classList.remove('active');
       render();
@@ -402,6 +409,7 @@
       e.target.value = '';
     });
     btnReset.addEventListener('click', () => {
+      state.files.forEach(f => f.thumbUrl && URL.revokeObjectURL(f.thumbUrl));
       state.files = []; state.results = [];
       resultPanel.classList.remove('active');
       globalProgress.classList.remove('active');
