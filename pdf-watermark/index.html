@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF-Wasserzeichen · CLAWBUIS Tools</title>
+  <meta name="description" content="Text-Wasserzeichen oder Logo auf alle PDF-Seiten · 100% lokal" />
+  <link rel="canonical" href="https://tools.clawbuis.com/pdf-watermark" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"></script>
+  <style>
+    .input-row { padding: 8px 0; }
+    .input-row label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; display: block; }
+    .input-row input, .input-row select { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-body); font-size: 14px; }
+    .input-row input:focus, .input-row select:focus { outline: none; border-color: var(--magic); }
+    .preview-info { padding: 10px; background: var(--surf); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">PDF · <span class="num">·</span> Wasserzeichen</div>
+      <h1>PDF-Wasserzeichen.<br><span class="accent">"VERTRAULICH" auf jede Seite.</span></h1>
+      <p class="lede">Text-Wasserzeichen diagonal auf alle Seiten. Position, Farbe, Transparenz wählbar. Original bleibt erhalten — nur die Output-Datei trägt das Zeichen. 100% lokal.</p>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>PDF</h2><span class="meta" id="fileMeta">Keine Datei</span></div>
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <div class="drop-title">PDF hier ablegen</div>
+            <div class="drop-hint">eine Datei · alle Seiten werden gleichmäßig markiert</div>
+            <input type="file" id="fileInput" accept="application/pdf,.pdf" class="hidden" />
+          </div>
+          <div id="fileLoaded" style="display: none; padding: 16px 20px; border-bottom: 1px solid var(--border);">
+            <div style="font-size: 14px; font-weight: 500;" id="fileName">—</div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 4px;" id="fileInfo">—</div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div class="card-head"><h2>Wasserzeichen</h2></div>
+          <div class="card-body">
+            <div class="input-row"><label>Text</label><input type="text" id="optText" value="VERTRAULICH" maxlength="80" /></div>
+            <div class="input-row"><label>Position</label>
+              <select id="optPosition">
+                <option value="diagonal" selected>Diagonal (Mitte, gedreht)</option>
+                <option value="top">Oben mittig</option>
+                <option value="bottom">Unten mittig</option>
+                <option value="grid">Wiederholt im Raster</option>
+              </select>
+            </div>
+            <div class="input-row"><label>Schriftgröße</label>
+              <select id="optFontSize">
+                <option value="36">Klein (36)</option>
+                <option value="60" selected>Mittel (60)</option>
+                <option value="96">Groß (96)</option>
+                <option value="140">Riesig (140)</option>
+              </select>
+            </div>
+            <div class="input-row"><label>Transparenz</label>
+              <input type="range" id="optOpacity" min="10" max="80" step="5" value="25" style="accent-color: var(--magic);" />
+              <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-top: 4px;">
+                <span>10% (kaum sichtbar)</span><span><span id="opacityVal">25</span>%</span><span>80%</span>
+              </div>
+            </div>
+            <div class="input-row"><label>Farbe</label>
+              <input type="color" id="optColor" value="#991b1b" style="width: 100%; height: 40px; padding: 4px; cursor: pointer; border: 1px solid var(--border-strong);" />
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <span id="btnLabel">Wasserzeichen anwenden</span>
+        </button>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="result-info" id="resultInfo"></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">PDF herunterladen</button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'PDF wählen', text: 'Lade dein PDF — alle Seiten bekommen das gleiche Wasserzeichen.', side: 'bottom' },
+      { target: '#optPosition', title: 'Position', text: 'Diagonal mittig ist klassisch für "VERTRAULICH". Raster für maximale Sichtbarkeit.', side: 'left' },
+      { target: '#btnProcess', title: 'Anwenden', text: 'Das Original bleibt unangetastet — nur die heruntergeladene Datei hat das Wasserzeichen.', side: 'top' }
+    ];
+
+    const state = { file: null, buffer: null, pageCount: 0, outBlob: null };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+    const fileLoaded = $('fileLoaded'), fileName = $('fileName'), fileInfo = $('fileInfo'), fileMeta = $('fileMeta');
+
+    $('optOpacity').addEventListener('input', e => $('opacityVal').textContent = e.target.value);
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadFile(file) {
+      try {
+        state.file = file;
+        state.buffer = await file.arrayBuffer();
+        const doc = await PDFLib.PDFDocument.load(state.buffer, { ignoreEncryption: true });
+        state.pageCount = doc.getPageCount();
+        fileName.textContent = file.name;
+        fileInfo.textContent = `${fmtBytes(file.size)} · ${state.pageCount} Seiten`;
+        fileLoaded.style.display = 'block';
+        dropzone.style.display = 'none';
+        fileMeta.textContent = `${state.pageCount} Seiten`;
+        $('btnProcess').disabled = false;
+        $('result').classList.remove('active');
+      } catch (e) {
+        Shell.Toast.show('PDF kaputt oder geschützt', true);
+      }
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    function hexToRgb(hex) {
+      const m = hex.match(/^#([0-9a-f]{6})$/i);
+      if (!m) return { r: 0.6, g: 0.1, b: 0.1 };
+      const n = parseInt(m[1], 16);
+      return { r: ((n >> 16) & 255) / 255, g: ((n >> 8) & 255) / 255, b: (n & 255) / 255 };
+    }
+
+    $('btnProcess').addEventListener('click', async () => {
+      if (!state.buffer) return;
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Verarbeite…';
+
+      try {
+        const pdf = await PDFLib.PDFDocument.load(state.buffer, { ignoreEncryption: true });
+        const font = await pdf.embedStandardFont(PDFLib.StandardFonts.HelveticaBold);
+        const text = $('optText').value || 'VERTRAULICH';
+        const fontSize = parseInt($('optFontSize').value, 10);
+        const opacity = parseInt($('optOpacity').value, 10) / 100;
+        const color = hexToRgb($('optColor').value);
+        const position = $('optPosition').value;
+
+        const pages = pdf.getPages();
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+          const textWidth = font.widthOfTextAtSize(text, fontSize);
+
+          if (position === 'diagonal') {
+            page.drawText(text, {
+              x: width / 2 - textWidth / 2 * Math.cos(Math.PI / 6),
+              y: height / 2 - fontSize / 2 - textWidth / 2 * Math.sin(Math.PI / 6),
+              size: fontSize, font,
+              color: PDFLib.rgb(color.r, color.g, color.b),
+              opacity, rotate: PDFLib.degrees(30)
+            });
+          } else if (position === 'top') {
+            page.drawText(text, {
+              x: width / 2 - textWidth / 2,
+              y: height - fontSize - 20,
+              size: fontSize, font,
+              color: PDFLib.rgb(color.r, color.g, color.b),
+              opacity
+            });
+          } else if (position === 'bottom') {
+            page.drawText(text, {
+              x: width / 2 - textWidth / 2, y: 20,
+              size: fontSize, font,
+              color: PDFLib.rgb(color.r, color.g, color.b),
+              opacity
+            });
+          } else if (position === 'grid') {
+            const stepX = textWidth + 60;
+            const stepY = fontSize * 4;
+            for (let y = stepY / 2; y < height; y += stepY) {
+              for (let x = -textWidth; x < width + textWidth; x += stepX) {
+                page.drawText(text, {
+                  x, y, size: fontSize, font,
+                  color: PDFLib.rgb(color.r, color.g, color.b),
+                  opacity, rotate: PDFLib.degrees(30)
+                });
+              }
+            }
+          }
+        }
+
+        pdf.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
+        const bytes = await pdf.save();
+        state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+        const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
+        $('resultInfo').textContent = `${state.pageCount} Seiten markiert · ${sizeMB} MB`;
+        $('result').classList.add('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('Fehler bei Wasserzeichen-Erstellung', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Wasserzeichen anwenden';
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      const baseName = state.file.name.replace(/\.pdf$/i, '');
+      a.download = `${baseName}_wasserzeichen.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.buffer = null; state.outBlob = null;
+      fileLoaded.style.display = 'none';
+      dropzone.style.display = 'block';
+      fileMeta.textContent = 'Keine Datei';
+      $('btnProcess').disabled = true;
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'PDF · WASSERZEICHEN', tour: true, toolName: 'PDF Wasserzeichen' });
+    });
+  </script>
+</body>
+</html>

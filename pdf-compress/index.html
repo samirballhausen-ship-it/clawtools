@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF komprimieren · CLAWBUIS Tools</title>
+  <meta name="description" content="Große PDFs für Mail-Versand schrumpfen · 100% im Browser · ohne Qualitätsverlust" />
+  <link rel="canonical" href="https://tools.clawbuis.com/pdf-compress" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    .preset-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 0; }
+    .preset { padding: 12px 10px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; text-align: center; transition: all .15s var(--ease); }
+    .preset:hover { border-color: var(--magic); }
+    .preset.active { background: var(--magic-soft); border-color: var(--magic); }
+    .preset .label { font-family: var(--font-heading); font-size: 14px; font-weight: 500; }
+    .preset .desc { font-family: var(--font-mono); font-size: 10px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.04em; }
+    .savings-display { padding: 16px; background: var(--ok-soft); border: 1px solid var(--magic); margin-top: 8px; text-align: center; }
+    .savings-percent { font-family: var(--font-heading); font-size: 36px; font-weight: 300; color: var(--magic); line-height: 1; }
+    .savings-bytes { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">PDF · <span class="num">·</span> Komprimieren</div>
+      <h1>PDF komprimieren.<br><span class="accent">Mail-Anhang schrumpfen.</span></h1>
+      <p class="lede">Große PDFs (Scans, Präsentationen, Berichte) für E-Mail-Versand verkleinern. Renderiert jede Seite neu mit gewählter Qualität — drastische Größen-Reduktion bei akzeptablem Qualitätsverlust.</p>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>PDF</h2><span class="meta" id="fileMeta">Keine Datei</span></div>
+          <div class="dropzone" id="dropzone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+            </svg>
+            <div class="drop-title">PDF hier ablegen</div>
+            <div class="drop-hint">eine Datei · alle Seiten werden neu rendert</div>
+            <input type="file" id="fileInput" accept="application/pdf,.pdf" class="hidden" />
+          </div>
+          <div id="fileLoaded" style="display: none; padding: 16px 20px; border-bottom: 1px solid var(--border);">
+            <div style="font-size: 14px; font-weight: 500;" id="fileName">—</div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 4px;" id="fileInfo">—</div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div class="card-head"><h2>Qualitäts-Preset</h2></div>
+          <div class="card-body">
+            <div class="preset-row">
+              <div class="preset" data-quality="0.5" data-scale="1.0"><div class="label">Mail</div><div class="desc">≈85% kleiner</div></div>
+              <div class="preset active" data-quality="0.75" data-scale="1.5"><div class="label">Web</div><div class="desc">≈60% kleiner</div></div>
+              <div class="preset" data-quality="0.85" data-scale="2.0"><div class="label">Standard</div><div class="desc">≈40% kleiner</div></div>
+              <div class="preset" data-quality="0.92" data-scale="2.5"><div class="label">Druck</div><div class="desc">≈20% kleiner</div></div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" id="btnProcess" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+          </svg>
+          <span id="btnLabel">Komprimieren</span>
+        </button>
+
+        <div class="global-progress" id="globalProgress">
+          <div class="global-progress-head">
+            <span class="lbl" id="globalStage">Verarbeite…</span>
+            <span class="num" id="globalCount">0 / 0</span>
+          </div>
+          <div class="global-progress-bar"><div class="global-progress-fill" id="globalFill" style="right:100%"></div></div>
+        </div>
+
+        <div class="result" id="result">
+          <div class="result-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Fertig
+          </div>
+          <div class="savings-display"><div class="savings-percent" id="savingsPct">—</div><div class="savings-bytes" id="savingsBytes">—</div></div>
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn btn-success" id="btnDownload">Herunterladen</button>
+            <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    window.__tutorial = [
+      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert besonders gut bei großen Scans, Präsentationen mit vielen Bildern oder PDFs aus Office-Programmen.', side: 'bottom' },
+      { target: '.preset-row', title: 'Qualität wählen', text: '"Mail" für E-Mail-Anhänge (max. Komprimierung). "Druck" wenn Druck-Tauglichkeit wichtig ist.', side: 'left' },
+      { target: '#btnProcess', title: 'Loslegen', text: 'Wir rendern jede Seite neu als JPEG bei der gewählten Qualität — drastische Größenreduktion.', side: 'top' }
+    ];
+
+    const state = { file: null, buffer: null, pageCount: 0, outBlob: null, quality: 0.75, scale: 1.5 };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+    const fileLoaded = $('fileLoaded'), fileName = $('fileName'), fileInfo = $('fileInfo'), fileMeta = $('fileMeta');
+
+    document.querySelectorAll('.preset').forEach(p => p.addEventListener('click', () => {
+      document.querySelectorAll('.preset').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      state.quality = parseFloat(p.dataset.quality);
+      state.scale = parseFloat(p.dataset.scale);
+    }));
+
+    const fmtBytes = b => b < 1024 * 1024 ? (b / 1024).toFixed(1) + ' KB' : (b / (1024 * 1024)).toFixed(1) + ' MB';
+
+    async function loadFile(file) {
+      try {
+        state.file = file;
+        state.buffer = await file.arrayBuffer();
+        const doc = await PDFLib.PDFDocument.load(state.buffer, { ignoreEncryption: true });
+        state.pageCount = doc.getPageCount();
+        fileName.textContent = file.name;
+        fileInfo.textContent = `${fmtBytes(file.size)} · ${state.pageCount} Seiten`;
+        fileLoaded.style.display = 'block';
+        dropzone.style.display = 'none';
+        fileMeta.textContent = `${state.pageCount} Seiten`;
+        $('btnProcess').disabled = false;
+        $('result').classList.remove('active');
+      } catch (e) { Shell.Toast.show('PDF kaputt', true); }
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) loadFile(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    $('btnProcess').addEventListener('click', async () => {
+      if (!state.buffer) return;
+      $('btnProcess').disabled = true;
+      $('btnLabel').textContent = 'Komprimiere…';
+      $('globalProgress').classList.add('active');
+
+      try {
+        const pdfJsDoc = await pdfjsLib.getDocument({ data: state.buffer.slice(0) }).promise;
+        const newDoc = await PDFLib.PDFDocument.create();
+
+        for (let i = 1; i <= state.pageCount; i++) {
+          $('globalStage').textContent = `Seite ${i}`;
+          $('globalCount').textContent = `${i} / ${state.pageCount}`;
+          $('globalFill').style.right = `${100 - (i / state.pageCount) * 100}%`;
+
+          const page = await pdfJsDoc.getPage(i);
+          const renderViewport = page.getViewport({ scale: state.scale });
+          const sizeViewport = page.getViewport({ scale: 1 });
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.floor(renderViewport.width);
+          canvas.height = Math.floor(renderViewport.height);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
+
+          const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', state.quality));
+          const jpgBytes = new Uint8Array(await blob.arrayBuffer());
+          const jpg = await newDoc.embedJpg(jpgBytes);
+          const newPage = newDoc.addPage([sizeViewport.width, sizeViewport.height]);
+          newPage.drawImage(jpg, { x: 0, y: 0, width: sizeViewport.width, height: sizeViewport.height });
+
+          canvas.width = 0; canvas.height = 0;
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        newDoc.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
+        const bytes = await newDoc.save();
+        state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+
+        const pct = Math.round((1 - state.outBlob.size / state.file.size) * 100);
+        $('savingsPct').textContent = pct > 0 ? `−${pct}%` : '0%';
+        $('savingsBytes').textContent = `${fmtBytes(state.file.size)} → ${fmtBytes(state.outBlob.size)}`;
+        $('result').classList.add('active');
+      } catch (e) {
+        console.error(e);
+        Shell.Toast.show('Komprimierung fehlgeschlagen', true);
+      } finally {
+        $('btnProcess').disabled = false;
+        $('btnLabel').textContent = 'Komprimieren';
+        $('globalProgress').classList.remove('active');
+      }
+    });
+
+    $('btnDownload').addEventListener('click', () => {
+      if (!state.outBlob) return;
+      const url = URL.createObjectURL(state.outBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.pdf$/i, '_komprimiert.pdf');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.buffer = null; state.outBlob = null;
+      fileLoaded.style.display = 'none';
+      dropzone.style.display = 'block';
+      fileMeta.textContent = 'Keine Datei';
+      $('btnProcess').disabled = true;
+      $('result').classList.remove('active');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'PDF · KOMPRIMIEREN', tour: true, toolName: 'PDF komprimieren' });
+    });
+  </script>
+</body>
+</html>

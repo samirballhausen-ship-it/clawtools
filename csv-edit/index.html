@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CSV bearbeiten · CLAWBUIS Tools</title>
+  <meta name="description" content="CSV-Dateien sortieren, filtern, bereinigen — ohne Excel · 100% im Browser" />
+  <link rel="canonical" href="https://tools.clawbuis.com/csv-edit" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    .csv-table-wrap { max-height: 60vh; overflow: auto; border: 1px solid var(--border); }
+    table.csv-table { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 12px; }
+    table.csv-table th { position: sticky; top: 0; background: var(--surf); border-bottom: 1px solid var(--border-strong); padding: 10px 12px; text-align: left; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+    table.csv-table th:hover { background: var(--surf-2); color: var(--magic); }
+    table.csv-table th .sort-arrow { color: var(--magic); margin-left: 4px; }
+    table.csv-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+    table.csv-table tr:hover td { background: var(--surf); }
+    table.csv-table tr.row-num td:first-child { color: var(--ink-3); font-weight: 600; min-width: 40px; }
+    .filter-input { width: 100%; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 13px; }
+    .filter-input:focus { outline: none; border-color: var(--magic); }
+    .stat-mini { padding: 8px 12px; background: var(--surf); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); margin-bottom: 8px; }
+    .stat-mini strong { color: var(--magic); }
+  </style>
+</head>
+<body>
+  <main class="app-main wide">
+    <section class="hero">
+      <div class="eyebrow">DATEN · <span class="num">·</span> CSV-Editor</div>
+      <h1>CSV bearbeiten.<br><span class="accent">Ohne Excel.</span></h1>
+      <p class="lede">Sortieren, filtern, leere Zeilen entfernen, Spalten trimmen. Schnell-Operationen direkt im Browser ohne Office-Setup. 100% lokal.</p>
+    </section>
+
+    <div id="emptyView">
+      <div class="dropzone" id="dropzone" style="margin: 24px 0;">
+        <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
+        </svg>
+        <div class="drop-title">CSV-Datei hier ablegen</div>
+        <div class="drop-hint">Trennzeichen: , ; \\t · Auto-Detection · UTF-8 / Latin-1</div>
+        <input type="file" id="fileInput" accept=".csv,.tsv,text/csv" class="hidden" />
+      </div>
+    </div>
+
+    <div id="editorView" style="display:none; margin-top: 24px;">
+      <div style="display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start;">
+        <div>
+          <div class="card">
+            <div class="card-head">
+              <h2 id="csvFileName">—</h2>
+              <span class="meta" id="csvMeta">—</span>
+            </div>
+            <div style="padding: 16px 20px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--border);">
+              <input type="text" id="filterInput" class="filter-input" placeholder="Filtern (Suche in allen Spalten)..." />
+              <button class="btn btn-secondary" id="btnClearFilter" style="width:auto; height:auto; padding: 8px 14px;">Zurücksetzen</button>
+            </div>
+            <div class="csv-table-wrap" id="tableWrap"></div>
+          </div>
+        </div>
+
+        <aside class="sidebar">
+          <div class="card">
+            <div class="card-head"><h2>Übersicht</h2></div>
+            <div class="card-body">
+              <div class="stat-row"><span class="lbl">Spalten</span><span class="val" id="statCols">—</span></div>
+              <div class="stat-row"><span class="lbl">Zeilen total</span><span class="val" id="statRowsTotal">—</span></div>
+              <div class="stat-row"><span class="lbl">Zeilen sichtbar</span><span class="val" id="statRowsVisible">—</span></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Bereinigen</h2></div>
+            <div class="card-body">
+              <button class="btn btn-secondary" id="btnTrimWhitespace">Leerzeichen trimmen</button>
+              <button class="btn btn-secondary" id="btnRemoveEmpty" style="margin-top: 8px;">Leere Zeilen entfernen</button>
+              <button class="btn btn-secondary" id="btnDedupe" style="margin-top: 8px;">Duplikate entfernen</button>
+            </div>
+          </div>
+
+          <button class="btn btn-success" id="btnExport">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            CSV exportieren
+          </button>
+          <button class="btn btn-secondary" id="btnReset" style="margin-top: 8px;">Andere Datei</button>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '#dropzone', title: 'CSV ablegen', text: 'Trennzeichen werden auto-erkannt (Komma, Semikolon, Tab). UTF-8 und Latin-1 supported.', side: 'bottom' },
+      { target: '#filterInput', title: 'Filtern', text: 'Tippe einen Suchbegriff — alle Zeilen werden in allen Spalten gefiltert.', side: 'bottom' },
+      { target: '#btnExport', title: 'Exportieren', text: 'Bereinigte/gefilterte Tabelle als neue CSV speichern.', side: 'left' }
+    ];
+
+    const state = { file: null, headers: [], rows: [], filtered: [], sortCol: null, sortDir: 1 };
+    const $ = id => document.getElementById(id);
+    const dropzone = $('dropzone'), fileInput = $('fileInput');
+
+    function load(file) {
+      state.file = file;
+      Papa.parse(file, {
+        header: true, skipEmptyLines: true, dynamicTyping: false,
+        complete: (results) => {
+          state.headers = results.meta.fields || [];
+          state.rows = results.data || [];
+          state.filtered = [...state.rows];
+          state.sortCol = null;
+          $('emptyView').style.display = 'none';
+          $('editorView').style.display = 'block';
+          $('csvFileName').textContent = file.name;
+          $('csvMeta').textContent = `${state.headers.length} Spalten · ${state.rows.length} Zeilen`;
+          $('statCols').textContent = state.headers.length;
+          $('statRowsTotal').textContent = state.rows.length;
+          $('filterInput').value = '';
+          render();
+        },
+        error: () => Shell.Toast.show('CSV kaputt oder Format unbekannt', true)
+      });
+    }
+
+    function applyFilter() {
+      const q = $('filterInput').value.toLowerCase().trim();
+      if (!q) { state.filtered = [...state.rows]; }
+      else state.filtered = state.rows.filter(row =>
+        state.headers.some(h => String(row[h] || '').toLowerCase().includes(q))
+      );
+      applySort();
+    }
+
+    function applySort() {
+      if (state.sortCol == null) { render(); return; }
+      const col = state.headers[state.sortCol];
+      state.filtered.sort((a, b) => {
+        const va = a[col] || '', vb = b[col] || '';
+        const na = parseFloat(va), nb = parseFloat(vb);
+        const numeric = !isNaN(na) && !isNaN(nb);
+        const cmp = numeric ? na - nb : String(va).localeCompare(String(vb), 'de');
+        return cmp * state.sortDir;
+      });
+      render();
+    }
+
+    function render() {
+      const wrap = $('tableWrap');
+      while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+      $('statRowsVisible').textContent = state.filtered.length;
+
+      const table = Shell.el('table', { class: 'csv-table' });
+      const thead = Shell.el('thead');
+      const trh = Shell.el('tr');
+      trh.appendChild(Shell.el('th', { text: '#', attrs: { style: 'min-width: 40px;' } }));
+      state.headers.forEach((h, idx) => {
+        const th = Shell.el('th', {
+          on: { click: () => {
+            if (state.sortCol === idx) state.sortDir *= -1;
+            else { state.sortCol = idx; state.sortDir = 1; }
+            applySort();
+          }}
+        });
+        th.appendChild(document.createTextNode(h));
+        if (state.sortCol === idx) {
+          th.appendChild(Shell.el('span', {
+            class: 'sort-arrow', text: state.sortDir > 0 ? ' ↑' : ' ↓'
+          }));
+        }
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh);
+      table.appendChild(thead);
+
+      const tbody = Shell.el('tbody');
+      const visible = state.filtered.slice(0, 500);
+      visible.forEach((row, idx) => {
+        const tr = Shell.el('tr', { class: 'row-num' });
+        tr.appendChild(Shell.el('td', { text: String(idx + 1) }));
+        state.headers.forEach(h => tr.appendChild(Shell.el('td', { text: String(row[h] || '') })));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+
+      if (state.filtered.length > 500) {
+        const note = Shell.el('div', {
+          text: `Nur erste 500 von ${state.filtered.length} Zeilen angezeigt — Export enthält alle.`,
+          style: { padding: '12px 20px', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--ink-3)', textAlign: 'center' }
+        });
+        wrap.appendChild(note);
+      }
+    }
+
+    ['dragenter','dragover'].forEach(ev => dropzone.addEventListener(ev, e => {
+      e.preventDefault();
+      if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) dropzone.classList.add('dragover');
+    }));
+    ['dragleave','drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('dragover'); }));
+    dropzone.addEventListener('drop', e => {
+      if (e.dataTransfer && e.dataTransfer.files[0]) load(e.dataTransfer.files[0]);
+    });
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) load(e.target.files[0]);
+      e.target.value = '';
+    });
+
+    let filterTimer;
+    $('filterInput').addEventListener('input', () => {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(applyFilter, 200);
+    });
+    $('btnClearFilter').addEventListener('click', () => {
+      $('filterInput').value = '';
+      applyFilter();
+    });
+
+    $('btnTrimWhitespace').addEventListener('click', () => {
+      state.rows = state.rows.map(r => {
+        const o = {};
+        state.headers.forEach(h => o[h] = String(r[h] || '').trim());
+        return o;
+      });
+      Shell.Toast.show('Leerzeichen getrimmt');
+      applyFilter();
+    });
+    $('btnRemoveEmpty').addEventListener('click', () => {
+      const before = state.rows.length;
+      state.rows = state.rows.filter(r => state.headers.some(h => String(r[h] || '').trim() !== ''));
+      $('statRowsTotal').textContent = state.rows.length;
+      Shell.Toast.show(`${before - state.rows.length} leere Zeilen entfernt`);
+      applyFilter();
+    });
+    $('btnDedupe').addEventListener('click', () => {
+      const seen = new Set();
+      const before = state.rows.length;
+      state.rows = state.rows.filter(r => {
+        const key = state.headers.map(h => String(r[h] || '')).join('||');
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      });
+      $('statRowsTotal').textContent = state.rows.length;
+      Shell.Toast.show(`${before - state.rows.length} Duplikate entfernt`);
+      applyFilter();
+    });
+
+    $('btnExport').addEventListener('click', () => {
+      const csv = Papa.unparse(state.filtered, { columns: state.headers });
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.file.name.replace(/\.csv$/i, '_bearbeitet.csv');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btnReset').addEventListener('click', () => {
+      state.file = null; state.rows = []; state.filtered = []; state.headers = [];
+      $('emptyView').style.display = 'block';
+      $('editorView').style.display = 'none';
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'CSV · EDITOR', tour: true, toolName: 'CSV bearbeiten' });
+    });
+  </script>
+</body>
+</html>

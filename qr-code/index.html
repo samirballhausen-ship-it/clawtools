@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR-Code Generator · CLAWBUIS Tools</title>
+  <meta name="description" content="QR-Codes generieren · URL · WiFi · vCard · 100% im Browser · kostenlos" />
+  <link rel="canonical" href="https://tools.clawbuis.com/qr-code" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    .qr-tabs { display: flex; gap: 4px; padding: 4px; background: var(--surf-2); border: 1px solid var(--border); margin-bottom: 16px; }
+    .qr-tab { padding: 8px 14px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; color: var(--ink-3); flex: 1; text-align: center; border: 1px solid transparent; }
+    .qr-tab.active { background: var(--bg); color: var(--ink); border-color: var(--border); }
+    .qr-input { width: 100%; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-body); font-size: 14px; margin-bottom: 8px; }
+    .qr-input:focus { outline: none; border-color: var(--magic); }
+    .qr-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .qr-row .qr-input { margin-bottom: 0; }
+    .qr-canvas-wrap { display: flex; align-items: center; justify-content: center; padding: 32px; background: var(--surf); border: 1px solid var(--border); min-height: 300px; }
+    #qrCanvas { background: white; padding: 12px; box-shadow: var(--shadow-2); }
+    .field-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <main class="app-main">
+    <section class="hero">
+      <div class="eyebrow">SPEZIAL · <span class="num">·</span> QR-Code</div>
+      <h1>QR-Code Generator.<br><span class="accent">URL · WiFi · vCard.</span></h1>
+      <p class="lede">URL, WLAN-Zugang oder Visitenkarte zum scanbaren QR-Code. Lokal generiert — der Inhalt verlässt deinen Browser nie.</p>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <div class="card">
+          <div class="card-head"><h2>Inhalt</h2><span class="meta" id="charCount">0 Zeichen</span></div>
+          <div class="card-body">
+            <div class="qr-tabs">
+              <button class="qr-tab active" data-tab="url">URL</button>
+              <button class="qr-tab" data-tab="text">Text</button>
+              <button class="qr-tab" data-tab="wifi">WLAN</button>
+              <button class="qr-tab" data-tab="vcard">vCard</button>
+            </div>
+            <div id="tabUrl" class="qr-tab-content">
+              <div class="field-label">Webadresse</div>
+              <input class="qr-input" type="url" id="urlInput" placeholder="https://tools.clawbuis.com" value="https://tools.clawbuis.com" />
+            </div>
+            <div id="tabText" class="qr-tab-content" style="display:none;">
+              <div class="field-label">Beliebiger Text</div>
+              <textarea class="qr-input" id="textInput" rows="4" placeholder="Dein Text hier..."></textarea>
+            </div>
+            <div id="tabWifi" class="qr-tab-content" style="display:none;">
+              <div class="field-label">WLAN-Name (SSID)</div>
+              <input class="qr-input" type="text" id="wifiSsid" placeholder="MeinNetzwerk" />
+              <div class="field-label">Passwort</div>
+              <input class="qr-input" type="text" id="wifiPass" placeholder="passwort123" />
+              <div class="field-label">Verschlüsselung</div>
+              <select class="qr-input" id="wifiAuth">
+                <option value="WPA">WPA/WPA2/WPA3</option>
+                <option value="WEP">WEP</option>
+                <option value="nopass">Kein Passwort</option>
+              </select>
+            </div>
+            <div id="tabVcard" class="qr-tab-content" style="display:none;">
+              <div class="qr-row"><div><div class="field-label">Vorname</div><input class="qr-input" id="vcFn" placeholder="Max" /></div><div><div class="field-label">Nachname</div><input class="qr-input" id="vcLn" placeholder="Mustermann" /></div></div>
+              <div class="field-label">Telefon</div><input class="qr-input" type="tel" id="vcTel" placeholder="+49 ..." />
+              <div class="field-label">E-Mail</div><input class="qr-input" type="email" id="vcEmail" placeholder="max@..." />
+              <div class="field-label">Firma</div><input class="qr-input" id="vcOrg" placeholder="Optional" />
+              <div class="field-label">Webadresse</div><input class="qr-input" type="url" id="vcUrl" placeholder="Optional" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 16px;">
+          <div class="card-head"><h2>Vorschau</h2><span class="meta" id="qrSize">—</span></div>
+          <div class="qr-canvas-wrap"><canvas id="qrCanvas"></canvas></div>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="card">
+          <div class="card-head"><h2>Optionen</h2></div>
+          <div class="card-body">
+            <div class="field-label">Größe</div>
+            <select class="qr-input" id="optSize" style="margin-bottom: 12px;">
+              <option value="256">256×256 (klein)</option>
+              <option value="512" selected>512×512 (Standard)</option>
+              <option value="1024">1024×1024 (Druck)</option>
+              <option value="2048">2048×2048 (Plakat)</option>
+            </select>
+            <div class="field-label">Fehlerkorrektur</div>
+            <select class="qr-input" id="optEC" style="margin-bottom: 12px;">
+              <option value="L">L (7%) - max. Daten</option>
+              <option value="M" selected>M (15%) - Standard</option>
+              <option value="Q">Q (25%) - mit Logo</option>
+              <option value="H">H (30%) - max. Robustheit</option>
+            </select>
+            <div class="field-label">Vordergrund</div>
+            <input class="qr-input" type="color" id="optFg" value="#0a0a0a" style="height: 40px; padding: 4px; cursor: pointer; margin-bottom: 8px;" />
+            <div class="field-label">Hintergrund</div>
+            <input class="qr-input" type="color" id="optBg" value="#ffffff" style="height: 40px; padding: 4px; cursor: pointer;" />
+          </div>
+        </div>
+
+        <button class="btn btn-success" id="btnPng">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          PNG herunterladen
+        </button>
+        <button class="btn btn-secondary" id="btnSvg" style="margin-top: 8px;">SVG herunterladen</button>
+      </aside>
+    </div>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    window.__tutorial = [
+      { target: '.qr-tabs', title: 'Inhalts-Typ wählen', text: 'URL für Links, WLAN für WiFi-Zugänge, vCard für Visitenkarten. Jeder Typ hat eigene Felder.', side: 'bottom' },
+      { target: '#optEC', title: 'Fehlerkorrektur', text: 'Bei Logo-Einbetten oder Druck auf rauer Oberfläche: höhere Fehlerkorrektur (Q oder H).', side: 'left' },
+      { target: '#btnPng', title: 'Download', text: 'PNG für Web/Druck. SVG für skalierbare Vektor-Ausgabe.', side: 'top' }
+    ];
+
+    const $ = id => document.getElementById(id);
+    let currentSvgString = '';
+
+    function buildContent() {
+      const active = document.querySelector('.qr-tab.active').dataset.tab;
+      if (active === 'url') return $('urlInput').value.trim() || ' ';
+      if (active === 'text') return $('textInput').value || ' ';
+      if (active === 'wifi') {
+        const s = $('wifiSsid').value, p = $('wifiPass').value, a = $('wifiAuth').value;
+        return `WIFI:T:${a};S:${s};P:${p};;`;
+      }
+      if (active === 'vcard') {
+        const fn = $('vcFn').value, ln = $('vcLn').value, tel = $('vcTel').value;
+        const email = $('vcEmail').value, org = $('vcOrg').value, url = $('vcUrl').value;
+        return [`BEGIN:VCARD`, `VERSION:3.0`, `N:${ln};${fn}`, `FN:${fn} ${ln}`,
+                tel && `TEL:${tel}`, email && `EMAIL:${email}`, org && `ORG:${org}`,
+                url && `URL:${url}`, `END:VCARD`].filter(Boolean).join('\n');
+      }
+      return ' ';
+    }
+
+    async function regen() {
+      const content = buildContent();
+      const size = parseInt($('optSize').value, 10);
+      const ec = $('optEC').value;
+      const fg = $('optFg').value;
+      const bg = $('optBg').value;
+      $('charCount').textContent = `${content.length} Zeichen`;
+      $('qrSize').textContent = `${size}×${size}`;
+      try {
+        await QRCode.toCanvas($('qrCanvas'), content, {
+          width: size, errorCorrectionLevel: ec,
+          color: { dark: fg, light: bg }, margin: 2
+        });
+        currentSvgString = await QRCode.toString(content, {
+          type: 'svg', width: size, errorCorrectionLevel: ec,
+          color: { dark: fg, light: bg }, margin: 2
+        });
+      } catch (e) {
+        Shell.Toast.show('QR-Generation fehlgeschlagen — Inhalt zu lang?', true);
+      }
+    }
+
+    document.querySelectorAll('.qr-tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelectorAll('.qr-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.qr-tab-content').forEach(x => x.style.display = 'none');
+      $(`tab${t.dataset.tab.charAt(0).toUpperCase() + t.dataset.tab.slice(1)}`).style.display = 'block';
+      regen();
+    }));
+    ['urlInput','textInput','wifiSsid','wifiPass','wifiAuth','vcFn','vcLn','vcTel','vcEmail','vcOrg','vcUrl','optSize','optEC','optFg','optBg']
+      .forEach(id => $(id).addEventListener('input', regen));
+
+    $('btnPng').addEventListener('click', () => {
+      const url = $('qrCanvas').toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url; a.download = `clawbuis-qr_${Date.now()}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+    $('btnSvg').addEventListener('click', () => {
+      const blob = new Blob([currentSvgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `clawbuis-qr_${Date.now()}.svg`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'QR-CODE', tour: true, toolName: 'QR-Code Generator' });
+      regen();
+    });
+  </script>
+</body>
+</html>
