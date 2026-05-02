@@ -20,7 +20,7 @@
 shared Frame über `shared/{tokens.css, shell.css, shell.js, suggest-engine.js}`.
 
 ```
-clawbuis-tools/
+clawtools/
 ├── index.html              # Hub
 ├── shared/                 # Tokens · Shell · Tour · Suggest-Engine
 ├── pdf-splitter/           # ✅ Live

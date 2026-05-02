@@ -229,7 +229,7 @@
     [['Impressum', '/impressum'],
      ['Datenschutz', '/datenschutz'],
      ['AGB', '/agb'],
-     ['GitHub', 'https://github.com/samirballhausen-ship-it/clawbuis-tools']
+     ['GitHub', 'https://github.com/samirballhausen-ship-it/clawtools']
     ].forEach(([txt, href]) => {
       const a = el('a', {
         text: txt,

@@ -2,7 +2,7 @@
  *
  * 100% Browser. Reads only first 12 bytes (Magic-Bytes-Detection).
  * NEVER reads file content beyond signature bytes.
- * Open-source — verify yourself: github.com/samirballhausen-ship-it/clawbuis-tools
+ * Open-source — verify yourself: github.com/samirballhausen-ship-it/clawtools
  */
 
 (function (global) {
