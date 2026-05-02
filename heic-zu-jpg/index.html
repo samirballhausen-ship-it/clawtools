@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HEIC zu JPG umwandeln · CLAWBUIS Tools</title>
+  <title>iPhone-Foto zu JPG umwandeln · CLAWBUIS Tools</title>
   <meta name="description" content="iPhone HEIC-Bilder in universal lesbare JPGs umwandeln. Batch-fähig, 100 % im Browser." />
   <meta name="keywords" content="heic zu jpg, iphone bilder konvertieren, heic konverter, heic umwandeln, heif, kostenlos, ohne anmeldung" />
   <link rel="canonical" href="https://tools.clawbuis.com/heic-zu-jpg" />
@@ -96,7 +96,7 @@
 
     <section class="hero">
       <div class="eyebrow">BILD · <span class="num">·</span> Konvertierung</div>
-      <h1>HEIC zu JPG.<br><span class="accent">iPhone-Bilder befreit.</span></h1>
+      <h1>iPhone-Foto zu JPG.<br><span class="accent">Überall öffnen können.</span></h1>
       <p class="lede">
         Apple-Fotos im HEIC/HEIF-Format in universal lesbare JPGs umwandeln.
         Batch-fähig, mit Qualitätswahl. Verarbeitung 100 % lokal — eure Bilder
@@ -119,8 +119,8 @@
               <circle cx="8.5" cy="8.5" r="1.5"/>
               <polyline points="21 15 16 10 5 21"/>
             </svg>
-            <div class="drop-title">HEIC-Bilder hier ablegen</div>
-            <div class="drop-hint">oder <kbd>Klicken</kbd> · auch HEIF erlaubt · Batch bis 100 Dateien</div>
+            <div class="drop-title">iPhone-Fotos hier ablegen</div>
+            <div class="drop-hint">oder <kbd>Klicken</kbd> · viele auf einmal (bis 100)</div>
             <input type="file" id="fileInput" accept=".heic,.heif,image/heic,image/heif" multiple class="hidden" />
           </div>
 
@@ -219,10 +219,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'HEIC-Dateien ablegen', text: 'Drag oder Klick. Auch HEIF, HEIX und ähnliche iPhone-Formate werden erkannt. Maximal 100 Dateien gleichzeitig.', side: 'bottom' },
-      { target: '#optQuality', title: 'Qualität wählen', text: '92% ist ein guter Kompromiss. Bei sehr großen Druckdateien kannst du auf 100% gehen, für Mail-Versand reicht oft 75-85%.', side: 'left' },
-      { target: '#optKeepExif', title: 'EXIF-Daten', text: 'Wenn aktiv, bleiben Aufnahmedatum/Kamera-Info erhalten. Für Datenschutz vor Web-Upload: hier deaktivieren ODER den EXIF-Strip-Tool nutzen.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Klick wird die HEIC-Engine (~3.5 MB) einmalig geladen. Danach Sekundenschnell pro Bild.', side: 'top' }
+      { target: '#dropzone', title: 'iPhone-Fotos ablegen', text: 'Ziehen oder Klicken. iPhone speichert Fotos in einem Format das nur Apple-Geräte gut öffnen können. Wir wandeln sie in JPG um — das öffnet jeder.', side: 'bottom' },
+      { target: '#optQuality', title: 'Qualität wählen', text: '92% ist ein guter Mittelwert. Für Druck → 100%. Für E-Mail/Web-Versand → 75-85% (kleinere Dateien).', side: 'left' },
+      { target: '#optKeepExif', title: 'Foto-Daten behalten?', text: 'Aufnahmedatum und Kamera-Info können erhalten bleiben. Wenn du das Bild ins Internet stellst: lieber abschalten — sonst sieht jeder wo das Foto gemacht wurde.', side: 'left' },
+      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Klick wird der Konverter (~3.5 MB) einmal geladen. Danach läuft alles direkt — kein Upload, kein Server.', side: 'top' }
     ];
 
     const state = { files: [], nextId: 1, processing: false, results: [], libReady: false };

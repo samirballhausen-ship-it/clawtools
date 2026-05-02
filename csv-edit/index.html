@@ -29,8 +29,8 @@
   <main class="app-main wide">
     <section class="hero">
       <div class="eyebrow">DATEN · <span class="num">·</span> CSV-Editor</div>
-      <h1>CSV bearbeiten.<br><span class="accent">Ohne Excel.</span></h1>
-      <p class="lede">Sortieren, filtern, leere Zeilen entfernen, Spalten trimmen. Schnell-Operationen direkt im Browser ohne Office-Setup. 100% lokal.</p>
+      <h1>Tabellen bearbeiten.<br><span class="accent">Ohne Excel.</span></h1>
+      <p class="lede">Excel-Daten (CSV) schnell sortieren, filtern, leere Zeilen entfernen, überflüssige Leerzeichen wegputzen. Direkt im Browser — du brauchst weder Excel noch Office. 100% lokal, deine Daten bleiben auf deinem Rechner.</p>
     </section>
 
     <div id="emptyView">
@@ -39,7 +39,7 @@
           <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
         </svg>
         <div class="drop-title">CSV-Datei hier ablegen</div>
-        <div class="drop-hint">Trennzeichen: , ; \\t · Auto-Detection · UTF-8 / Latin-1</div>
+        <div class="drop-hint">aus Excel exportiert (CSV) · Trennzeichen werden automatisch erkannt</div>
         <input type="file" id="fileInput" accept=".csv,.tsv,text/csv" class="hidden" />
       </div>
     </div>
@@ -94,9 +94,9 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'CSV ablegen', text: 'Trennzeichen werden auto-erkannt (Komma, Semikolon, Tab). UTF-8 und Latin-1 supported.', side: 'bottom' },
-      { target: '#filterInput', title: 'Filtern', text: 'Tippe einen Suchbegriff — alle Zeilen werden in allen Spalten gefiltert.', side: 'bottom' },
-      { target: '#btnExport', title: 'Exportieren', text: 'Bereinigte/gefilterte Tabelle als neue CSV speichern.', side: 'left' }
+      { target: '#dropzone', title: 'CSV ablegen', text: 'Du kannst aus Excel als CSV exportieren (Datei → Speichern unter → CSV). Wir erkennen das Trennzeichen automatisch (Komma, Strichpunkt oder Tab) und auch deutsche Umlaute.', side: 'bottom' },
+      { target: '#filterInput', title: 'Filtern', text: 'Tippe einen Suchbegriff — alle Zeilen die das Wort irgendwo enthalten bleiben sichtbar.', side: 'bottom' },
+      { target: '#btnExport', title: 'Speichern', text: 'Bereinigte/gefilterte Tabelle als neue CSV-Datei speichern. Kannst du direkt wieder in Excel öffnen.', side: 'left' }
     ];
 
     const state = { file: null, headers: [], rows: [], filtered: [], sortCol: null, sortDir: 1 };

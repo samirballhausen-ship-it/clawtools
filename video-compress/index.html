@@ -30,7 +30,7 @@
     <section class="hero">
       <div class="eyebrow">VIDEO · <span class="num">·</span> Komprimieren</div>
       <h1>Video komprimieren.<br><span class="accent">Mail/WhatsApp-tauglich.</span></h1>
-      <p class="lede">Große Videos für Versand schrumpfen. ffmpeg.wasm läuft komplett im Browser — auch 500-MB-Videos verlassen euren Rechner nicht. Beim ersten Mal lädt der Codec (~25 MB).</p>
+      <p class="lede">Große Videos für E-Mail oder WhatsApp schrumpfen. Läuft komplett in deinem Browser — auch 500-MB-Videos verlassen deinen Rechner nicht. Beim ersten Mal lädt das Video-Werkzeug (~25 MB), danach sofort verfügbar.</p>
     </section>
 
     <div id="emptyView">
@@ -52,7 +52,7 @@
             <video id="videoPreview" class="video-preview" controls></video>
           </div>
           <div class="lib-loading" id="libLoading">
-            <strong>Lade Video-Codec…</strong> ffmpeg.wasm (~25 MB). Wird einmalig geladen, dann gecacht.
+            <strong>Video-Werkzeug wird geladen…</strong> einmal ~25 MB Download. Beim nächsten Mal sofort.
           </div>
         </div>
 
@@ -116,7 +116,7 @@
     window.__tutorial = [
       { target: '#dropzone', title: 'Video wählen', text: 'Auch große Dateien (>1 GB) — verarbeitet wird direkt im Browser, nicht hochgeladen.', side: 'bottom' },
       { target: '.preset-grid', title: 'Preset wählen', text: 'WhatsApp für maximale Komprimierung. Web für Streaming. Original-Qualität für Archivierung.', side: 'left' },
-      { target: '#btnProcess', title: 'Erstes Mal', text: 'Codec wird beim ersten Klick geladen (~25 MB). Folgende Videos gehen sofort.', side: 'top' }
+      { target: '#btnProcess', title: 'Erstes Mal dauert etwas', text: 'Beim ersten Klick wird das Video-Werkzeug geladen (~25 MB). Folgende Videos gehen sofort.', side: 'top' }
     ];
 
     const state = { file: null, outBlob: null, crf: 28, scale: 1280 };

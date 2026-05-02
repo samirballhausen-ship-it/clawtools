@@ -462,12 +462,16 @@ input, select, textarea { font: inherit; color: inherit; }
   grid-template-columns: 1fr 320px;
   gap: 24px; align-items: start;
 }
+.work-grid > * { min-width: 0; }
 @media (max-width: 960px) { .work-grid { grid-template-columns: 1fr; } }
 
 .card {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r-tool);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .card-head {
   padding: 14px 20px;
@@ -963,7 +967,7 @@ input[type="file"].hidden { display: none; }
   .hub-tile-grid { grid-template-columns: 1fr; }
   .hub-section { margin-bottom: 40px; }
   .hub-section-title { font-size: 22px; }
-  .tour-tooltip { width: calc(100vw - 32px); left: 16px !important; right: 16px; }
+  .tour-tooltip { width: calc(100vw - 32px) !important; max-width: calc(100vw - 32px) !important; left: 16px !important; right: 16px; box-sizing: border-box; }
   .tour-welcome { left: 16px; right: 16px; width: auto; bottom: 16px; }
   .hero h1 { font-size: 28px; line-height: 1.15; }
   .hero .lede { font-size: 15px; }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EXIF entfernen · CLAWBUIS Tools</title>
+  <title>Foto-Daten entfernen · CLAWBUIS Tools</title>
   <meta name="description" content="EXIF-Daten (Standort, Kamera, Datum) aus Bildern entfernen vor Web-Upload. 100 % im Browser." />
   <meta name="keywords" content="exif entfernen, metadaten löschen, bilder anonymisieren, datenschutz fotos, gps standort entfernen, kostenlos" />
   <link rel="canonical" href="https://tools.clawbuis.com/exif-strip" />
@@ -119,7 +119,7 @@
 
     <section class="hero">
       <div class="eyebrow">DATENSCHUTZ · <span class="num">·</span> Bild-Werkzeug</div>
-      <h1>EXIF entfernen.<br><span class="accent">Standort. Kamera. Datum. Weg.</span></h1>
+      <h1>Foto-Daten entfernen.<br><span class="accent">Standort. Kamera. Datum. Weg.</span></h1>
       <p class="lede">
         Bilder enthalten unsichtbare Metadaten — wo das Foto gemacht wurde, mit welchem Gerät,
         wann genau. Vor Web-Upload, Foren-Posts oder Mailversand: alles entfernen.
@@ -142,7 +142,7 @@
               <path d="m9 12 2 2 4-4"/>
             </svg>
             <div class="drop-title">Bilder hier ablegen</div>
-            <div class="drop-hint">JPG · PNG · WebP · TIFF — wir prüfen welche EXIF-Daten drin sind und entfernen sie</div>
+            <div class="drop-hint">JPG · PNG · WebP · TIFF — wir zeigen welche Daten drinstecken und löschen sie</div>
             <input type="file" id="fileInput" accept="image/*" multiple class="hidden" />
           </div>
 
@@ -229,9 +229,9 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Bilder ablegen', text: 'JPG, PNG, WebP, TIFF — alle gängigen Foto-Formate werden geprüft. Drag oder Klick.', side: 'bottom' },
-      { target: '#exifPreview', title: 'EXIF-Vorschau', text: 'Sobald Bilder geladen sind, zeigen wir dir was an Metadaten drinsteckt — bevor wir es entfernen.', side: 'top' },
-      { target: '#btnProcess', title: 'Strippen', text: 'Ein Klick und alle EXIF-/XMP-/IPTC-Daten werden entfernt. Das sichtbare Bild bleibt unverändert.', side: 'top' }
+      { target: '#dropzone', title: 'Bilder ablegen', text: 'JPG, PNG, WebP, TIFF — alle gängigen Foto-Formate. Ziehen oder klicken.', side: 'bottom' },
+      { target: '#exifPreview', title: 'Vorschau der Daten', text: 'Sobald Bilder geladen sind, zeigen wir was alles drinsteckt: Aufnahmeort (GPS), Kamera-Modell, Datum, Bearbeitungs-Spuren. Vor dem Entfernen siehst du alles.', side: 'top' },
+      { target: '#btnProcess', title: 'Daten löschen', text: 'Ein Klick und alle versteckten Foto-Daten sind weg. Das sichtbare Bild bleibt unverändert.', side: 'top' }
     ];
 
     const state = { files: [], nextId: 1, processing: false, results: [] };

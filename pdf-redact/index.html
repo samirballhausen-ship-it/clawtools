@@ -13,16 +13,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     .page-wrap { position: relative; margin: 16px auto; max-width: 100%; box-shadow: var(--shadow-2); cursor: crosshair; }
-    .page-canvas { display: block; max-width: 100%; height: auto; }
+    .page-canvas { display: block; max-width: 100%; height: auto; width: 100%; }
     .page-overlay { position: absolute; inset: 0; pointer-events: none; }
     .redact-rect { position: absolute; background: #000; cursor: pointer; pointer-events: all; }
     .redact-rect:hover { outline: 2px solid var(--risk); }
-    .pages-container { padding: 20px; max-height: 70vh; overflow-y: auto; background: var(--surf); }
+    .pages-container { padding: 20px; max-height: 70vh; overflow-y: auto; overflow-x: auto; background: var(--surf); width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
     .page-label { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.08em; text-align: center; margin: 16px 0 8px; }
     .nav-btn { padding: 8px 12px; background: var(--bg); border: 1px solid var(--border-strong); font-family: var(--font-mono); font-size: 11px; cursor: pointer; }
     .nav-btn:hover { border-color: var(--magic); color: var(--magic); }
     .help { padding: 12px 20px; background: var(--surf); border: 1px solid var(--border); font-size: 12px; color: var(--ink-2); margin: 16px 0; }
     .help strong { color: var(--ink); }
+    .editor-grid { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+    .editor-grid > * { min-width: 0; }
+    @media (max-width: 768px) {
+      .editor-grid { grid-template-columns: 1fr; gap: 16px; }
+      .pages-container { padding: 12px; max-height: 60vh; }
+    }
   </style>
 </head>
 <body>
@@ -45,7 +51,7 @@
     </div>
 
     <div id="editorView" style="display: none;">
-      <div style="display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start;">
+      <div class="editor-grid">
         <div class="card">
           <div class="card-head">
             <h2 id="fileName">—</h2>

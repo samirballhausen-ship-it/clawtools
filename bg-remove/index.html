@@ -25,7 +25,7 @@
     <section class="hero">
       <div class="eyebrow">BILD · <span class="num">·</span> KI-Editor</div>
       <h1>Hintergrund entfernen.<br><span class="accent">KI im Browser.</span></h1>
-      <p class="lede">Person, Produkt, Objekt freistellen — automatisch erkannt. Modell läuft via WebAssembly/WebGPU im Browser. Kein Upload, keine Cloud, keine Daten verlassen den Rechner. Beim ersten Mal lädt das Modell (~50 MB) — danach sofort verfügbar.</p>
+      <p class="lede">Person, Produkt oder Objekt aus dem Hintergrund freistellen — automatisch erkannt per KI. Alles läuft direkt in deinem Browser. Kein Upload, keine Cloud, deine Bilder verlassen deinen Rechner nicht. Beim ersten Mal lädt die KI (~50 MB) — danach sofort einsatzbereit.</p>
     </section>
 
     <div id="emptyView">
@@ -57,7 +57,7 @@
             </div>
           </div>
           <div class="lib-loading" id="libLoading">
-            <strong>Lade KI-Modell…</strong> @imgly/background-removal Engine (~50 MB). Wird einmalig geladen, dann gecacht.
+            <strong>KI wird geladen…</strong> einmal ~50 MB Download. Beim nächsten Mal sofort verfügbar.
           </div>
         </div>
 
@@ -135,16 +135,25 @@
     async function loadEngine() {
       if (removeBg) return removeBg;
       $('libLoading').classList.add('active');
-      try {
-        // Use ESM dynamic import
-        const mod = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/+esm');
-        removeBg = mod.removeBackground || mod.default?.removeBackground || mod.default;
-        if (!removeBg) throw new Error('removeBackground export not found');
-      } catch (e) {
-        console.error(e);
-        throw new Error('Engine konnte nicht geladen werden — eventuell WebGPU/WebAssembly nicht supported');
+      const sources = [
+        'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.8/+esm',
+        'https://esm.sh/@imgly/background-removal@1.5.8',
+        'https://cdn.skypack.dev/@imgly/background-removal',
+      ];
+      let lastErr;
+      for (const src of sources) {
+        try {
+          const mod = await import(src);
+          removeBg = mod.removeBackground || mod.default?.removeBackground || mod.default;
+          if (typeof removeBg === 'function') return removeBg;
+          lastErr = new Error('removeBackground export not found in ' + src);
+        } catch (e) {
+          console.warn('[bg-remove] CDN failed:', src, e.message);
+          lastErr = e;
+        }
       }
-      return removeBg;
+      console.error('[bg-remove] all CDNs failed:', lastErr);
+      throw new Error('KI-Modell konnte nicht geladen werden — bitte später nochmal versuchen oder anderen Browser nutzen.');
     }
 
     async function loadFile(file) {

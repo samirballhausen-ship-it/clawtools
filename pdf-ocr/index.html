@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF OCR · CLAWBUIS Tools</title>
+  <title>Gescanntes PDF durchsuchbar machen · CLAWBUIS Tools</title>
   <meta name="description" content="Scan-PDFs durchsuchbar machen · Tesseract.js · DEU+ENG · 100% lokal" />
   <link rel="canonical" href="https://tools.clawbuis.com/pdf-ocr" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
@@ -22,7 +22,7 @@
     <section class="hero">
       <div class="eyebrow">PDF · <span class="num">·</span> OCR</div>
       <h1>PDF durchsuchbar machen.<br><span class="accent">Scans → echter Text.</span></h1>
-      <p class="lede">Aus Scan-PDFs (nur Bilder) suchbare PDFs mit unsichtbarem Text-Layer machen. Plus: extrahierter Text als TXT. Tesseract.js mit Deutsch + Englisch im Browser. Beim ersten Mal lädt das Modell (~30 MB) — danach sofort verfügbar.</p>
+      <p class="lede">Eingescannte PDFs (z.B. Briefe, Verträge, Behörden-Schreiben) bestehen oft nur aus Bildern — kein Text zum Suchen oder Kopieren. Wir lesen den Text per Texterkennung aus und legen ihn unsichtbar im PDF ab. Plus: Text als TXT-Datei zum Weiterverwenden. Deutsch + Englisch erkannt. Beim ersten Mal lädt die Texterkennung (~30 MB) — danach sofort verfügbar.</p>
     </section>
 
     <div id="emptyView">
@@ -103,9 +103,9 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert besonders gut bei Scans aus Druckern oder fotografierten Dokumenten.', side: 'bottom' },
-      { target: '.card-body', title: 'Sprachen', text: 'Aktiviere alle Sprachen die im PDF vorkommen können — bessere Erkennung. Mehr Sprachen = etwas längere Lade- und Erkennungszeit.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Mal werden die Sprach-Modelle geladen (~25 MB pro Sprache). Danach instant für alle weiteren PDFs.', side: 'top' }
+      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert besonders gut bei Scans aus Druckern oder fotografierten Dokumenten. Maschinen-Schrift = sehr genau, Handschrift = nicht zuverlässig.', side: 'bottom' },
+      { target: '.card-body', title: 'Sprachen wählen', text: 'Aktiviere alle Sprachen die im PDF vorkommen können — das macht die Erkennung genauer. Mehr Sprachen = etwas längere Ladezeit beim ersten Mal.', side: 'left' },
+      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Mal werden die Sprach-Erkennungen geladen (~25 MB pro Sprache). Danach sofort einsatzbereit für alle weiteren PDFs.', side: 'top' }
     ];
 
     const state = { file: null, buffer: null, pages: [], allText: '' };

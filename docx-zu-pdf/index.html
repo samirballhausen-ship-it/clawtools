@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DOCX zu PDF · CLAWBUIS Tools</title>
+  <title>Word zu PDF · CLAWBUIS Tools</title>
   <meta name="description" content="Word-Dokumente in universal lesbares PDF konvertieren · 100% lokal" />
   <link rel="canonical" href="https://tools.clawbuis.com/docx-zu-pdf" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
@@ -47,8 +47,8 @@
   <main class="app-main">
     <section class="hero">
       <div class="eyebrow">DOK · <span class="num">·</span> Konvertierung</div>
-      <h1>DOCX zu PDF.<br><span class="accent">Word ohne Word.</span></h1>
-      <p class="lede">Word-Dokumente in universal lesbares PDF konvertieren — ohne Microsoft Office, ohne Login, ohne Server. Mammoth.js extrahiert Inhalt, DOMPurify reinigt jede HTML-Struktur, html2canvas rendert, pdf-lib speichert. 100% lokal.</p>
+      <h1>Word zu PDF.<br><span class="accent">Ohne Word installiert haben zu müssen.</span></h1>
+      <p class="lede">Word-Dokumente (.docx) in PDF umwandeln — ganz ohne Microsoft Office, ohne Anmeldung, ohne Server. Alles direkt in deinem Browser. 100% lokal, deine Datei verlässt deinen Rechner nicht.</p>
     </section>
 
     <div id="emptyView">
@@ -56,8 +56,8 @@
         <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
         </svg>
-        <div class="drop-title">DOCX hier ablegen</div>
-        <div class="drop-hint">.docx · Word 2007+ · auch ODT-Export sollte gehen</div>
+        <div class="drop-title">Word-Datei hier ablegen</div>
+        <div class="drop-hint">.docx (Word 2007 oder neuer) · auch LibreOffice-Export</div>
         <input type="file" id="fileInput" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
       </div>
     </div>
@@ -120,9 +120,9 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'DOCX wählen', text: 'Word-Dokumente ab Version 2007 (.docx). Ältere .doc nicht unterstützt.', side: 'bottom' },
-      { target: '#previewPage', title: 'Vorschau prüfen', text: 'Schau ob die Formatierung passt. Komplexe Layouts können vereinfacht werden — wir sanitizen jeden HTML-Output.', side: 'top' },
-      { target: '#btnProcess', title: 'PDF erstellen', text: 'Vorschau wird via Canvas zu PDF gerendert. A4-Seiten werden auto-erstellt.', side: 'left' }
+      { target: '#dropzone', title: 'Word-Datei wählen', text: 'Word-Dokumente ab Version 2007 (Endung .docx). Ältere .doc-Dateien funktionieren nicht — die musst du erst in Word öffnen und neu speichern.', side: 'bottom' },
+      { target: '#previewPage', title: 'Vorschau prüfen', text: 'So sieht das spätere PDF aus. Komplexe Layouts (Tabellen, Bilder, Kopfzeilen) können leicht vereinfacht werden.', side: 'top' },
+      { target: '#btnProcess', title: 'PDF erstellen', text: 'Wir erstellen ein PDF mit A4-Seiten. Wenn der Inhalt länger ist, wird automatisch umbrochen.', side: 'left' }
     ];
 
     const state = { file: null, outBlob: null };
