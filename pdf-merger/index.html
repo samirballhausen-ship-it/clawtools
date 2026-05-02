@@ -408,7 +408,10 @@
         };
         state.files.push(entry);
         added++;
-        probePages(entry).catch(() => {});
+        probePages(entry).catch((e) => {
+          console.error(`[pdf-merger] probePages fail [${entry.name}]`, e);
+          Shell.Toast.show(`Konnte ${entry.name} nicht öffnen: ${e.message ?? 'unbekannt'}`, true);
+        });
       }
       if (skipped > 0 && added === 0) Shell.Toast.show('Nur PDFs sind erlaubt', true);
       render();

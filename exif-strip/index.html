@@ -446,7 +446,11 @@
         };
         state.files.push(entry);
         added++;
-        checkExif(entry).catch(() => {});
+        checkExif(entry).catch((e) => {
+          console.error(`[exif-strip] checkExif fail [${entry.name}]`, e);
+          // Non-blocking: EXIF-Check schlägt manchmal stillschweigend fehl bei exotischen Formaten,
+          // das ist OK — Datei kann trotzdem verarbeitet werden. Aber loggen statt komplett ignorieren.
+        });
       }
       if (skipped > 0 && added === 0) Shell.Toast.show('Nur Bilder erlaubt (JPG, PNG, WebP, TIFF)', true);
       render();

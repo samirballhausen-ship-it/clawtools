@@ -1072,7 +1072,10 @@
       };
       state.files.push(entry);
       added++;
-      probePageCount(entry).catch(() => {});
+      probePageCount(entry).catch((e) => {
+        console.error(`[pdf-splitter] probePageCount fail [${entry.name}]`, e);
+        showToast(`Konnte ${entry.name} nicht öffnen: ${e.message ?? 'unbekannt'}`, true);
+      });
     }
 
     if (skipped > 0 && added === 0) {
