@@ -267,9 +267,18 @@
     });
     inner.appendChild(nav);
 
-    // Source-Hinweis: subtle, devs-only — Code öffentlich auf GitHub.
-    // Custom-SVG (kein GitHub-Trademark): drei verbundene Knoten = Repository-Mark.
-    const sourceWrap = el('div', { class: 'app-footer-source', attrs: { 'aria-label': 'Quellcode dieser Seite' } });
+    // Source-Link: minimalistisch — nur "GitHub" + Custom-Repo-SVG-Mark.
+    // Hover/URL zeigt zwar weiterhin den Repo-Path, aber der Text bleibt
+    // dezent. Wer den Code prüfen will, klickt — alle anderen überlesen es.
+    const sourceLink = el('a', {
+      class: 'app-footer-source',
+      attrs: {
+        href: 'https://github.com/samirballhausen-ship-it/clawtools',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        'aria-label': 'Quellcode auf GitHub'
+      }
+    });
     const sourceMark = parseSVG(`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <circle cx="4" cy="4" r="1.5"/>
       <circle cx="4" cy="12" r="1.5"/>
@@ -279,14 +288,9 @@
       <path d="M5.5 12h3a3 3 0 0 0 3-3v-.5"/>
     </svg>`);
     sourceMark.classList.add('app-footer-source-mark');
-    sourceWrap.appendChild(sourceMark);
-    sourceWrap.appendChild(document.createTextNode('Code öffentlich · '));
-    const sourceLink = el('a', {
-      text: 'samirballhausen-ship-it/clawtools',
-      attrs: { href: 'https://github.com/samirballhausen-ship-it/clawtools', target: '_blank', rel: 'noopener noreferrer' }
-    });
-    sourceWrap.appendChild(sourceLink);
-    inner.appendChild(sourceWrap);
+    sourceLink.appendChild(sourceMark);
+    sourceLink.appendChild(document.createTextNode('GitHub'));
+    inner.appendChild(sourceLink);
 
     const footer = el('footer', { class: 'app-footer' }, [inner]);
     document.body.appendChild(footer);
@@ -348,10 +352,21 @@
       if (tourState.backdrop) Tour._end();
       tourState.steps = steps;
       tourState.idx = 0;
-      Tour._buildOverlay();
-      Tour._render();
-      document.addEventListener('keydown', Tour._handleKey);
-      window.addEventListener('resize', Tour._reposition);
+      // BUG-TOUR-001: User-Wunsch — Tutorial startet IMMER von oben.
+      // Wenn User vorher runter gescrollt hat, passten die Tooltip-Cutouts
+      // nicht zur erwarteten Top-Position. Wir scrollen sanft nach oben
+      // und warten dann kurz auf die Animation, bevor das erste Step rendert.
+      const needsScrollUp = window.scrollY > 60;
+      if (needsScrollUp) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      const renderDelay = needsScrollUp ? 360 : 0;
+      setTimeout(() => {
+        Tour._buildOverlay();
+        Tour._render();
+        document.addEventListener('keydown', Tour._handleKey);
+        window.addEventListener('resize', Tour._reposition);
+      }, renderDelay);
     },
 
     _buildOverlay() {
@@ -634,7 +649,8 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredInstallPrompt = e;
-      showInstallButton();
+      // Header-Button is already injected in setupPWA — kein duplicate
+      if (!document.querySelector('.pwa-install-header')) showInstallButton();
     });
 
     // Hide if already installed
@@ -650,6 +666,16 @@
     // iOS-Detection: kein beforeinstallprompt → eigenes Hint
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    // BUG-PWA-001 v2: ALWAYS-show Install-Button im Header — auch ohne
+    // beforeinstallprompt-Event. iOS-Safari fired das Event NIE; Chrome
+    // fired's nur unter bestimmten Bedingungen. User sollte aber immer
+    // sehen können dass App installierbar ist. triggerInstall() entscheidet
+    // dann basierend auf verfügbarem prompt vs. Plattform-Modal.
+    if (!isStandalone) {
+      showInstallButton();
+    }
+
     if (isIOS && !isStandalone && isHub) {
       setTimeout(() => showIOSHint(), 2500);
     }
@@ -706,14 +732,123 @@
   }
 
   async function triggerInstall() {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
-    if (choice && choice.outcome === 'accepted') {
-      const btn = document.querySelector('.pwa-install-btn');
-      if (btn) btn.remove();
+    // BUG-PWA-001 v2: deferredInstallPrompt fehlt auf iOS Safari komplett
+    // und ist auf Chrome nur unter bestimmten Bedingungen verfügbar.
+    // Fallback: Plattform-spezifisches Modal mit klaren Schritten.
+    if (deferredInstallPrompt) {
+      try {
+        deferredInstallPrompt.prompt();
+        const choice = await deferredInstallPrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          document.querySelectorAll('.pwa-install-btn, .pwa-install-header').forEach(b => b.remove());
+        }
+      } catch (e) {
+        console.warn('[pwa] native prompt failed, falling back to modal:', e);
+        showInstallModal();
+      }
+      deferredInstallPrompt = null;
+      return;
     }
-    deferredInstallPrompt = null;
+    // Kein nativer Prompt → Plattform-Modal
+    showInstallModal();
+  }
+
+  // Plattform-spezifisches Install-Modal — nur Custom-SVG-Icons, kein Emoji.
+  function showInstallModal() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isMac = /Macintosh/.test(ua) && !isIOS;
+    const isAndroid = /Android/.test(ua);
+    const isFirefox = /Firefox/.test(ua);
+
+    let title, steps;
+    if (isIOS) {
+      title = 'Auf iPhone/iPad';
+      steps = [
+        'Tippe unten in Safari auf das Teilen-Symbol — das Quadrat mit dem Pfeil nach oben.',
+        'Wische in der Liste nach unten zu „Zum Home-Bildschirm".',
+        'Bestätige oben rechts mit „Hinzufügen". Die App liegt jetzt wie eine native App auf deinem Home-Bildschirm.'
+      ];
+    } else if (isAndroid) {
+      title = 'Auf Android';
+      steps = [
+        'Tippe oben rechts auf das Drei-Punkte-Menü.',
+        'Wähle „App installieren" oder „Zum Startbildschirm hinzufügen".',
+        'Bestätige die Installation. Die App startet danach wie eine native App.'
+      ];
+    } else if (isMac) {
+      title = 'Auf macOS';
+      steps = [
+        'Klicke in der Safari-Adresszeile rechts auf das Teilen-Symbol oder im Menü auf Datei → „Zum Dock hinzufügen".',
+        'In Chrome: rechts in der Adresszeile auf das Install-Symbol — der kleine Bildschirm mit Pfeil-nach-unten.',
+        'Bestätige mit „Installieren".'
+      ];
+    } else if (isFirefox) {
+      title = 'Auf Firefox';
+      steps = [
+        'Firefox unterstützt App-Installation aktuell nicht direkt.',
+        'Setze stattdessen ein Lesezeichen in der Lesezeichen-Leiste — dann ist die Seite einen Klick weit weg.',
+        'Für volle App-Erfahrung: Chrome, Edge oder Safari nutzen.'
+      ];
+    } else {
+      title = 'Im Browser';
+      steps = [
+        'Klicke rechts in der Adresszeile auf das Install-Symbol — meist ein kleiner Bildschirm mit Pfeil.',
+        'Oder im Menü auf „App installieren" / „Auf Homescreen ablegen".',
+        'Bestätige die Installation.'
+      ];
+    }
+
+    const backdrop = el('div', {
+      class: 'pwa-modal-backdrop',
+      on: { click: (e) => { if (e.target === backdrop) closePwaModal(); } }
+    });
+    const dialog = el('div', {
+      class: 'pwa-modal-dialog',
+      attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Als App installieren' }
+    });
+
+    const head = el('div', { class: 'pwa-modal-head' });
+    const eyebrow = el('div', { class: 'pwa-modal-eyebrow' });
+    const eyebrowIcon = el('span', { class: 'pwa-modal-eyebrow-icon', attrs: { 'aria-hidden': 'true' } });
+    eyebrowIcon.appendChild(parseSVG('<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="3" width="15" height="11" rx="1.5"/><line x1="2.5" y1="11" x2="17.5" y2="11"/><line x1="7" y1="17" x2="13" y2="17"/><line x1="10" y1="14" x2="10" y2="17"/><path d="M10 5.5v3.5"/><polyline points="8.2,7.3 10,9 11.8,7.3"/></svg>'));
+    eyebrow.appendChild(eyebrowIcon);
+    eyebrow.appendChild(document.createTextNode('Als App installieren'));
+    head.appendChild(eyebrow);
+    head.appendChild(el('h3', { class: 'pwa-modal-title', text: title }));
+    head.appendChild(el('p', { class: 'pwa-modal-sub', text: 'Vorteil: liegt wie eine native App auf deinem Gerät, funktioniert offline, kein App-Store nötig — und bleibt 100 % lokal.' }));
+    dialog.appendChild(head);
+
+    const list = el('ol', { class: 'pwa-modal-steps' });
+    steps.forEach((s, idx) => {
+      const li = el('li', { class: 'pwa-modal-step' });
+      const num = el('span', { class: 'pwa-modal-step-num', text: String(idx + 1).padStart(2, '0') });
+      const txt = el('span', { class: 'pwa-modal-step-text', text: s });
+      li.appendChild(num);
+      li.appendChild(txt);
+      list.appendChild(li);
+    });
+    dialog.appendChild(list);
+
+    const closeBtn = el('button', {
+      class: 'pwa-modal-close',
+      attrs: { type: 'button' },
+      text: 'Verstanden',
+      on: { click: closePwaModal }
+    });
+    dialog.appendChild(closeBtn);
+
+    backdrop.appendChild(dialog);
+    document.body.appendChild(backdrop);
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+
+    function closePwaModal() {
+      backdrop.classList.remove('show');
+      setTimeout(() => backdrop.remove(), 220);
+      document.removeEventListener('keydown', escHandler);
+    }
+    function escHandler(e) { if (e.key === 'Escape') closePwaModal(); }
+    document.addEventListener('keydown', escHandler);
   }
 
   function showIOSHint() {

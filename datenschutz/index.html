@@ -83,30 +83,67 @@
         diese Domain läuft in der EU-Region (Frankfurt, <code>fra1</code>).
       </p>
 
-      <h3>3.2 CDN-Bibliotheken (jsdelivr / cdnjs / Google Fonts)</h3>
+      <h3>3.2 CDN-Bibliotheken</h3>
       <p>
         Einzelne Werkzeuge laden Bibliotheken (z.B. <code>pdf-lib</code>, <code>pdf.js</code>)
-        zur Laufzeit von öffentlichen Content-Delivery-Networks:
+        sowie ein KI-Modell für die Hintergrund-Entfernung zur Laufzeit von öffentlichen
+        Content-Delivery-Networks:
       </p>
       <ul>
-        <li><strong>jsDelivr</strong> (cdn.jsdelivr.net) — JavaScript-Bibliotheken</li>
-        <li><strong>cdnjs</strong> (cdnjs.cloudflare.com) — JavaScript-Bibliotheken</li>
-        <li><strong>Google Fonts</strong> (fonts.googleapis.com, fonts.gstatic.com) — Schriftarten</li>
+        <li><strong>jsDelivr</strong> (cdn.jsdelivr.net) — JavaScript-Bibliotheken (PDF, ZIP, EXIF, etc.)</li>
+        <li><strong>cdnjs</strong> (cdnjs.cloudflare.com) — JavaScript-Bibliotheken (Tesseract OCR, pdfmake, mammoth, dompurify)</li>
+        <li><strong>unpkg</strong> (unpkg.com) — JavaScript-Module (Fallback)</li>
+        <li><strong>esm.sh</strong> (esm.sh) — ES-Module (Fallback für Background-Removal-Engine)</li>
+        <li><strong>cdn.skypack.dev</strong> — ES-Module (Fallback für Background-Removal-Engine)</li>
+        <li><strong>Tesseract Sprachdaten</strong> (tessdata.projectnaptha.com) — OCR-Sprachmodelle (Deutsch/Englisch)</li>
+        <li><strong>Hugging Face</strong> (huggingface.co und Sub-Domains) — Download des KI-Modells für Hintergrund-Entfernung (ISNet ONNX)</li>
+        <li><strong>img.ly Static Asset CDN</strong> (staticimgly.com) — Hosting des ISNet-Modells für die Background-Removal-Bibliothek</li>
       </ul>
       <p>
-        Diese Anbieter sehen <strong>nur die Anfrage nach den JS-/CSS-/Font-Dateien selbst</strong> —
-        niemals den Inhalt eurer Dateien. Eure Dateien werden ausschließlich im Browser
-        verarbeitet und nie an diese CDN-Anbieter übermittelt.
+        Beim Aufruf eines Werkzeugs wird die jeweils benötigte Bibliothek vom Browser nachgeladen.
+        Die genannten CDN-Anbieter sehen dabei <strong>nur die Anfrage nach der JavaScript-/Modell-Datei
+        sowie die IP-Adresse des Browsers</strong> — niemals den Inhalt der vom Nutzer verarbeiteten Dateien.
+        Die Datei-Inhalte verbleiben ausnahmslos lokal im Browser-Speicher.
+      </p>
+      <p>
+        Schriftarten werden <strong>vollständig lokal aus unserem eigenen Web-Verzeichnis</strong>
+        ausgeliefert (<code>/shared/fonts/</code>). Es findet keine Übertragung an Google Fonts
+        oder andere Schrift-CDNs statt.
+      </p>
+      <p>
+        Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an
+        funktionsfähigen, performant ausgelieferten Werkzeugen). Die genannten Anbieter
+        sind keine Auftragsverarbeiter i.S.d. Art. 28 DSGVO, sondern technische
+        Drittanbieter im Sinne von Telekommunikations-Diensten (CDN-Auslieferung).
       </p>
 
-      <h3>3.3 Lokale Browser-Speicher (localStorage)</h3>
+      <h3>3.3 Lokale Browser-Speicher (localStorage + IndexedDB)</h3>
       <p>Wir nutzen <code>localStorage</code> ausschließlich für:</p>
       <ul>
-        <li>Eine Einstellung "Tutorial bereits gesehen" (Boolean: <code>"1"</code> oder gar nichts)</li>
+        <li>Eine Einstellung "Tutorial bereits gesehen" (Boolean-Wert)</li>
+        <li>Eine Einstellung "iOS-Install-Hinweis bereits gesehen" (Boolean-Wert)</li>
       </ul>
       <p>
-        Es werden <strong>keine</strong> User-Daten, Datei-Namen, Datei-Metadaten oder
-        Verarbeitungs-Verlauf in localStorage gespeichert.
+        Wir nutzen die <strong>IndexedDB-Datenbank des Browsers</strong> (DB-Name: <code>clawtools-mappe</code>)
+        für eine optionale Funktion namens "Datei-Mappe": Wenn der Nutzer Dateien in den oberen
+        Drop-Bereich des Hubs ablegt oder über ein Werkzeug bewusst speichert, werden die Dateien
+        in dieser lokalen Browser-Datenbank persistent abgelegt — ausschließlich auf dem Endgerät
+        des Nutzers. Damit kann der Nutzer mehrere Werkzeuge nacheinander mit derselben Datei nutzen,
+        ohne sie jedes Mal neu hochzuladen.
+      </p>
+      <ul>
+        <li><strong>Soft-Limit:</strong> 500 MB pro Browser-Origin</li>
+        <li><strong>Übertragung:</strong> Daten verlassen das Endgerät zu keinem Zeitpunkt — auch nicht beim Wechsel zwischen Werkzeugen</li>
+        <li><strong>Synchronisation zwischen offenen Tabs:</strong> via <code>BroadcastChannel</code> (rein lokal, kein Netzwerk)</li>
+        <li><strong>Löschung durch den Nutzer:</strong> jederzeit über den "Alles löschen"-Button im Hub oder im Mappe-Modal · alternativ über die Browser-Einstellungen (Website-Daten löschen)</li>
+        <li><strong>Automatische Löschung:</strong> beim manuellen Löschen der Browser-Website-Daten oder beim Deinstallieren der App</li>
+      </ul>
+      <p>
+        Es werden <strong>keine</strong> User-Daten, Datei-Inhalte, Datei-Namen oder
+        Verarbeitungs-Verläufe an unsere oder fremde Server übertragen. Rechtsgrundlage:
+        § 25 Abs. 2 Nr. 2 TTDSG (technisch unbedingt erforderlich für die ausdrücklich
+        vom Nutzer gewünschte Funktion „Mappe"). Eine Einwilligung nach § 25 Abs. 1 TTDSG
+        ist daher nicht erforderlich, ein Cookie-Banner entfällt.
       </p>
 
       <h2>4. Cookies — keine</h2>
@@ -157,7 +194,7 @@
       </p>
 
       <p style="font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); margin-top: 32px;">
-        Stand: 2026-05-02
+        Stand: 2026-05-03
       </p>
 
       <p style="margin-top: 40px;"><a href="/">← Zurück zur Übersicht</a></p>

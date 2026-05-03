@@ -3,7 +3,32 @@
  * + harmonized with pdf-splitter v2 patterns
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@200;300;400;500;600;700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+/* Self-hosted variable fonts (lokal · DSGVO · keine Google-CDN-Übertragung).
+   Latin-Subset · alle Gewichte 100-900 in einer Datei pro Familie (~100 KB total). */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('/shared/fonts/bricolage-grotesque.woff2') format('woff2-variations'),
+       url('/shared/fonts/bricolage-grotesque.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/shared/fonts/geist.woff2') format('woff2-variations'),
+       url('/shared/fonts/geist.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/shared/fonts/geist-mono.woff2') format('woff2-variations'),
+       url('/shared/fonts/geist-mono.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   /* Inks */
