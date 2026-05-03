@@ -653,8 +653,10 @@
       if (!document.querySelector('.pwa-install-header')) showInstallButton();
     });
 
-    // Hide if already installed
+    // Hide if already installed + persist Flag damit es auch beim nächsten
+    // Browser-Visit (nicht-Standalone-Mode) NICHT mehr erscheint
     window.addEventListener('appinstalled', () => {
+      try { localStorage.setItem('clawtools-installed', '1'); } catch (e) {}
       const btn = document.querySelector('.pwa-install-btn');
       if (btn) btn.remove();
       const headerBtn = document.querySelector('.pwa-install-header');
@@ -663,20 +665,36 @@
       Toast.show('Als App installiert — du findest sie auf deinem Homescreen.');
     });
 
-    // iOS-Detection: kein beforeinstallprompt → eigenes Hint
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    // Plattform-Detection
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua);
+    const isIOSChrome = isIOS && /CriOS/.test(ua);  // iOS Chrome = Safari-Engine, kein PWA-Install
+    const isIOSFirefox = isIOS && /FxiOS/.test(ua); // gleiches Problem
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    // BUG-PWA-001 v2: ALWAYS-show Install-Button im Header — auch ohne
-    // beforeinstallprompt-Event. iOS-Safari fired das Event NIE; Chrome
-    // fired's nur unter bestimmten Bedingungen. User sollte aber immer
-    // sehen können dass App installierbar ist. triggerInstall() entscheidet
-    // dann basierend auf verfügbarem prompt vs. Plattform-Modal.
-    if (!isStandalone) {
+    // BUG-PWA-001 v3: Install-Button-Visibility-Logic
+    //   1) bereits-installed-Flag (localStorage) gesetzt → Button NICHT zeigen
+    //   2) currently-standalone (PWA-Mode) → Button NICHT zeigen + Flag setzen
+    //   3) iOS Chrome/Firefox → Apple erlaubt PWA nur in Safari → Button NICHT zeigen
+    //   4) sonst → Button zeigen
+    let alreadyInstalled = false;
+    try {
+      alreadyInstalled = localStorage.getItem('clawtools-installed') === '1';
+    } catch (e) { /* localStorage block — egal */ }
+
+    if (isStandalone) {
+      // User ist gerade in der installierten PWA → Flag persistieren für künftige Browser-Visits
+      try { localStorage.setItem('clawtools-installed', '1'); } catch (e) {}
+      alreadyInstalled = true;
+    }
+
+    const canShowInstall = !isStandalone && !alreadyInstalled && !isIOSChrome && !isIOSFirefox;
+    if (canShowInstall) {
       showInstallButton();
     }
 
-    if (isIOS && !isStandalone && isHub) {
+    // iOS-Hint nur in Safari (NICHT iOS Chrome) auf dem Hub
+    if (isIOS && !isIOSChrome && !isIOSFirefox && !isStandalone && isHub && !alreadyInstalled) {
       setTimeout(() => showIOSHint(), 2500);
     }
   }
