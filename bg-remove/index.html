@@ -135,6 +135,24 @@
     async function loadEngine() {
       if (removeBg) return removeBg;
       $('libLoading').classList.add('active');
+
+      // STEP 1: ONNX Runtime Web VOR @imgly laden + explizit konfigurieren.
+      // Ohne diesen Schritt versucht ONNX, WASM via blob:URL zu importieren
+      // → fail mit "no available backend found. ERR: [wasm] TypeError: Failed to fetch dynamically imported module: blob:..."
+      try {
+        const ort = await import('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.1/+esm');
+        if (ort && ort.env && ort.env.wasm) {
+          ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.1/dist/';
+          ort.env.wasm.numThreads = 1;
+          ort.env.wasm.simd = true;
+          // global verfügbar damit @imgly es findet
+          window.ort = ort;
+        }
+      } catch (e) {
+        console.warn('[bg-remove] ONNX pre-config failed (will try anyway):', e.message);
+      }
+
+      // STEP 2: @imgly/background-removal importieren — mit Multi-CDN-Fallback
       const sources = [
         'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.8/+esm',
         'https://esm.sh/@imgly/background-removal@1.5.8',
@@ -153,7 +171,7 @@
         }
       }
       console.error('[bg-remove] all CDNs failed:', lastErr);
-      throw new Error('KI-Modell konnte nicht geladen werden — bitte später nochmal versuchen oder anderen Browser nutzen.');
+      throw new Error('KI-Werkzeug konnte nicht geladen werden — bitte Seite neu laden, anderen Browser nutzen oder mit Desktop probieren.');
     }
 
     async function loadFile(file) {

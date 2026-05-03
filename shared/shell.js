@@ -541,10 +541,41 @@
 
   let deferredInstallPrompt = null;
   function setupPWA(isHub) {
-    // Register service worker
+    // Register service worker — mit auto-reload bei Update
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('[sw] register failed', e));
+        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+          .then((reg) => {
+            // Periodisch nach Updates checken (jede 30 min wenn Tab offen)
+            setInterval(() => reg.update().catch(() => {}), 30 * 60 * 1000);
+            // Bei explizitem Update: wenn ein neuer SW wartet, sofort aktivieren
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Es gibt eine ältere SW-Version → der neue ist installed und wartet
+                  newWorker.postMessage('SKIP_WAITING');
+                }
+              });
+            });
+          })
+          .catch((e) => console.warn('[sw] register failed', e));
+
+        // Wenn der aktive SW wechselt (durch SKIP_WAITING) → Page einmal neuladen
+        let reloaded = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (reloaded) return;
+          reloaded = true;
+          window.location.reload();
+        });
+
+        // Listen auf Update-Notification
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'SW_UPDATED') {
+            console.log('[sw] updated to', event.data.version);
+          }
+        });
       });
     }
 
