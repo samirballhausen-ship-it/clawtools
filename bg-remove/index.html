@@ -95,9 +95,9 @@
           <div class="global-progress" id="globalProgress">
             <div class="global-progress-head">
               <span class="lbl" id="globalStage">Verarbeite…</span>
-              <span class="num">—</span>
+              <span class="num" id="globalCount">—</span>
             </div>
-            <div class="global-progress-bar"><div class="global-progress-fill" style="right:50%"></div></div>
+            <div class="global-progress-bar"><div class="global-progress-fill" id="globalFill" style="right:100%"></div></div>
           </div>
 
           <div class="result" id="result">
@@ -232,10 +232,13 @@
           progress: (key, current, total) => {
             const head = STAGE_LABELS[String(key).split(':')[0]] || 'Verarbeite';
             const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-            $('globalStage').textContent = `${head}… ${pct}%`;
+            const stage = $('globalStage');
+            if (stage) stage.textContent = `${head}… ${pct}%`;
             if (total > 0) {
-              $('globalCount').textContent = `${pct}%`;
-              $('globalFill').style.right = `${100 - pct}%`;
+              const count = $('globalCount');
+              if (count) count.textContent = `${pct}%`;
+              const fill = $('globalFill');
+              if (fill) fill.style.right = `${100 - pct}%`;
             }
           }
         });
