@@ -2825,6 +2825,80 @@ html, body {
   text-align: left;
 }
 
+/* ─── Hub Quick-Jump zu Tools (zwischen Drop und Suggestions) ─── */
+html { scroll-behavior: smooth; }
+
+.hub-quick-jump {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 28px;
+  margin: 32px 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--magic);
+  cursor: pointer;
+  transition: all 0.22s var(--ease);
+  text-decoration: none;
+  color: inherit;
+}
+.hub-quick-jump:hover {
+  border-color: var(--ink);
+  border-left-color: var(--magic);
+  border-left-width: 4px;
+  background: var(--surf);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -16px rgba(10,10,10,0.14);
+}
+.hub-quick-jump:hover .hub-quick-jump-arrow {
+  transform: translateY(4px);
+  color: var(--magic);
+}
+.hub-quick-jump-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.hub-quick-jump-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--magic);
+  font-weight: 500;
+}
+.hub-quick-jump-headline {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.hub-quick-jump-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.hub-quick-jump-sub strong {
+  color: var(--magic);
+  font-weight: 500;
+}
+.hub-quick-jump-arrow {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--ink-3);
+  transition: all 0.32s var(--ease-spring);
+}
+@media (max-width: 640px) {
+  .hub-quick-jump { padding: 18px 20px; gap: 16px; margin: 24px 0; }
+  .hub-quick-jump-headline { font-size: 17px; }
+  .hub-quick-jump-arrow { width: 24px; height: 24px; }
+}
+
 /* ─── "Coming Soon"-Disclaimer (subtle, hero-bottom) ──────── */
 /* Genutzt in pdf-to-word + docx-zu-pdf für 1:1-Konvertierung-Hinweis */
 .soon-disclaimer {

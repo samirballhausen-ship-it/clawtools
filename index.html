@@ -56,6 +56,21 @@
       <div class="hub-dropzone-hint">PDF · Bilder · Video · Word · Tabellen</div>
     </section>
 
+    <!-- Quick-Jump zu allen Apps — schließt die Lücke zwischen Drop-Zone und
+         (optionalen) Suggestions, damit User nicht endlos scrollen müssen
+         um die Tool-Sections zu erreichen. -->
+    <a class="hub-quick-jump" href="#tools" aria-label="Springe zu allen Werkzeugen">
+      <div class="hub-quick-jump-meta">
+        <span class="hub-quick-jump-eyebrow">Direkt-Sprung</span>
+        <span class="hub-quick-jump-headline">Oder zu allen Werkzeugen</span>
+        <span class="hub-quick-jump-sub"><strong>19</strong> Apps · PDF · Bild · Video · Daten</span>
+      </div>
+      <svg class="hub-quick-jump-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <polyline points="6 13 12 19 18 13"/>
+      </svg>
+    </a>
+
     <!-- Smart-Mappe — sichtbar wenn Mappe nicht-leer. Gruppiert nach Datei-Typ
          mit kontextuellen Vorschlägen direkt unter jeder Gruppe. -->
     <section class="hub-library" id="hubLibrary" aria-label="Deine Dateien und Vorschläge">
