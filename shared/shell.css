@@ -1084,7 +1084,25 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   .hub-tile-grid { grid-template-columns: 1fr; }
   .hub-section { margin-bottom: 40px; }
   .hub-section-title { font-size: 22px; }
-  .tour-tooltip { width: calc(100vw - 32px) !important; max-width: calc(100vw - 32px) !important; left: 16px !important; right: 16px; box-sizing: border-box; }
+  /* Mobile: Tour als Bottom-Sheet — ALWAYS sichtbar, kein Position-Math, kein Scroll-Drift */
+  .tour-tooltip {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 16px !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 60vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--border);
+    border-top: 3px solid var(--magic);
+  }
+  .tour-tooltip h4 { font-size: 17px; }
+  .tour-tooltip p { font-size: 14px; }
+  .tour-tooltip-actions { gap: 10px; }
+  .tour-tooltip-actions .tour-btn { flex: 1; padding: 12px 14px; min-height: 44px; font-size: 14px; }
   .tour-welcome { left: 16px; right: 16px; width: auto; bottom: 16px; }
   .hero h1 { font-size: 28px; line-height: 1.15; }
   .hero .lede { font-size: 15px; }
