@@ -270,15 +270,22 @@
         hasStrokes = true;
         URL.revokeObjectURL(url);
 
-        // BUG-PDFS-001 Auto-Place: Unterschrift sofort auf erster Seite mittig platzieren.
-        // User kann sie dann verschieben/skalieren oder entfernen.
+        // BUG-PDFS-001 v2: Auto-Place auf der AKTUELL SICHTBAREN Seite
+        // (nicht starr Seite 1) — sonst muss User nach dem Foto-Einsetzen
+        // wieder hochscrollen, was auf Mobile besonders nervt.
         if (state.pages.length > 0) {
-          autoPlaceOnPage(0);
-          Shell.Toast.show('Unterschrift platziert auf Seite 1 — Drag = verschieben, Ecke = Größe');
-          // Auf Mobile: scroll zum platzierten signature
+          const currentPage = getCurrentVisiblePageIndex();
+          autoPlaceOnPage(currentPage);
+          Shell.Toast.show(`Unterschrift platziert auf Seite ${currentPage + 1} — Drag = verschieben, Ecke = Größe`);
+          // Scroll zur platzierten Sig damit User sie sofort sieht
           setTimeout(() => {
-            const wrap = document.querySelector('.page-canvas-wrap[data-page="0"]');
-            if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const placedEl = document.querySelector(`.page-canvas-wrap[data-page="${currentPage}"] .placed-sig:last-of-type`);
+            if (placedEl) {
+              placedEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              const wrap = document.querySelector(`.page-canvas-wrap[data-page="${currentPage}"]`);
+              if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
           }, 100);
         } else {
           Shell.Toast.show('Unterschrift gesetzt — klicke jetzt auf jede Seite zum Platzieren');
@@ -287,6 +294,35 @@
       im.src = url;
       e.target.value = '';
     });
+
+    // BUG-PDFS-001 v2 Helper: aktuell-im-Viewport-zentrale Seite ermitteln.
+    // Scoring: wieviel % der Page-Wrap ist sichtbar? Höchster Score gewinnt.
+    // Idempotent: pure DOM-Read, keine Side-Effects.
+    function getCurrentVisiblePageIndex() {
+      const wraps = document.querySelectorAll('.page-canvas-wrap');
+      if (wraps.length === 0) return 0;
+      const viewportH = window.innerHeight || document.documentElement.clientHeight;
+      const viewportCenter = viewportH / 2;
+      let bestIdx = 0;
+      let bestScore = -Infinity;
+      wraps.forEach((wrap) => {
+        const rect = wrap.getBoundingClientRect();
+        const idx = parseInt(wrap.getAttribute('data-page') || '0', 10);
+        // Sichtbar-Anteil + Distanz vom Viewport-Center
+        const visibleTop = Math.max(0, rect.top);
+        const visibleBottom = Math.min(viewportH, rect.bottom);
+        const visibleH = Math.max(0, visibleBottom - visibleTop);
+        const elementCenter = rect.top + rect.height / 2;
+        const centerDistance = Math.abs(elementCenter - viewportCenter);
+        // Score = visible-height minus center-distance-penalty
+        const score = visibleH - centerDistance * 0.3;
+        if (score > bestScore) {
+          bestScore = score;
+          bestIdx = idx;
+        }
+      });
+      return bestIdx;
+    }
 
     // BUG-PDFS-001 Helper: Unterschrift auf einer Seite mittig platzieren
     function autoPlaceOnPage(pageIdx) {
