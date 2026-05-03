@@ -357,15 +357,15 @@
     async function addFiles(fileList) {
       const incoming = Array.from(fileList);
       let added = 0, skipped = 0;
-      for (const file of incoming) {
+      for (let file of incoming) {
         if (state.files.length >= MAX_FILES) {
           Shell.Toast.show(`Max. ${MAX_FILES} Dateien`, true); break;
         }
-        // BUG-IPHONE-001: ProRAW/RAW/HEIC vorab erkennen + freundlich umleiten
-        const cls = Shell.classifyImageFile && Shell.classifyImageFile(file);
-        if (cls) {
-          Shell.handleHeicIfNeeded(file, 'images-compress'); // Toast/Route
-          skipped++; continue;
+        // BUG-IPHONE-001: DNG → eingebettetes JPEG extrahieren · HEIC → routen · RAW → Hint
+        if (Shell.tryConvertImage) {
+          const usable = await Shell.tryConvertImage(file, 'images-compress');
+          if (!usable) { skipped++; continue; }
+          file = usable;
         }
         if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
           skipped++; continue;

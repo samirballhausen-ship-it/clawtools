@@ -1116,6 +1116,90 @@
     return true;
   }
 
+  // DNG = TIFF-basierter Container, enthält fast immer ein eingebettetes
+  // JPEG-Preview in voller Auflösung (Apple-ProRAW, Sony, Canon CR3, …).
+  // Wir suchen JPEG-SOI/EOI-Marker (FFD8FF…FFD9) und nehmen den GRÖSSTEN
+  // gefundenen Stream → das ist typisch das full-resolution Preview.
+  // Idempotent: pure function, gleicher Input → gleicher Output.
+  async function extractEmbeddedJpegFromDng(file) {
+    try {
+      const buf = await file.arrayBuffer();
+      const u8 = new Uint8Array(buf);
+      let largestStart = -1, largestEnd = -1;
+      let i = 0;
+      while (i < u8.length - 3) {
+        if (u8[i] === 0xFF && u8[i + 1] === 0xD8 && u8[i + 2] === 0xFF) {
+          const start = i;
+          let j = start + 2;
+          while (j < u8.length - 1) {
+            if (u8[j] === 0xFF && u8[j + 1] === 0xD9) {
+              const end = j + 2;
+              const size = end - start;
+              if (size > (largestEnd - largestStart)) {
+                largestStart = start;
+                largestEnd = end;
+              }
+              i = end;
+              break;
+            }
+            j++;
+          }
+          if (j >= u8.length - 1) i++;
+        } else {
+          i++;
+        }
+      }
+      if (largestStart < 0 || (largestEnd - largestStart) < 4096) return null;
+      return new Blob([u8.slice(largestStart, largestEnd)], { type: 'image/jpeg' });
+    } catch (e) {
+      console.warn('[shell] extractEmbeddedJpegFromDng failed:', e);
+      return null;
+    }
+  }
+
+  // Höhere-Ebene-Helper: bekommt ein File, gibt ein TOOL-VERARBEITBARES
+  // File zurück (oder null wenn nicht möglich).
+  // - JPEG/PNG/WebP/GIF: durchgereicht
+  // - DNG: extrahiert eingebettetes JPEG → File('foto.jpg')
+  // - HEIC: Auto-Route zu /heic-zu-jpg/ (return null)
+  // - RAW/TIFF: Toast mit Tipp (return null)
+  // Tools nutzen: const usable = await Shell.tryConvertImage(file, 'tool-id');
+  async function tryConvertImage(file, currentTool) {
+    const c = classifyImageFile(file);
+    if (!c) return file; // bereits unterstütztes Format
+
+    if (c.kind === 'dng') {
+      Toast.show('iPhone-ProRAW erkannt — extrahiere eingebettetes JPEG…');
+      const jpeg = await extractEmbeddedJpegFromDng(file);
+      if (jpeg && jpeg.size > 4096) {
+        const newName = (file.name || 'foto').replace(/\.dng$/i, '') + '.jpg';
+        try {
+          return new File([jpeg], newName, { type: 'image/jpeg', lastModified: Date.now() });
+        } catch (e) {
+          jpeg.name = newName;
+          return jpeg;
+        }
+      }
+      Toast.show('Kein eingebettetes JPEG in der DNG-Datei gefunden. ' + c.message, true);
+      return null;
+    }
+
+    if (c.kind === 'heic') {
+      if (currentTool === 'heic-zu-jpg') return file;
+      if (typeof saveToMappe === 'function') saveToMappe(file, currentTool || 'unknown').catch(() => {});
+      Toast.show(c.message, true);
+      setTimeout(() => { window.location.href = c.route; }, 2200);
+      return null;
+    }
+
+    if (c.kind === 'raw' || c.kind === 'tiff') {
+      Toast.show(c.message, true);
+      return null;
+    }
+
+    return file;
+  }
+
   // BUG-MAPPE-003: BFCache-Restore-Helper.
   // Browser-Back-Forward-Cache restored die Page mit altem DOM-Snapshot.
   // DOMContentLoaded feuert dabei NICHT — pageshow mit persisted=true ist
@@ -1136,6 +1220,7 @@
     onMappeAutoLoad, parseMappeUrlParams, injectMappeAutoLoadBanner,
     onBFCacheRestore,
     // BUG-IPHONE-001 / DNG: Cross-Tool-Format-Helpers
-    isHeic, classifyImageFile, handleHeicIfNeeded
+    isHeic, classifyImageFile, handleHeicIfNeeded,
+    extractEmbeddedJpegFromDng, tryConvertImage
   };
 })(window);

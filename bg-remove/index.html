@@ -188,8 +188,13 @@
     }
 
     async function loadFile(file) {
-      // BUG-IPHONE-001: HEIC/DNG/RAW pre-check — friendly message + ggf. routing
-      if (Shell.handleHeicIfNeeded && Shell.handleHeicIfNeeded(file, 'bg-remove')) return;
+      // BUG-IPHONE-001: HEIC/DNG/RAW Auto-Convert — DNG wird zu eingebettetem JPEG,
+      // HEIC zu /heic-zu-jpg geroutet, RAW/TIFF mit Tipp abgelehnt.
+      if (Shell.tryConvertImage) {
+        const usable = await Shell.tryConvertImage(file, 'bg-remove');
+        if (!usable) return; // Toast schon gezeigt, abbruch
+        file = usable;
+      }
       state.file = file;
       Shell.saveToMappe(file, 'bg-remove');
       if (state.origUrl) URL.revokeObjectURL(state.origUrl);
