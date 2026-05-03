@@ -284,6 +284,12 @@
         if (state.files.length >= 200) {
           Shell.Toast.show('Max. 200 Bilder', true); break;
         }
+        // BUG-IPHONE-001: ProRAW/RAW/HEIC vorab erkennen + freundlich umleiten
+        const cls = Shell.classifyImageFile && Shell.classifyImageFile(file);
+        if (cls) {
+          Shell.handleHeicIfNeeded(file, 'images-to-pdf');
+          skipped++; continue;
+        }
         if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
           skipped++; continue;
         }

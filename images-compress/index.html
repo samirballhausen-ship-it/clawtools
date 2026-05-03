@@ -361,6 +361,12 @@
         if (state.files.length >= MAX_FILES) {
           Shell.Toast.show(`Max. ${MAX_FILES} Dateien`, true); break;
         }
+        // BUG-IPHONE-001: ProRAW/RAW/HEIC vorab erkennen + freundlich umleiten
+        const cls = Shell.classifyImageFile && Shell.classifyImageFile(file);
+        if (cls) {
+          Shell.handleHeicIfNeeded(file, 'images-compress'); // Toast/Route
+          skipped++; continue;
+        }
         if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
           skipped++; continue;
         }

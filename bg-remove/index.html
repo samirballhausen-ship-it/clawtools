@@ -188,6 +188,8 @@
     }
 
     async function loadFile(file) {
+      // BUG-IPHONE-001: HEIC/DNG/RAW pre-check — friendly message + ggf. routing
+      if (Shell.handleHeicIfNeeded && Shell.handleHeicIfNeeded(file, 'bg-remove')) return;
       state.file = file;
       Shell.saveToMappe(file, 'bg-remove');
       if (state.origUrl) URL.revokeObjectURL(state.origUrl);

@@ -2825,6 +2825,37 @@ html, body {
   text-align: left;
 }
 
+/* ─── BUG-RESET-001: Card-Head Reset-Button (always visible in editor) ─── */
+.card-head {
+  /* Stellt sicher dass der reset-Button rechts ausgerichtet ist */
+  position: relative;
+}
+.card-head-reset {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--ink-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s var(--ease);
+}
+.card-head-reset:hover {
+  border-color: var(--risk);
+  color: var(--risk);
+  background: var(--risk-soft);
+}
+.card-head-reset:focus-visible {
+  outline: 2px solid var(--magic);
+  outline-offset: 2px;
+}
+.card-head-reset svg { width: 14px; height: 14px; }
+
 /* ─── Hub Quick-Jump zu Tools (zwischen Drop und Suggestions) ─── */
 html { scroll-behavior: smooth; }
 

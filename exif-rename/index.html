@@ -360,6 +360,12 @@
         if (state.files.length >= 200) {
           Shell.Toast.show('Max. 200 Dateien', true); break;
         }
+        // BUG-IPHONE-001: ProRAW/RAW-Formate vorab ablehnen mit klarer Meldung
+        const cls = Shell.classifyImageFile && Shell.classifyImageFile(file);
+        if (cls && (cls.kind === 'dng' || cls.kind === 'raw')) {
+          Shell.Toast.show(`${cls.label}: ${cls.message}`, true);
+          continue;
+        }
         if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|heic|heif|tiff?)$/i.test(file.name)) continue;
         const entry = {
           id: state.nextId++, file, name: file.name, size: file.size,

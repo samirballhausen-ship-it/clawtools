@@ -436,6 +436,12 @@
           Shell.Toast.show(`Maximum ${MAX_FILES} Dateien erreicht`, true);
           break;
         }
+        // BUG-IPHONE-001: iPhone-ProRAW (DNG) und Kamera-RAW vorab ablehnen
+        const cls = Shell.classifyImageFile && Shell.classifyImageFile(file);
+        if (cls && (cls.kind === 'dng' || cls.kind === 'raw')) {
+          Shell.Toast.show(`${cls.label}: ${cls.message}`, true);
+          skipped++; continue;
+        }
         if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|tiff?|heic|heif)$/i.test(file.name)) {
           skipped++;
           continue;

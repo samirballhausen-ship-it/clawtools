@@ -564,6 +564,8 @@
     }
     setupPWA(opts.isHub);
     if (cfg.mappe) setupMappeUI();
+    // BUG-RESET-001: Auto-Inject "× verwerfen" sobald editorView visible wird
+    setupAutoReset();
   }
 
   // ────────────────────────────────────────────────
@@ -987,6 +989,133 @@
   // ────────────────────────────────────────────────
   // Public API
   // ────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────
+  // BUG-RESET-001 Cross-Tool-Cluster: Auto-Inject "× verwerfen" im File-Header
+  //
+  // Problem: jedes Tool hat einen #btnReset, aber NUR innerhalb .result —
+  // die ist hidden bis Processing fertig. Vor Processing kann User
+  // nicht zur Auswahl zurück.
+  //
+  // Lösung: shell.js beobachtet #editorView. Wird editor visible →
+  // injiziert einen X-Button rechts im ersten .card-head der den
+  // tool-spezifischen #btnReset triggert.
+  //
+  // Idempotent: Mehrfach-Trigger vom Observer bauen Button NICHT doppelt
+  // (early-return wenn .card-head-reset schon existiert).
+  // ─────────────────────────────────────────────────────────────
+  function setupAutoReset() {
+    const editor = document.getElementById('editorView');
+    if (!editor) return; // Tool ohne editorView-Pattern (z.B. pdf-merger) — skip
+
+    const tryAttach = () => {
+      const visible = editor.style.display !== 'none';
+      if (!visible) return;
+      const btnReset = document.getElementById('btnReset');
+      if (!btnReset) return;
+      const cardHead = editor.querySelector('.card-head');
+      if (!cardHead) return;
+      if (cardHead.querySelector('.card-head-reset')) return; // idempotent
+
+      const btn = el('button', {
+        class: 'card-head-reset',
+        attrs: { type: 'button', title: 'Datei verwerfen · neue laden', 'aria-label': 'Datei verwerfen' },
+        on: { click: (e) => { e.preventDefault(); btnReset.click(); } }
+      });
+      btn.appendChild(parseSVG('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'));
+      cardHead.appendChild(btn);
+    };
+
+    tryAttach();
+    const observer = new MutationObserver(tryAttach);
+    observer.observe(editor, { attributes: true, attributeFilter: ['style'] });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // BUG-IPHONE-001 Cross-Tool-Cluster: HEIC-Detection + freundliches Routing
+  //
+  // iPhone 14+ Camera Roll liefert HEIC (Apples HEIF-Container).
+  // Die meisten image-Tools nutzen <img> + Canvas-Decode; das bricht
+  // auf nicht-Safari-Browsern und produziert auf iOS-Safari subtile
+  // Canvas-Fehler. Kein Tool routet User dahin wo's klappt.
+  //
+  // Lösung:
+  //   const heicHandled = Shell.handleHeicIfNeeded(file, 'bg-remove');
+  //   if (heicHandled) return;  // Tool-loadFile abbrechen
+  //
+  // → speichert File in Mappe + Toast + redirect zu /heic-zu-jpg.
+  // User konvertiert dort, kommt mit JPG zurück (in Mappe).
+  // ─────────────────────────────────────────────────────────────
+  // Format-Klassifikation für iPhone/Kamera-Outputs die unsere Tools nicht
+  // direkt verarbeiten können. User-friendly hint + ggf. Konvertierungs-Route.
+  function classifyImageFile(file) {
+    if (!file) return null;
+    const t = (file.type || '').toLowerCase();
+    const n = (file.name || '').toLowerCase();
+    // iPhone-HEIC/HEIF
+    if (t === 'image/heic' || t === 'image/heif' || /\.(heic|heif)$/.test(n)) {
+      return {
+        kind: 'heic',
+        label: 'iPhone-Foto (HEIC)',
+        route: '/heic-zu-jpg/',
+        message: 'iPhone-Foto erkannt — erst zu JPG umwandeln, danach hier wieder rein.'
+      };
+    }
+    // iPhone-ProRAW oder andere DNG-RAW
+    if (t === 'image/x-adobe-dng' || /\.dng$/.test(n)) {
+      return {
+        kind: 'dng',
+        label: 'iPhone-ProRAW (DNG)',
+        route: null, // wir haben (noch) keinen DNG-Konverter
+        message: 'iPhone-ProRAW (DNG) wird noch nicht unterstützt. Tipp: Im iPhone das Foto öffnen → Teilen-Symbol → unten "Foto-Optionen" → ProRAW-Schalter aus, dann erneut speichern. Oder: Foto in der Fotos-App in JPG exportieren.'
+      };
+    }
+    // Andere RAW-Formate (Canon, Nikon, Sony, Fuji)
+    if (/\.(cr2|cr3|nef|nrw|arw|raf|rw2|orf|raw)$/.test(n) || /image\/x-(canon|nikon|sony|fuji|olympus|panasonic)-/.test(t)) {
+      return {
+        kind: 'raw',
+        label: 'Kamera-RAW',
+        route: null,
+        message: 'Kamera-RAW-Format wird noch nicht unterstützt. Bitte als JPG exportieren und erneut versuchen.'
+      };
+    }
+    // TIFF — manche Browser können's, manche nicht. Lieber Hinweis.
+    if (t === 'image/tiff' || /\.(tif|tiff)$/.test(n)) {
+      return {
+        kind: 'tiff',
+        label: 'TIFF',
+        route: null,
+        message: 'TIFF wird je nach Browser unterschiedlich verarbeitet. Falls es klemmt: bitte als JPG/PNG exportieren.'
+      };
+    }
+    return null; // OK für Tool
+  }
+
+  function isHeic(file) {
+    const c = classifyImageFile(file);
+    return c && c.kind === 'heic';
+  }
+
+  // BUG-IPHONE-001 + DNG-Erweiterung: handle alle iPhone/RAW-Formate.
+  // Returns true wenn das File NICHT vom Tool weiterverarbeitet werden soll
+  // (Tool-loadFile sollte dann return).
+  function handleHeicIfNeeded(file, currentTool) {
+    const c = classifyImageFile(file);
+    if (!c) return false;
+    // Wir ARE der Konverter selbst → durchlassen
+    if (currentTool === 'heic-zu-jpg' && c.kind === 'heic') return false;
+
+    Toast.show(c.message, true);
+
+    if (c.route) {
+      // Auto-Route nur bei HEIC (haben Konverter)
+      if (typeof saveToMappe === 'function') {
+        saveToMappe(file, currentTool || 'unknown').catch(() => {});
+      }
+      setTimeout(() => { window.location.href = c.route; }, 2200);
+    }
+    return true;
+  }
+
   // BUG-MAPPE-003: BFCache-Restore-Helper.
   // Browser-Back-Forward-Cache restored die Page mit altem DOM-Snapshot.
   // DOMContentLoaded feuert dabei NICHT — pageshow mit persisted=true ist
@@ -1005,6 +1134,8 @@
     init, Toast, Tour, parseSVG, el,
     whenMappeReady, saveToMappe,
     onMappeAutoLoad, parseMappeUrlParams, injectMappeAutoLoadBanner,
-    onBFCacheRestore
+    onBFCacheRestore,
+    // BUG-IPHONE-001 / DNG: Cross-Tool-Format-Helpers
+    isHeic, classifyImageFile, handleHeicIfNeeded
   };
 })(window);
