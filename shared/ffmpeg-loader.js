@@ -1,65 +1,50 @@
-/* FFmpeg.wasm loader — bypasses cross-origin Worker block via Blob-URL.
+/* FFmpeg.wasm loader — SELF-HOSTED in /shared/ffmpeg/.
  *
- * Background: @ffmpeg/ffmpeg v0.12.x internally constructs a Worker via
- * `new URL('./worker.js', import.meta.url)`. If the ESM import comes from
- * cross-origin (jsdelivr), browsers refuse to construct the Worker.
+ * Hintergrund: @ffmpeg/ffmpeg via CDN (jsdelivr +esm) erstellt intern einen
+ * Worker mit `new URL('./worker.js', import.meta.url)` — der Worker URL ist
+ * dann cross-origin zum Tool-Domain. Browser blockt `new Worker(crossOrigin)`.
+ * Workaround mit toBlobURL klappt für coreURL/wasmURL, aber der Init-Handshake
+ * zwischen Main-Thread und Worker hängt manchmal.
  *
- * Fix: pre-fetch the class-worker JS as Blob → same-origin URL → works.
+ * Lösung: alle ffmpeg-Files lokal in /shared/ffmpeg/ ablegen — same-origin.
+ * Worker-Konstruktion klappt nativ, kein Blob-URL-Trick nötig.
  *
- * Exports a single async function `loadFFmpeg(opts)` returning { ffmpeg, fetchFile }.
- * Multi-CDN fallback for resilience.
+ * Files (~32 MB total, gecacht durch Service Worker und Browser):
+ * - /shared/ffmpeg/ffmpeg.js (entry)
+ * - /shared/ffmpeg/classes.js, const.js, errors.js, types.js, utils.js, worker.js
+ * - /shared/ffmpeg/util.js, util-errors.js, util-types.js (@ffmpeg/util)
+ * - /shared/ffmpeg/ffmpeg-core.js, ffmpeg-core.wasm
  */
-
-const FFMPEG_VERSION = '0.12.10';
-const UTIL_VERSION = '0.12.1';
-const CORE_VERSION = '0.12.6';
-
-const CDN_BASES = [
-  'https://cdn.jsdelivr.net/npm',
-  'https://unpkg.com',
-];
 
 let cached = null;
 
 export async function loadFFmpeg(progress) {
   if (cached) return cached;
 
-  let lastErr;
-  for (const cdn of CDN_BASES) {
-    try {
-      progress?.('Lade Module…');
-      const ffmpegMod = await import(`${cdn}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/+esm`);
-      const utilMod = await import(`${cdn}/@ffmpeg/util@${UTIL_VERSION}/+esm`);
+  try {
+    progress?.('Lade Werkzeug…');
+    // Self-hosted import — same-origin, kein Cross-Origin-Worker-Block
+    const { FFmpeg } = await import('/shared/ffmpeg/classes.js');
+    const utilMod = await import('/shared/ffmpeg/util.js');
+    const { fetchFile } = utilMod;
 
-      const FFmpegClass = ffmpegMod.FFmpeg;
-      const { toBlobURL, fetchFile } = utilMod;
+    progress?.('Initialisiere…');
+    const ffmpeg = new FFmpeg();
 
-      const ffmpeg = new FFmpegClass();
+    progress?.('Lade Video-Engine…');
+    // coreURL und wasmURL same-origin: kein toBlobURL nötig
+    await ffmpeg.load({
+      coreURL: '/shared/ffmpeg/ffmpeg-core.js',
+      wasmURL: '/shared/ffmpeg/ffmpeg-core.wasm',
+    });
 
-      progress?.('Lade Worker…');
-      // The class worker — same-origin via blob, bypasses CORS block
-      const classWorkerURL = await toBlobURL(
-        `${cdn}/@ffmpeg/ffmpeg@${FFMPEG_VERSION}/dist/esm/worker.js`,
-        'text/javascript'
-      );
-
-      progress?.('Lade Video-Werkzeug…');
-      const coreBase = `${cdn}/@ffmpeg/core@${CORE_VERSION}/dist/umd`;
-      const coreURL = await toBlobURL(`${coreBase}/ffmpeg-core.js`, 'text/javascript');
-      const wasmURL = await toBlobURL(`${coreBase}/ffmpeg-core.wasm`, 'application/wasm');
-
-      progress?.('Initialisiere…');
-      await ffmpeg.load({ coreURL, wasmURL, classWorkerURL });
-
-      cached = { ffmpeg, fetchFile, exec: ffmpeg['exec'].bind(ffmpeg) };
-      return cached;
-    } catch (e) {
-      console.warn('[ffmpeg-loader] CDN failed:', cdn, e.message);
-      lastErr = e;
-    }
+    progress?.('Bereit.');
+    cached = { ffmpeg, fetchFile, exec: ffmpeg['exec'].bind(ffmpeg) };
+    return cached;
+  } catch (e) {
+    console.error('[ffmpeg-loader] failed:', e);
+    throw new Error(`Video-Werkzeug konnte nicht geladen werden: ${e.message ?? 'Unbekannt'}`);
   }
-
-  throw new Error(`Video-Werkzeug konnte nicht geladen werden: ${lastErr?.message ?? 'Unbekannt'}`);
 }
 
 export function isCrossOriginIsolated() {
