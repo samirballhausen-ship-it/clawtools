@@ -750,13 +750,25 @@
   //   });
   // ────────────────────────────────────────────────
   function whenMappeReady(callback, timeoutMs = 4000) {
+    // BUG-HUB-001 Fix: poll bis ALLE 4 Mappe-globals geladen sind
+    // (Mappe + Mappe.UI + Suggestions + MappeGrouped). Vorher prüfte nur
+    // Mappe.UI — race-condition: callback feuerte bevor MappeGrouped da war,
+    // Hub fiel auf fallback-render (große Image-Cards) zurück statt Smart-Suggest.
+    // Idempotent: callback wird genau 1× aufgerufen (return after first match).
     const start = Date.now();
     function poll() {
-      if (global.Mappe && global.Mappe.UI) {
+      const allReady = global.Mappe && global.Mappe.UI && global.Suggestions && global.MappeGrouped;
+      if (allReady) {
         try { callback(global.Mappe); } catch (e) { console.warn('[shell] whenMappeReady cb error:', e); }
         return;
       }
-      if (Date.now() - start > timeoutMs) return;
+      if (Date.now() - start > timeoutMs) {
+        // Soft-fallback: nach Timeout mit dem aufrufen was da ist (alte Semantik)
+        if (global.Mappe && global.Mappe.UI) {
+          try { callback(global.Mappe); } catch (e) { console.warn('[shell] whenMappeReady timeout-cb error:', e); }
+        }
+        return;
+      }
       setTimeout(poll, 50);
     }
     poll();
