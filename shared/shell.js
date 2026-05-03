@@ -690,9 +690,16 @@
 
   // saveToMappe — convenience for tools: store a validated file in Mappe.
   // Silently no-ops if Mappe isn't loaded (graceful degrade).
+  // De-dupes: if a file with same name+size already exists in Mappe,
+  // returns the existing ID instead of creating a duplicate.
+  // This handles the case where a file was auto-loaded from Mappe via URL-Param
+  // and the tool re-saves it through its addFiles/loadFile pipeline.
   async function saveToMappe(file, sourceTool) {
     if (!global.Mappe || typeof global.Mappe.addFile !== 'function') return null;
     try {
+      const existing = await global.Mappe.listFiles({});
+      const dup = existing.find(f => f.name === file.name && f.size === file.size);
+      if (dup) return dup.id;
       return await global.Mappe.addFile(file, sourceTool);
     } catch (e) {
       console.warn('[shell] saveToMappe failed:', e);
