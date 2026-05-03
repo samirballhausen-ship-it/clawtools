@@ -25,7 +25,7 @@ export async function loadFFmpeg(progress) {
     progress?.('Lade Werkzeug…');
     // Self-hosted import — same-origin, kein Cross-Origin-Worker-Block
     const { FFmpeg } = await import('/shared/ffmpeg/classes.js');
-    const utilMod = await import('/shared/ffmpeg/util.js');
+    const utilMod = await import('/shared/ffmpeg/util/index.js');
     const { fetchFile } = utilMod;
 
     progress?.('Initialisiere…');
