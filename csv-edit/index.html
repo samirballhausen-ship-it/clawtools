@@ -12,9 +12,35 @@
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    .csv-table-wrap { max-height: 60vh; overflow: auto; border: 1px solid var(--border); }
-    table.csv-table { border-collapse: collapse; width: 100%; font-family: var(--font-mono); font-size: 12px; }
+    .csv-table-wrap {
+      max-height: 60vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+      max-width: 100%;
+      box-sizing: border-box;
+      position: relative;
+    }
+    /* Scroll-Hint (Schatten am rechten Rand wenn überläuft) */
+    .csv-table-wrap::after {
+      content: '';
+      position: sticky;
+      right: 0; top: 0; bottom: 0;
+      width: 30px;
+      background: linear-gradient(90deg, transparent, rgba(0,0,0,0.08));
+      pointer-events: none;
+      display: none;
+    }
+    table.csv-table { border-collapse: collapse; width: max-content; min-width: 100%; font-family: var(--font-mono); font-size: 12px; }
     table.csv-table th { position: sticky; top: 0; background: var(--surf); border-bottom: 1px solid var(--border-strong); padding: 10px 12px; text-align: left; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+    /* Erste Spalte sticky links (Zeilen-Nummer) */
+    table.csv-table th:first-child, table.csv-table td:first-child {
+      position: sticky;
+      left: 0;
+      background: var(--bg);
+      z-index: 2;
+      box-shadow: 1px 0 0 var(--border);
+    }
+    table.csv-table th:first-child { z-index: 3; background: var(--surf); }
     table.csv-table th:hover { background: var(--surf-2); color: var(--magic); }
     table.csv-table th .sort-arrow { color: var(--magic); margin-left: 4px; }
     table.csv-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
@@ -24,6 +50,27 @@
     .filter-input:focus { outline: none; border-color: var(--magic); }
     .stat-mini { padding: 8px 12px; background: var(--surf); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); margin-bottom: 8px; }
     .stat-mini strong { color: var(--magic); }
+    .scroll-hint {
+      display: none;
+      padding: 8px 12px;
+      background: var(--magic-soft, var(--ok-soft));
+      border: 1px solid var(--magic);
+      font-size: 11px; color: var(--ink-2);
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+      align-items: center; gap: 6px;
+    }
+    .csv-grid { display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start; }
+    .csv-grid > * { min-width: 0; max-width: 100%; }
+    @media (max-width: 768px) {
+      .csv-grid { grid-template-columns: 1fr; gap: 16px; }
+      .scroll-hint { display: flex; }
+      table.csv-table { font-size: 11px; }
+      table.csv-table th, table.csv-table td { padding: 8px 10px; max-width: 200px; }
+      .csv-table-wrap { max-height: 65vh; }
+      /* Mobile-optimized: wider main column, tighter rows */
+      table.csv-table tr.row-num td:first-child { min-width: 30px; padding: 8px 6px; }
+    }
   </style>
 </head>
 <body>
@@ -46,7 +93,7 @@
     </div>
 
     <div id="editorView" style="display:none; margin-top: 24px;">
-      <div style="display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start;">
+      <div class="csv-grid">
         <div>
           <div class="card">
             <div class="card-head">
@@ -57,6 +104,7 @@
               <input type="text" id="filterInput" class="filter-input" placeholder="Filtern (Suche in allen Spalten)..." />
               <button class="btn btn-secondary" id="btnClearFilter" style="width:auto; height:auto; padding: 8px 14px;">Zurücksetzen</button>
             </div>
+            <div class="scroll-hint">← Wische seitwärts für mehr Spalten →</div>
             <div class="csv-table-wrap" id="tableWrap"></div>
           </div>
         </div>
