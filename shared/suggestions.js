@@ -42,16 +42,76 @@
   }
 
   // ────────────────────────────────────────────────
-  // Type Meta (Visual + Sprache)
+  // Custom Type-Glyph SVGs — kein Emoji, kein Lucide-default.
+  // Hand-gezeichneter Charakter mit Office-NG-Akzent (emerald).
+  // ────────────────────────────────────────────────
+  const TYPE_GLYPH_SVG = {
+    pdf: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 8 6 L 8 26 Q 8 27 9 27 L 22 27 Q 23 27 23 26 L 23 12 L 18 6 Z"/>
+      <path d="M 18 6 L 18 12 L 23 12"/>
+      <path d="M 10 8 L 25 8 L 25 28" stroke-dasharray="2 3" opacity="0.32"/>
+      <line x1="11" y1="17" x2="19" y2="17"/>
+      <line x1="11" y1="20" x2="20" y2="20"/>
+      <line x1="11" y1="23" x2="16" y2="23"/>
+      <circle cx="20" cy="23" r="0.9" fill="#15803d" stroke="none"/>
+    </svg>`,
+    image: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="5" y="7" width="22" height="18" rx="1.5"/>
+      <circle cx="11" cy="13" r="1.8" fill="#15803d" stroke="none"/>
+      <path d="M 6 22 L 12 17 L 16 20 L 21 15 L 26 19"/>
+      <path d="M 26 19 L 26 25"/>
+    </svg>`,
+    heic: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="10" y="3" width="12" height="26" rx="2"/>
+      <line x1="14" y1="5" x2="18" y2="5" stroke-width="1.6"/>
+      <rect x="12" y="8" width="8" height="16" rx="0.5" opacity="0.45"/>
+      <circle cx="14.5" cy="11" r="0.9" fill="#15803d" stroke="none"/>
+      <path d="M 13 19 L 15 17 L 17 18 L 19 16" opacity="0.7"/>
+      <circle cx="16" cy="26.5" r="0.9"/>
+    </svg>`,
+    sheet: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="5" y="6" width="22" height="20" rx="1"/>
+      <line x1="5" y1="12" x2="27" y2="12"/>
+      <line x1="5" y1="19" x2="27" y2="19"/>
+      <line x1="13" y1="6" x2="13" y2="26"/>
+      <line x1="20" y1="6" x2="20" y2="26"/>
+      <rect x="5.5" y="6.5" width="7.5" height="5.5" fill="#15803d" opacity="0.08" stroke="none"/>
+    </svg>`,
+    docx: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 8 5 L 8 27 Q 8 28 9 28 L 23 28 Q 24 28 24 27 L 24 11 L 18 5 Z"/>
+      <path d="M 18 5 L 18 11 L 24 11"/>
+      <line x1="11" y1="16" x2="21" y2="16"/>
+      <line x1="11" y1="19" x2="21" y2="19"/>
+      <line x1="11" y1="22" x2="18" y2="22"/>
+      <line x1="11" y1="25" x2="15" y2="25" stroke="#15803d" stroke-width="1.8"/>
+    </svg>`,
+    video: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="3" y="9" width="20" height="14" rx="1.5"/>
+      <polygon points="29,10 23,14 23,18 29,22"/>
+      <circle cx="9" cy="16" r="0.9" fill="#15803d" stroke="none"/>
+      <line x1="13" y1="14" x2="19" y2="14" opacity="0.4"/>
+      <line x1="13" y1="18" x2="17" y2="18" opacity="0.4"/>
+    </svg>`,
+    other: `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 5 11 L 16 5 L 27 11 L 27 23 L 16 29 L 5 23 Z"/>
+      <path d="M 5 11 L 16 17 L 27 11"/>
+      <line x1="16" y1="17" x2="16" y2="29"/>
+      <circle cx="16" cy="11" r="1" fill="#15803d" stroke="none"/>
+    </svg>`
+  };
+
+  // ────────────────────────────────────────────────
+  // Type Meta (Visual + Sprache) — emoji-Feld bleibt für Backwards-Compat
+  // (mappe-grouped.js liest preferiert glyphSvg, fallback emoji)
   // ────────────────────────────────────────────────
   const TYPE_META = {
-    pdf:   { emoji: '📄',  label: 'PDFs',          singular: 'PDF',          plural: 'PDFs',          accent: '#e11d48', glow: 'rgba(225,29,72,.18)',  order: 1 },
-    image: { emoji: '🖼',  label: 'Bilder',        singular: 'Bild',         plural: 'Bilder',        accent: '#2dd4bf', glow: 'rgba(45,212,191,.18)',  order: 2 },
-    heic:  { emoji: '📱', label: 'iPhone-Fotos', singular: 'iPhone-Foto',  plural: 'iPhone-Fotos',  accent: '#a78bfa', glow: 'rgba(167,139,250,.18)', order: 3 },
-    sheet: { emoji: '📊', label: 'Tabellen',     singular: 'Tabelle',      plural: 'Tabellen',      accent: '#c29b62', glow: 'rgba(194,155,98,.20)',  order: 4 },
-    docx:  { emoji: '📝', label: 'Word-Dateien', singular: 'Word-Datei',   plural: 'Word-Dateien',  accent: '#3b82f6', glow: 'rgba(59,130,246,.18)',  order: 5 },
-    video: { emoji: '🎬', label: 'Videos',       singular: 'Video',        plural: 'Videos',        accent: '#ec4899', glow: 'rgba(236,72,153,.18)',  order: 6 },
-    other: { emoji: '📦', label: 'Weitere',      singular: 'Datei',        plural: 'Dateien',       accent: '#71717a', glow: 'rgba(113,113,122,.18)', order: 9 }
+    pdf:   { glyphSvg: TYPE_GLYPH_SVG.pdf,   label: 'PDFs',          singular: 'PDF',          plural: 'PDFs',          accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 1 },
+    image: { glyphSvg: TYPE_GLYPH_SVG.image, label: 'Bilder',        singular: 'Bild',         plural: 'Bilder',        accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 2 },
+    heic:  { glyphSvg: TYPE_GLYPH_SVG.heic,  label: 'iPhone-Fotos',  singular: 'iPhone-Foto',  plural: 'iPhone-Fotos',  accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 3 },
+    sheet: { glyphSvg: TYPE_GLYPH_SVG.sheet, label: 'Tabellen',      singular: 'Tabelle',      plural: 'Tabellen',      accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 4 },
+    docx:  { glyphSvg: TYPE_GLYPH_SVG.docx,  label: 'Word-Dateien',  singular: 'Word-Datei',   plural: 'Word-Dateien',  accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 5 },
+    video: { glyphSvg: TYPE_GLYPH_SVG.video, label: 'Videos',        singular: 'Video',        plural: 'Videos',        accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 6 },
+    other: { glyphSvg: TYPE_GLYPH_SVG.other, label: 'Weitere',       singular: 'Datei',        plural: 'Dateien',       accent: '#0a0a0a', glow: 'rgba(10,10,10,.10)', order: 9 }
   };
 
   function getTypeMeta(typeKey) {

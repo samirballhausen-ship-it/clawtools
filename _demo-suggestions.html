@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Damit könntest du jetzt — Demo · CLAWBUIS Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@200;300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink:           #0a0a0a;
+    --ink-2:         #525252;
+    --ink-3:         #a3a3a3;
+    --ink-4:         #d4d4d4;
+    --bg:            #ffffff;
+    --surf:          #fafafa;
+    --surf-2:        #f5f5f5;
+    --border:        #e8e8e8;
+    --border-strong: #d4d4d4;
+
+    --magic:         #15803d;
+    --magic-soft:    rgba(21, 128, 61, 0.06);
+    --magic-glow:    rgba(21, 128, 61, 0.18);
+    --magic-deep:    #166534;
+
+    --paper-cream:   #faf8f3;
+    --paper-warm:    #f6f1e8;
+
+    --ease:          cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring:   cubic-bezier(0.34, 1.4, 0.64, 1);
+    --ease-reveal:   cubic-bezier(0.2, 0.7, 0.1, 1);
+
+    --font-display:  'Bricolage Grotesque', system-ui, sans-serif;
+    --font-serif:    'Instrument Serif', 'Cormorant Garamond', Georgia, serif;
+    --font-body:     'Geist', system-ui, sans-serif;
+    --font-mono:     'Geist Mono', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* ─── Architecture grid as background ─────────── */
+  body {
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(10,10,10,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10,10,10,0.04) 1px, transparent 1px);
+    background-size: 96px 96px;
+    background-attachment: fixed;
+    background-position: -1px -1px;
+  }
+
+  ::selection { background: var(--magic); color: white; }
+
+  .stage {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 80px 32px 120px;
+  }
+
+  /* ─── Demo bar at top ─────────────────────────── */
+  .demo-bar {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 50;
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 8px 16px;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(12px);
+    color: white;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .demo-bar .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #2dd4bf;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity: 0.35; } }
+
+  /* ─── Editorial header ────────────────────────── */
+  .lead {
+    margin: 24px 0 96px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 28px;
+    align-items: end;
+  }
+
+  @media (min-width: 900px) {
+    .lead { grid-template-columns: 1.3fr 1fr; gap: 56px; }
+  }
+
+  .lead-head {
+    position: relative;
+  }
+  .lead-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 22px;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .lead-eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--magic);
+  }
+  .lead-eyebrow .num { color: var(--magic); font-weight: 600; }
+
+  .lead h1 {
+    font-family: var(--font-display);
+    font-weight: 200;
+    font-size: clamp(48px, 8vw, 96px);
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    color: var(--ink);
+  }
+  .lead h1 em {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--magic);
+  }
+  .lead h1 .underline-mark {
+    position: relative; display: inline-block;
+  }
+  .lead h1 .underline-mark::after {
+    content: "";
+    position: absolute;
+    left: -2%; right: -2%; bottom: 6%;
+    height: 14px;
+    background: var(--magic);
+    opacity: 0.15;
+    z-index: -1;
+    transform: skewX(-8deg);
+  }
+
+  .lead-aside {
+    color: var(--ink-2);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 380px;
+    padding-left: 20px;
+    border-left: 1px solid var(--ink-4);
+  }
+  .lead-aside strong {
+    color: var(--ink); font-weight: 500;
+  }
+
+  /* ─── Group block (per file-type) ─────────────── */
+  .group {
+    margin-bottom: 88px;
+    opacity: 0; transform: translateY(24px);
+    animation: revealUp 0.9s var(--ease-reveal) forwards;
+  }
+  .group:nth-child(1) { animation-delay: 0.1s; }
+  .group:nth-child(2) { animation-delay: 0.25s; }
+  .group:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes revealUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Two-column: Type-meta on left, suggestions on right */
+  .group-shell {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  @media (min-width: 900px) {
+    .group-shell { grid-template-columns: 280px 1fr; gap: 56px; }
+  }
+
+  /* LEFT: Type identity + files */
+  .group-meta {
+    position: sticky; top: 32px;
+    align-self: start;
+  }
+  .group-glyph {
+    width: 72px; height: 72px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+    color: var(--ink);
+  }
+  .group-glyph svg { width: 100%; height: 100%; }
+  .group-glyph .accent { stroke: var(--magic); }
+
+  .group-label {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .group-count {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 24px;
+  }
+  .group-count strong { color: var(--magic); font-weight: 500; }
+
+  .group-files {
+    list-style: none;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .group-files li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0;
+    font-size: 13px;
+    color: var(--ink-2);
+    border-bottom: 1px dashed var(--border);
+  }
+  .group-files li:last-child { border-bottom: none; }
+  .group-files .file-glyph {
+    width: 14px; height: 14px;
+    color: var(--ink-3);
+    flex-shrink: 0;
+  }
+  .group-files .file-name {
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .group-files .file-size {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--ink-3);
+    flex-shrink: 0;
+  }
+
+  /* RIGHT: suggestion cards */
+  .group-suggestions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* ─── Suggestion Card ─────────────────────────── */
+  .sug {
+    position: relative;
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 24px;
+    padding: 22px 28px 22px 24px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.4s var(--ease-spring);
+    overflow: hidden;
+  }
+
+  /* Diagonal hairline accent on left */
+  .sug::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--ink-4);
+    transition: all 0.4s var(--ease);
+  }
+
+  .sug:hover {
+    transform: translateY(-2px);
+    border-color: var(--ink);
+    box-shadow:
+      0 18px 40px -16px rgba(10, 10, 10, 0.18),
+      0 1px 0 0 rgba(10, 10, 10, 0.04);
+  }
+  .sug:hover::before {
+    background: var(--magic);
+    width: 4px;
+  }
+  .sug:hover .sug-arrow {
+    transform: translateX(8px);
+    color: var(--magic);
+  }
+  .sug:hover .sug-icon .breath { transform: scale(1.08); }
+  .sug:hover .sug-icon .accent { stroke-dashoffset: 0; }
+
+  /* Primary card: bold, inversed */
+  .sug.primary {
+    background: var(--ink);
+    color: var(--paper-cream);
+    border-color: var(--ink);
+    padding: 28px 32px 28px 28px;
+    grid-template-columns: 64px 1fr auto;
+  }
+  .sug.primary::before { background: var(--magic); width: 4px; }
+  .sug.primary:hover {
+    background: #1a1a1a;
+    transform: translateY(-3px);
+    box-shadow:
+      0 28px 60px -20px rgba(10, 10, 10, 0.5),
+      0 1px 0 0 rgba(255, 255, 255, 0.08) inset;
+  }
+  .sug.primary .sug-icon { color: var(--paper-cream); }
+  .sug.primary .sug-icon .accent { stroke: var(--magic); }
+  .sug.primary .sug-eyebrow { color: var(--magic); }
+  .sug.primary .sug-headline {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .sug.primary .sug-arrow { color: var(--paper-cream); }
+
+  /* Icon column */
+  .sug-icon {
+    width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink);
+    transition: all 0.5s var(--ease-spring);
+  }
+  .sug-icon svg { width: 100%; height: 100%; }
+  .sug-icon .breath {
+    transition: transform 0.5s var(--ease-spring);
+    transform-origin: center;
+  }
+  .sug-icon .accent {
+    stroke: var(--magic);
+    stroke-dasharray: 60;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.6s var(--ease);
+  }
+
+  /* Body column */
+  .sug-body {
+    display: flex; flex-direction: column; gap: 4px;
+    min-width: 0;
+  }
+  .sug-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+  .sug-headline {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 500;
+    color: inherit;
+    letter-spacing: -0.005em;
+  }
+  .sug-headline em {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    color: var(--magic);
+    font-style: italic;
+  }
+  .sug.primary .sug-headline em {
+    color: #5fdf8e;
+  }
+  .sug-meta {
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 2px;
+  }
+  .sug.primary .sug-meta { color: rgba(250, 248, 243, 0.55); }
+
+  /* Arrow column */
+  .sug-arrow {
+    width: 28px; height: 28px;
+    color: var(--ink-3);
+    transition: all 0.4s var(--ease-spring);
+    flex-shrink: 0;
+  }
+  .sug-arrow svg { width: 100%; height: 100%; }
+
+  /* Section divider */
+  .divider-row {
+    display: flex; align-items: center; gap: 18px;
+    margin: 12px 0 6px;
+    color: var(--ink-3);
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .divider-row::before, .divider-row::after {
+    content: ""; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* Footer note */
+  .meta-foot {
+    margin-top: 64px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-wrap: wrap; gap: 20px;
+    align-items: center; justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.06em;
+    color: var(--ink-3);
+  }
+  .meta-foot .stamp {
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .meta-foot .stamp .stamp-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--magic);
+  }
+  .meta-foot a {
+    color: var(--ink); text-decoration: none;
+    border-bottom: 1px solid var(--magic);
+    padding-bottom: 1px;
+    transition: all 0.2s var(--ease);
+  }
+  .meta-foot a:hover { color: var(--magic); }
+
+  /* ─── Mobile ──────────────────────────────────── */
+  @media (max-width: 768px) {
+    .stage { padding: 64px 20px 80px; }
+    .lead { margin-bottom: 64px; }
+    .group { margin-bottom: 64px; }
+    .group-meta { position: static; }
+    .sug { grid-template-columns: 44px 1fr 20px; gap: 16px; padding: 18px; }
+    .sug.primary { grid-template-columns: 48px 1fr 20px; padding: 22px 20px; }
+    .sug-icon { width: 44px; height: 44px; }
+    .sug-headline { font-size: 15px; }
+    .sug.primary .sug-headline { font-size: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <span class="pulse"></span>
+  <span>Demo · /tools/_demo-suggestions.html</span>
+</div>
+
+<main class="stage">
+
+  <!-- Editorial lead -->
+  <header class="lead">
+    <div class="lead-head">
+      <div class="lead-eyebrow">
+        <span class="dot"></span>
+        <span>Mappe · <span class="num">10</span> Dateien</span>
+      </div>
+      <h1>
+        Damit<br>
+        könntest <span class="underline-mark">du</span><br>
+        <em>jetzt …</em>
+      </h1>
+    </div>
+    <aside class="lead-aside">
+      <p>Wir haben deine Dateien geöffnet und die <strong>passendsten Folgeschritte</strong> für jede Gruppe ausgewählt — sortiert nach Wahrscheinlichkeit, dass du sie wirklich brauchst.</p>
+    </aside>
+  </header>
+
+  <!-- ════════════ PDF GROUP ════════════ -->
+  <section class="group">
+    <div class="group-shell">
+
+      <!-- Left: type identity + files -->
+      <div class="group-meta">
+        <div class="group-glyph">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Stack of paper - hand-drawn feel -->
+            <path d="M 14 12 L 14 50 Q 14 52 16 52 L 44 52 Q 46 52 46 50 L 46 22 L 36 12 Z" />
+            <path d="M 36 12 L 36 22 L 46 22" />
+            <!-- second sheet behind, slight offset -->
+            <path d="M 18 14 L 50 14 L 50 54" stroke-dasharray="2 3" opacity="0.35" />
+            <!-- text lines -->
+            <line x1="20" y1="32" x2="38" y2="32" />
+            <line x1="20" y1="38" x2="40" y2="38" />
+            <line x1="20" y1="44" x2="32" y2="44" />
+            <!-- subtle accent dot -->
+            <circle cx="40" cy="44" r="1.5" fill="#15803d" stroke="none" />
+          </svg>
+        </div>
+        <div class="group-label">PDFs</div>
+        <div class="group-count"><strong>3</strong> · ~ 4,2 MB gesamt</div>
+
+        <ul class="group-files">
+          <li>
+            <svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span class="file-name">Vertragsentwurf-2026.pdf</span>
+            <span class="file-size">1,8 MB</span>
+          </li>
+          <li>
+            <svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span class="file-name">Anhang-A-Spezifikation.pdf</span>
+            <span class="file-size">1,4 MB</span>
+          </li>
+          <li>
+            <svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span class="file-name">Anhang-B-Konditionen.pdf</span>
+            <span class="file-size">1,0 MB</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right: suggestions -->
+      <div class="group-suggestions">
+
+        <!-- PRIMARY: Merge -->
+        <a href="/pdf-merger/?from=mappe" class="sug primary">
+          <div class="sug-icon">
+            <!-- Merge: 3 streams converging into 1 -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <path d="M 14 16 Q 14 32 32 32" />
+                <path d="M 14 32 L 32 32" />
+                <path d="M 14 48 Q 14 32 32 32" />
+                <path d="M 32 32 L 50 32" class="accent" />
+                <circle cx="14" cy="16" r="2.5" />
+                <circle cx="14" cy="32" r="2.5" />
+                <circle cx="14" cy="48" r="2.5" />
+                <circle cx="50" cy="32" r="3" fill="currentColor" stroke="none" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Empfohlen · 1 Klick</div>
+            <div class="sug-headline">Diese 3 PDFs zu <em>einer</em> zusammenfügen</div>
+            <div class="sug-meta">Reihenfolge per Drag, Lesezeichen-Outline bleibt</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+        <!-- Secondary: compress -->
+        <a href="/pdf-compress/?from=mappe" class="sug">
+          <div class="sug-icon">
+            <!-- Compress: arrows pointing inward -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <rect x="22" y="22" width="20" height="20" rx="1" class="accent" />
+                <path d="M 8 8 L 18 18" />
+                <polyline points="18,8 18,18 8,18" />
+                <path d="M 56 8 L 46 18" />
+                <polyline points="46,8 46,18 56,18" />
+                <path d="M 8 56 L 18 46" />
+                <polyline points="8,46 18,46 18,56" />
+                <path d="M 56 56 L 46 46" />
+                <polyline points="46,56 46,46 56,46" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Für E-Mail</div>
+            <div class="sug-headline">Kleiner machen ohne <em>sichtbaren</em> Qualitätsverlust</div>
+            <div class="sug-meta">Bilder werden re-komprimiert, Text bleibt scharf</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+        <!-- Secondary: durchsuchbar / OCR -->
+        <a href="/pdf-ocr/?from=mappe" class="sug">
+          <div class="sug-icon">
+            <!-- Magnifying glass over text -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <line x1="14" y1="20" x2="38" y2="20" stroke-dasharray="3 2" />
+                <line x1="14" y1="28" x2="34" y2="28" stroke-dasharray="3 2" />
+                <line x1="14" y1="36" x2="36" y2="36" stroke-dasharray="3 2" />
+                <line x1="14" y1="44" x2="28" y2="44" stroke-dasharray="3 2" />
+                <circle cx="42" cy="40" r="11" class="accent" />
+                <line x1="50" y1="48" x2="56" y2="54" class="accent" stroke-width="2" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Eingescannt? Dann hier</div>
+            <div class="sug-headline">Text <em>durchsuchbar</em> machen</div>
+            <div class="sug-meta">OCR im Browser · funktioniert auch bei Foto-Scans</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+        <!-- Secondary: schwärzen -->
+        <a href="/pdf-redact/?from=mappe" class="sug">
+          <div class="sug-icon">
+            <!-- Document with redacted (filled) lines -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <path d="M 16 12 L 16 52 Q 16 54 18 54 L 46 54 Q 48 54 48 52 L 48 22 L 38 12 Z" />
+                <path d="M 38 12 L 38 22 L 48 22" />
+                <line x1="22" y1="32" x2="38" y2="32" stroke-dasharray="2 2" />
+                <rect x="22" y="36" width="20" height="4" fill="currentColor" stroke="none" rx="0.5" />
+                <rect x="22" y="42" width="14" height="4" fill="currentColor" stroke="none" rx="0.5" class="accent" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Sensibles raus</div>
+            <div class="sug-headline">Stellen <em>dauerhaft</em> schwärzen</div>
+            <div class="sug-meta">Kein Overlay — der Text wird wirklich entfernt</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════ IMAGES GROUP ════════════ -->
+  <section class="group">
+    <div class="group-shell">
+
+      <div class="group-meta">
+        <div class="group-glyph">
+          <!-- Bild: window-frame with sun + horizon (hand-drawn) -->
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="10" y="14" width="44" height="36" rx="2" />
+            <circle cx="22" cy="26" r="3.5" class="accent" fill="#15803d" stroke="none" />
+            <path d="M 12 44 L 24 34 L 32 40 L 42 30 L 52 38" />
+            <path d="M 52 38 L 52 50" />
+          </svg>
+        </div>
+        <div class="group-label">Bilder</div>
+        <div class="group-count"><strong>5</strong> · ~ 18,4 MB gesamt</div>
+
+        <ul class="group-files">
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="file-name">portrait-final.jpg</span><span class="file-size">4,2 MB</span></li>
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="file-name">produkt-detail-01.jpg</span><span class="file-size">3,9 MB</span></li>
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="file-name">team-photo.jpg</span><span class="file-size">3,8 MB</span></li>
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="file-name">studio-shot.png</span><span class="file-size">3,7 MB</span></li>
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="file-name">cover-image.jpg</span><span class="file-size">2,8 MB</span></li>
+        </ul>
+      </div>
+
+      <div class="group-suggestions">
+
+        <!-- PRIMARY: bg-remove -->
+        <a href="/bg-remove/?from=mappe" class="sug primary">
+          <div class="sug-icon">
+            <!-- Subject silhouette with bg dissolving in dots -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <!-- frame dashed (bg getting removed) -->
+                <rect x="8" y="8" width="48" height="48" rx="1" stroke-dasharray="3 4" opacity="0.55" />
+                <!-- subject: head + shoulders (clean) -->
+                <circle cx="32" cy="26" r="8" />
+                <path d="M 16 52 Q 16 38 32 38 Q 48 38 48 52" />
+                <!-- accent: dissolving dots in bg -->
+                <circle cx="14" cy="16" r="1.2" fill="currentColor" stroke="none" opacity="0.5" />
+                <circle cx="20" cy="14" r="1" fill="currentColor" stroke="none" opacity="0.4" />
+                <circle cx="48" cy="18" r="1.2" fill="currentColor" stroke="none" opacity="0.5" />
+                <circle cx="52" cy="14" r="0.8" fill="currentColor" stroke="none" opacity="0.4" />
+                <circle cx="46" cy="44" r="1.5" fill="#15803d" stroke="none" class="accent" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">KI · 100 % im Browser</div>
+            <div class="sug-headline">Hintergrund <em>freistellen</em> — bei allen 5</div>
+            <div class="sug-meta">Erst Vorher/Nachher prüfen, dann als Batch verarbeiten</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+        <!-- Secondary: compress -->
+        <a href="/images-compress/?from=mappe" class="sug">
+          <div class="sug-icon">
+            <!-- Compress: image sized down -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <rect x="6" y="6" width="40" height="40" rx="1" opacity="0.4" stroke-dasharray="3 3" />
+                <rect x="20" y="20" width="26" height="26" rx="1" class="accent" />
+                <circle cx="26" cy="28" r="2" />
+                <path d="M 20 42 L 28 36 L 32 38 L 38 32 L 46 38" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Mail · WhatsApp</div>
+            <div class="sug-headline">Komprimieren — alle <em>5 Bilder</em> auf einmal</div>
+            <div class="sug-meta">Quality-Slider, Vorher/Nachher pro Bild</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+        <!-- Secondary: in PDF -->
+        <a href="/images-to-pdf/?from=mappe" class="sug">
+          <div class="sug-icon">
+            <!-- Images flowing into PDF -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <rect x="6" y="14" width="16" height="20" rx="1" opacity="0.6" />
+                <rect x="14" y="20" width="16" height="20" rx="1" opacity="0.85" />
+                <path d="M 32 30 L 42 30" stroke-dasharray="2 2" />
+                <polyline points="38,26 42,30 38,34" />
+                <path d="M 46 14 L 46 50 Q 46 52 48 52 L 56 52 Q 58 52 58 50 L 58 22 L 50 14 Z" class="accent" />
+                <path d="M 50 14 L 50 22 L 58 22" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Scan-Sammlung</div>
+            <div class="sug-headline">In <em>ein</em> PDF packen — A4-tauglich</div>
+            <div class="sug-meta">Reihenfolge per Drag, Ränder einstellbar</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+        <!-- Secondary: foto-data entfernen -->
+        <a href="/exif-strip/?from=mappe" class="sug">
+          <div class="sug-icon">
+            <!-- Shield with dissolving data ticks -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <path d="M 32 8 L 14 16 L 14 30 Q 14 46 32 56 Q 50 46 50 30 L 50 16 Z" />
+                <path d="M 24 30 L 30 36 L 42 24" class="accent" stroke-width="2" />
+                <line x1="20" y1="44" x2="26" y2="44" opacity="0.4" stroke-dasharray="2 2" />
+                <line x1="38" y1="44" x2="44" y2="44" opacity="0.4" stroke-dasharray="2 2" />
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Vor Web-Upload</div>
+            <div class="sug-headline">Standort &amp; Kamera-Daten <em>entfernen</em></div>
+            <div class="sug-meta">EXIF wird komplett gestrippt — keine Spuren mehr</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════ HEIC GROUP ════════════ -->
+  <section class="group">
+    <div class="group-shell">
+
+      <div class="group-meta">
+        <div class="group-glyph">
+          <!-- iPhone shape with photo inside (custom) -->
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="20" y="6" width="24" height="52" rx="4" />
+            <line x1="28" y1="10" x2="36" y2="10" stroke-width="2" />
+            <rect x="24" y="16" width="16" height="32" rx="1" opacity="0.4" />
+            <circle cx="29" cy="22" r="1.8" fill="#15803d" stroke="none" />
+            <path d="M 25 40 L 29 36 L 33 38 L 39 33" opacity="0.7" />
+            <circle cx="32" cy="53" r="1.8" />
+          </svg>
+        </div>
+        <div class="group-label">iPhone-Fotos</div>
+        <div class="group-count"><strong>2</strong> · HEIC-Format</div>
+
+        <ul class="group-files">
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><line x1="10" y1="6" x2="14" y2="6"/></svg><span class="file-name">IMG_4023.HEIC</span><span class="file-size">2,8 MB</span></li>
+          <li><svg class="file-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><line x1="10" y1="6" x2="14" y2="6"/></svg><span class="file-name">IMG_4024.HEIC</span><span class="file-size">3,1 MB</span></li>
+        </ul>
+      </div>
+
+      <div class="group-suggestions">
+
+        <!-- PRIMARY: convert -->
+        <a href="/heic-zu-jpg/?from=mappe" class="sug primary">
+          <div class="sug-icon">
+            <!-- HEIC → JPG transformation -->
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <g class="breath">
+                <rect x="6" y="14" width="20" height="36" rx="3" />
+                <rect x="9" y="22" width="14" height="22" rx="0.5" opacity="0.4" />
+                <circle cx="13" cy="27" r="1.5" />
+                <path d="M 31 32 L 41 32" stroke-dasharray="2 2" />
+                <polyline points="37,28 41,32 37,36" class="accent" />
+                <rect x="44" y="14" width="16" height="36" rx="2" class="accent" />
+                <text x="52" y="36" text-anchor="middle" font-family="Geist Mono, monospace" font-size="7" font-weight="600" fill="currentColor" stroke="none">JPG</text>
+              </g>
+            </svg>
+          </div>
+          <div class="sug-body">
+            <div class="sug-eyebrow">Damit alle es öffnen können</div>
+            <div class="sug-headline">In <em>JPG</em> umwandeln — universal lesbar</div>
+            <div class="sug-meta">Originale bleiben unverändert · Quality-Slider</div>
+          </div>
+          <div class="sug-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>
+          </div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer meta -->
+  <div class="meta-foot">
+    <div class="stamp">
+      <span class="stamp-dot"></span>
+      <span>v1 · Demo · Smart-Mappe Folgeschritte</span>
+    </div>
+    <div>
+      Konzept · Custom-SVGs · Editorial-Redesign
+    </div>
+    <div>
+      <a href="/">← zurück zum Hub</a>
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>

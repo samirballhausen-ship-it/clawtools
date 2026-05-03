@@ -257,16 +257,36 @@
     const nav = el('nav', { class: 'app-footer-nav' });
     [['Impressum', '/impressum'],
      ['Datenschutz', '/datenschutz'],
-     ['AGB', '/agb'],
-     ['GitHub', 'https://github.com/samirballhausen-ship-it/clawtools']
+     ['AGB', '/agb']
     ].forEach(([txt, href]) => {
       const a = el('a', {
         text: txt,
-        attrs: { href, ...(href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {}) }
+        attrs: { href }
       });
       nav.appendChild(a);
     });
     inner.appendChild(nav);
+
+    // Source-Hinweis: subtle, devs-only — Code öffentlich auf GitHub.
+    // Custom-SVG (kein GitHub-Trademark): drei verbundene Knoten = Repository-Mark.
+    const sourceWrap = el('div', { class: 'app-footer-source', attrs: { 'aria-label': 'Quellcode dieser Seite' } });
+    const sourceMark = parseSVG(`<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="4" cy="4" r="1.5"/>
+      <circle cx="4" cy="12" r="1.5"/>
+      <circle cx="12" cy="8" r="1.5"/>
+      <path d="M4 5.5v5"/>
+      <path d="M5.5 4h3a3 3 0 0 1 3 3v.5"/>
+      <path d="M5.5 12h3a3 3 0 0 0 3-3v-.5"/>
+    </svg>`);
+    sourceMark.classList.add('app-footer-source-mark');
+    sourceWrap.appendChild(sourceMark);
+    sourceWrap.appendChild(document.createTextNode('Code öffentlich · '));
+    const sourceLink = el('a', {
+      text: 'samirballhausen-ship-it/clawtools',
+      attrs: { href: 'https://github.com/samirballhausen-ship-it/clawtools', target: '_blank', rel: 'noopener noreferrer' }
+    });
+    sourceWrap.appendChild(sourceLink);
+    inner.appendChild(sourceWrap);
 
     const footer = el('footer', { class: 'app-footer' }, [inner]);
     document.body.appendChild(footer);
@@ -619,6 +639,8 @@
     window.addEventListener('appinstalled', () => {
       const btn = document.querySelector('.pwa-install-btn');
       if (btn) btn.remove();
+      const headerBtn = document.querySelector('.pwa-install-header');
+      if (headerBtn) headerBtn.remove();
       deferredInstallPrompt = null;
       Toast.show('Als App installiert — du findest sie auf deinem Homescreen.');
     });
@@ -632,14 +654,51 @@
   }
 
   function showInstallButton() {
+    // BUG-PWA-001: Floater + Header-Button parallel.
+    // Floater bleibt für unaufmerksame User, Header-Button macht es prominent.
+
+    // Header-Button: dezent, custom-SVG (Bildschirm + Pfeil-Down-In)
+    const rightCluster = document.querySelector('.app-header .header-right');
+    if (rightCluster && !rightCluster.querySelector('.pwa-install-header')) {
+      const headerBtn = el('button', {
+        class: 'pwa-install-header',
+        attrs: { type: 'button', title: 'Als App installieren — auf Homescreen ablegen', 'aria-label': 'Als App installieren' },
+        on: { click: () => triggerInstall() }
+      });
+      const ico = el('span', { class: 'pwa-install-header-icon', attrs: { 'aria-hidden': 'true' } });
+      ico.appendChild(parseSVG(`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2.5" y="3" width="15" height="11" rx="1.5"/>
+        <line x1="2.5" y1="11" x2="17.5" y2="11"/>
+        <line x1="7" y1="17" x2="13" y2="17"/>
+        <line x1="10" y1="14" x2="10" y2="17"/>
+        <path d="M10 5.5v3.5"/>
+        <polyline points="8.2,7.3 10,9 11.8,7.3"/>
+      </svg>`));
+      headerBtn.appendChild(ico);
+      headerBtn.appendChild(el('span', { class: 'pwa-install-header-label', text: 'Als App' }));
+      // Insert before the meta cluster (after Mappe-trigger if present)
+      const meta = rightCluster.querySelector('.header-meta');
+      if (meta) rightCluster.insertBefore(headerBtn, meta);
+      else rightCluster.appendChild(headerBtn);
+    }
+
+    // Floater bleibt parallel
     if (document.querySelector('.pwa-install-btn')) return;
     const btn = el('button', {
       class: 'pwa-install-btn',
       attrs: { type: 'button', 'aria-label': 'Als App auf Homescreen installieren' },
       on: { click: () => triggerInstall() }
     });
-    const ico = el('span', { attrs: { 'aria-hidden': 'true' }, text: '⤓' });
-    btn.appendChild(ico);
+    const floatIco = el('span', { class: 'pwa-install-btn-icon', attrs: { 'aria-hidden': 'true' } });
+    floatIco.appendChild(parseSVG(`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2.5" y="3" width="15" height="11" rx="1.5"/>
+      <line x1="2.5" y1="11" x2="17.5" y2="11"/>
+      <line x1="7" y1="17" x2="13" y2="17"/>
+      <line x1="10" y1="14" x2="10" y2="17"/>
+      <path d="M10 5.5v3.5"/>
+      <polyline points="8.2,7.3 10,9 11.8,7.3"/>
+    </svg>`));
+    btn.appendChild(floatIco);
     btn.appendChild(document.createTextNode(' Als App installieren'));
     document.body.appendChild(btn);
   }
@@ -743,9 +802,17 @@
   }
 
   let _mappeAutoLoadHandler = null;
-  function onMappeAutoLoad(callback) {
+  let _mappeAutoLoadMode = 'multi'; // 'multi' = pass all files, 'single' = picker if N>1
+
+  // onMappeAutoLoad(callback, opts?)
+  //   opts.mode: 'multi' (default) → handler bekommt alle records
+  //              'single' → bei N>1 Picker-Modal · User wählt 1 · handler bekommt [1]
+  // BUG-MAPPE-002 Fix: Tools die nur 1 File nehmen (pdf-to-word, pdf-sign, …)
+  // setzen mode:'single' damit User entscheidet bei mehrfach-Match.
+  function onMappeAutoLoad(callback, opts) {
     if (typeof callback !== 'function') return;
     _mappeAutoLoadHandler = callback;
+    _mappeAutoLoadMode = (opts && opts.mode) || 'multi';
     // Trigger right away if Mappe is already ready and URL has params
     tryAutoLoad();
   }
@@ -762,6 +829,7 @@
     }
     if (!global.Mappe) return;
     const records = [];
+    const recordMeta = []; // parallel to records — { id, name, size, type, addedAt } for picker UI
     for (const id of ids) {
       const rec = await global.Mappe.getFile(id);
       if (rec && rec.blob) {
@@ -777,15 +845,110 @@
           rec.blob.name = rec.name;
           records.push(rec.blob);
         }
+        recordMeta.push({ id, name: rec.name, size: rec.size, type: rec.type, addedAt: rec.addedAt });
       }
     }
     if (records.length === 0) return;
+
+    // BUG-MAPPE-002: Single-Mode-Tools mit N>1 → Picker statt silent-pick
+    if (_mappeAutoLoadMode === 'single' && records.length > 1) {
+      showMappePicker(records, recordMeta, (chosenIndex) => {
+        try {
+          _mappeAutoLoadHandler([records[chosenIndex]]);
+          injectMappeAutoLoadBanner(1);
+        } catch (e) {
+          console.warn('[shell] onMappeAutoLoad handler error:', e);
+        }
+      });
+      return;
+    }
+
     try {
       _mappeAutoLoadHandler(records);
       injectMappeAutoLoadBanner(records.length);
     } catch (e) {
       console.warn('[shell] onMappeAutoLoad handler error:', e);
     }
+  }
+
+  // Mappe-Picker — bei N>1 Files in URL aber Tool akzeptiert nur 1.
+  // Selbst-contained Modal (kein mappe-ui-Dependency) — klare Wahl mit
+  // Datei-Liste und Cancel-Option.
+  function showMappePicker(records, meta, onPick) {
+    const fmtBytes = (b) => {
+      if (b == null || isNaN(b)) return '—';
+      if (b < 1024) return b + ' B';
+      if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+      return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+    const backdrop = el('div', { class: 'mappe-picker-backdrop' });
+    const dialog = el('div', { class: 'mappe-picker-dialog', attrs: { role: 'dialog', 'aria-modal': 'true' } });
+
+    // Head
+    const head = el('div', { class: 'mappe-picker-head' });
+    head.appendChild(el('div', { class: 'mappe-picker-eyebrow', text: `${records.length} Dateien aus deiner Mappe` }));
+    head.appendChild(el('h3', { class: 'mappe-picker-title', text: 'Welche soll dieses Werkzeug nehmen?' }));
+    head.appendChild(el('p', { class: 'mappe-picker-sub', text: 'Dieses Werkzeug verarbeitet eine Datei pro Durchgang. Wähle aus deiner Mappe die richtige aus.' }));
+    dialog.appendChild(head);
+
+    // List
+    const list = el('div', { class: 'mappe-picker-list' });
+    records.forEach((rec, idx) => {
+      const m = meta[idx] || {};
+      const item = el('button', {
+        class: 'mappe-picker-item',
+        attrs: { type: 'button' },
+        on: {
+          click: () => {
+            backdrop.remove();
+            document.removeEventListener('keydown', escHandler);
+            onPick(idx);
+          }
+        }
+      });
+      // Icon
+      const ico = el('span', { class: 'mappe-picker-item-icon', attrs: { 'aria-hidden': 'true' } });
+      ico.appendChild(parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`));
+      item.appendChild(ico);
+      // Body
+      const body = el('div', { class: 'mappe-picker-item-body' });
+      body.appendChild(el('div', { class: 'mappe-picker-item-name', text: m.name || rec.name || `Datei ${idx + 1}` }));
+      body.appendChild(el('div', { class: 'mappe-picker-item-meta', text: fmtBytes(m.size || rec.size) }));
+      item.appendChild(body);
+      // Arrow
+      const arrow = el('span', { class: 'mappe-picker-item-arrow', attrs: { 'aria-hidden': 'true' } });
+      arrow.appendChild(parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg>`));
+      item.appendChild(arrow);
+      list.appendChild(item);
+    });
+    dialog.appendChild(list);
+
+    // Foot — cancel
+    const foot = el('div', { class: 'mappe-picker-foot' });
+    foot.appendChild(el('button', {
+      class: 'mappe-picker-cancel',
+      attrs: { type: 'button' },
+      text: 'Abbrechen',
+      on: {
+        click: () => {
+          backdrop.remove();
+          document.removeEventListener('keydown', escHandler);
+        }
+      }
+    }));
+    dialog.appendChild(foot);
+
+    backdrop.appendChild(dialog);
+    document.body.appendChild(backdrop);
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+
+    function escHandler(e) {
+      if (e.key === 'Escape') {
+        backdrop.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    }
+    document.addEventListener('keydown', escHandler);
   }
 
   function injectMappeAutoLoadBanner(count) {
@@ -812,9 +975,24 @@
   // ────────────────────────────────────────────────
   // Public API
   // ────────────────────────────────────────────────
+  // BUG-MAPPE-003: BFCache-Restore-Helper.
+  // Browser-Back-Forward-Cache restored die Page mit altem DOM-Snapshot.
+  // DOMContentLoaded feuert dabei NICHT — pageshow mit persisted=true ist
+  // das richtige Signal. Hub + Tools können diesen Helper für ihren
+  // refresh-callback nutzen statt selbst pageshow zu wiren.
+  function onBFCacheRestore(callback) {
+    if (typeof callback !== 'function') return;
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) {
+        try { callback(); } catch (err) { console.warn('[shell] bfCache callback error:', err); }
+      }
+    });
+  }
+
   global.Shell = {
     init, Toast, Tour, parseSVG, el,
     whenMappeReady, saveToMappe,
-    onMappeAutoLoad, parseMappeUrlParams, injectMappeAutoLoadBanner
+    onMappeAutoLoad, parseMappeUrlParams, injectMappeAutoLoadBanner,
+    onBFCacheRestore
   };
 })(window);

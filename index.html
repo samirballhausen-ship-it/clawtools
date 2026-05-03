@@ -638,6 +638,18 @@
 
         refresh();
         Mappe.onChange(refresh);
+
+        // BUG-MAPPE-003 Fix: BFCache-Restore.
+        // Wenn User vom Tool zurück-navigiert, kommt Hub aus dem Browser
+        // Back-Forward-Cache. DOMContentLoaded feuert nicht mehr —
+        // pageshow mit persisted=true ist das richtige Signal.
+        // Plus: nach jedem Tool-Round-Trip könnte Mappe lastUsed-Updates
+        // gehabt haben → re-render damit der Library-State current ist.
+        if (typeof Shell.onBFCacheRestore === 'function') {
+          Shell.onBFCacheRestore(refresh);
+        } else {
+          window.addEventListener('pageshow', (e) => { if (e.persisted) refresh(); });
+        }
       });
     });
   </script>

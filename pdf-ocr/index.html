@@ -89,16 +89,24 @@
               Fertig
             </div>
             <div class="result-info" id="resultInfo"></div>
+
+            <!-- BUG-OCR-001: Page-Picker — Tabs zwischen Seiten + Per-Page-Export -->
+            <div id="pageTabsBox" style="margin-top: 14px; display: none;">
+              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;">Seite wählen</div>
+              <div id="pageTabs" style="display: flex; flex-wrap: wrap; gap: 4px;"></div>
+            </div>
+
             <div id="topWordsBox" style="margin-top: 14px; display: none;">
               <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;">Häufigste Wörter im Dokument</div>
               <div id="topWords" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
             </div>
             <div id="snippetBox" style="margin-top: 14px; display: none;">
-              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;">Erkannter Text — Anfang</div>
-              <div id="snippetText" style="padding: 12px; background: var(--surf); border: 1px solid var(--border); font-family: var(--font-body); font-size: 13px; line-height: 1.5; color: var(--ink); max-height: 160px; overflow-y: auto;"></div>
+              <div style="font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px;" id="snippetLabel">Erkannter Text — Anfang</div>
+              <div id="snippetText" style="padding: 12px; background: var(--surf); border: 1px solid var(--border); font-family: var(--font-body); font-size: 13px; line-height: 1.5; color: var(--ink); max-height: 240px; overflow-y: auto; white-space: pre-wrap;"></div>
             </div>
             <div style="display:flex; gap:8px; margin-top:14px; flex-wrap: wrap;">
-              <button class="btn btn-success" id="btnDownloadTxt" style="flex: 1; min-width: 120px;">Text (.txt)</button>
+              <button class="btn btn-success" id="btnDownloadPage" style="flex: 1; min-width: 140px; display: none;">Diese Seite (.txt)</button>
+              <button class="btn btn-success" id="btnDownloadTxt" style="flex: 1; min-width: 140px;">Alle Seiten (.txt)</button>
               <button class="btn btn-secondary" id="btnReset" style="width:auto; padding:0 16px;">Neu</button>
             </div>
           </div>
@@ -117,7 +125,7 @@
       { target: "#btnDownloadTxt", fallback: "#dropzone", title: "Text speichern", text: "Nach der Erkennung kannst du den gefundenen Text als Datei speichern und in Suche, Word oder E-Mail weiterverwenden.", side: "top" }
     ];
 
-    const state = { file: null, buffer: null, pages: [], allText: '' };
+    const state = { file: null, buffer: null, pages: [], allText: '', activePageIdx: -1 /* -1 = "alle" */ };
     const $ = id => document.getElementById(id);
     const dropzone = $('dropzone'), fileInput = $('fileInput');
     let workerInstance = null;
@@ -228,6 +236,11 @@
         $('statChars').textContent = state.allText.length.toLocaleString('de-DE');
         $('resultInfo').textContent = `${state.pages.length} Seiten · ${state.allText.length.toLocaleString('de-DE')} Zeichen erkannt`;
 
+        // BUG-OCR-001: Page-Tabs rendern
+        renderPageTabs();
+        // Default-Anzeige: alle Seiten
+        showPage(-1);
+
         // Top-Wörter-Cloud + Text-Snippet zur Verifikation
         const STOPWORDS = new Set(('der die das den dem des ein eine einen einer eines und oder aber ist sind war waren bin bist hat haben hatte hatten wird werden wurde wurden ich du er sie es wir ihr nicht von zu mit für auf bei aus an in im am vom zum zur sich nur auch noch wenn als so wie um über unter zwischen kein keine nach vor nach wir').split(' '));
         const wordCounts = new Map();
@@ -251,12 +264,7 @@
           });
         }
 
-        const snippet = state.allText.replace(/\s+/g, ' ').trim().slice(0, 400);
-        if (snippet) {
-          $('snippetBox').style.display = 'block';
-          $('snippetText').textContent = snippet + (state.allText.length > 400 ? '…' : '');
-        }
-
+        // Snippet wird durch showPage() gesetzt (siehe oben renderPageTabs+showPage)
         $('result').classList.add('active');
       } catch (e) {
         console.error(e);
@@ -267,6 +275,78 @@
         $('globalProgress').classList.remove('active');
       }
     });
+
+    // BUG-OCR-001: Page-Tabs Rendering + Per-Page-Switching
+    function renderPageTabs() {
+      const tabs = $('pageTabs');
+      while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
+      if (state.pages.length <= 1) {
+        $('pageTabsBox').style.display = 'none';
+        return;
+      }
+      $('pageTabsBox').style.display = 'block';
+
+      // "Alle"-Tab
+      tabs.appendChild(buildTab('Alle', -1));
+      // Seiten-Tabs
+      state.pages.forEach((p, idx) => {
+        tabs.appendChild(buildTab(String(idx + 1), idx));
+      });
+    }
+
+    function buildTab(label, idx) {
+      const isActive = state.activePageIdx === idx;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'page-tab' + (isActive ? ' active' : '');
+      btn.textContent = label;
+      btn.style.cssText = `
+        padding: 6px 12px;
+        background: ${isActive ? 'var(--ink)' : 'var(--bg)'};
+        color: ${isActive ? 'var(--bg)' : 'var(--ink-2)'};
+        border: 1px solid ${isActive ? 'var(--ink)' : 'var(--border)'};
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s var(--ease);
+        min-width: 32px;
+        font-variant-numeric: tabular-nums;
+      `;
+      btn.addEventListener('click', () => showPage(idx));
+      btn.addEventListener('mouseenter', () => {
+        if (!isActive) { btn.style.borderColor = 'var(--magic)'; btn.style.color = 'var(--magic)'; }
+      });
+      btn.addEventListener('mouseleave', () => {
+        if (!isActive) { btn.style.borderColor = 'var(--border)'; btn.style.color = 'var(--ink-2)'; }
+      });
+      return btn;
+    }
+
+    function showPage(idx) {
+      state.activePageIdx = idx;
+      const snippetBox = $('snippetBox');
+      const snippetLabel = $('snippetLabel');
+      const snippetText = $('snippetText');
+      const btnPage = $('btnDownloadPage');
+
+      if (idx === -1) {
+        // Alle Seiten
+        snippetLabel.textContent = `Erkannter Text — alle ${state.pages.length} Seiten`;
+        const all = state.allText.replace(/\s+/g, ' ').trim();
+        snippetText.textContent = all.slice(0, 1500) + (all.length > 1500 ? '…' : '');
+        btnPage.style.display = 'none';
+      } else {
+        const page = state.pages[idx];
+        snippetLabel.textContent = `Erkannter Text — Seite ${idx + 1}`;
+        snippetText.textContent = (page.text || '').trim() || '— keine Zeichen auf dieser Seite erkannt —';
+        btnPage.style.display = 'inline-flex';
+        btnPage.textContent = `Seite ${idx + 1} (.txt)`;
+      }
+      snippetBox.style.display = 'block';
+      // Re-render tabs für active-Marker-Update
+      renderPageTabs();
+    }
 
     $('btnDownloadTxt').addEventListener('click', () => {
       if (!state.allText) return;
@@ -279,11 +359,27 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
 
+    // BUG-OCR-001: Per-Page-Download
+    $('btnDownloadPage').addEventListener('click', () => {
+      if (state.activePageIdx < 0) return;
+      const page = state.pages[state.activePageIdx];
+      if (!page || !page.text) return;
+      const blob = new Blob([page.text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const baseName = state.file.name.replace(/\.pdf$/i, '');
+      a.download = `${baseName}_seite-${state.activePageIdx + 1}.txt`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
     $('btnReset').addEventListener('click', () => {
-      state.file = null; state.buffer = null; state.pages = []; state.allText = '';
+      state.file = null; state.buffer = null; state.pages = []; state.allText = ''; state.activePageIdx = -1;
       $('emptyView').style.display = 'block';
       $('editorView').style.display = 'none';
       $('result').classList.remove('active');
+      $('pageTabsBox').style.display = 'none';
       $('ocrPreview').textContent = '— noch keine Texterkennung gestartet —';
     });
 
@@ -295,7 +391,8 @@
           onPick: (file) => loadFile(file)
         });
       });
-      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); });
+      // BUG-MAPPE-002 Fix: pdf-ocr nimmt nur 1 PDF → mode:single mit Picker bei N>1
+      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); }, { mode: 'single' });
     });
   </script>
 </body>

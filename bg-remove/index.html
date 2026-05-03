@@ -71,15 +71,19 @@
           </div>
 
           <div class="card">
-            <div class="card-head"><h2>Modell</h2></div>
+            <div class="card-head"><h2>Qualität</h2></div>
             <div class="card-body">
               <label class="option" style="padding: 8px 0;">
-                <input type="radio" name="model" value="isnet" checked />
-                <span class="option-text">Schnell<span class="option-sub">isnet · gute Qualität · schneller</span></span>
+                <input type="radio" name="model" value="isnet_fp16" checked />
+                <span class="option-text">Standard<span class="option-sub">empfohlen · scharfe Kanten · ~80 MB</span></span>
+              </label>
+              <label class="option" style="padding: 8px 0;">
+                <input type="radio" name="model" value="isnet" />
+                <span class="option-text">Maximum<span class="option-sub">beste Kanten bei Haaren · ~100 MB · langsamer</span></span>
               </label>
               <label class="option" style="padding: 8px 0;">
                 <input type="radio" name="model" value="isnet_quint8" />
-                <span class="option-text">Standard<span class="option-sub">8-bit · weniger Speicher</span></span>
+                <span class="option-text">Schnell<span class="option-sub">~40 MB · kann an feinen Stellen verblassen</span></span>
               </label>
             </div>
           </div>
@@ -227,11 +231,16 @@
           'compute': 'Berechne',
           'inference': 'Erkenne Motiv',
         };
+        // BUG-001/002/003 Fix: Radio-Button-Selection respektieren statt
+        // hardcoded quint8. Default isnet_fp16 ist deutlich qualitätsstärker
+        // (User-Bug "Sachen verblassen manchmal" ist Quantisierungs-Artefakt).
+        const selectedModel = (document.querySelector('input[name="model"]:checked') || {}).value || 'isnet_fp16';
+        // PNG ist lossless — quality:0.9 war ohnehin no-op. Auf 1.0 setzen für Klarheit.
         const blob = await fn(state.file, {
           // proxyToWorker:false → läuft im Main-Thread, vermeidet Cross-Origin-Worker-Block
           proxyToWorker: false,
-          model: 'isnet_quint8',
-          output: { format: 'image/png', quality: 0.9 },
+          model: selectedModel,
+          output: { format: 'image/png', quality: 1.0 },
           progress: (key, current, total) => {
             const head = STAGE_LABELS[String(key).split(':')[0]] || 'Verarbeite';
             const pct = total > 0 ? Math.round((current / total) * 100) : 0;
@@ -290,7 +299,7 @@
           onPick: (file) => loadFile(file)
         });
       });
-      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); });
+      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); }, { mode: 'single' });
     });
   </script>
 </body>
