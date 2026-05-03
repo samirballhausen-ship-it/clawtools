@@ -732,25 +732,64 @@
   }
 
   async function triggerInstall() {
-    // BUG-PWA-001 v2: deferredInstallPrompt fehlt auf iOS Safari komplett
-    // und ist auf Chrome nur unter bestimmten Bedingungen verfügbar.
-    // Fallback: Plattform-spezifisches Modal mit klaren Schritten.
+    // BUG-PWA-001 v3: User-Wunsch "direkt installieren statt Anleitung".
+    // 3 Pfade nach Plattform-Capability:
+    //   1) deferredInstallPrompt vorhanden → nativer PWA-Prompt (Chrome/Edge/Android)
+    //   2) iOS + Web Share API → native Share-Sheet öffnen, "Zum Home-Bildschirm" ist 1 Tap
+    //   3) sonst → Plattform-Modal als letzter Fallback (Firefox etc.)
+
     if (deferredInstallPrompt) {
-      try {
-        deferredInstallPrompt.prompt();
-        const choice = await deferredInstallPrompt.userChoice;
-        if (choice && choice.outcome === 'accepted') {
-          document.querySelectorAll('.pwa-install-btn, .pwa-install-header').forEach(b => b.remove());
-        }
-      } catch (e) {
-        console.warn('[pwa] native prompt failed, falling back to modal:', e);
-        showInstallModal();
-      }
-      deferredInstallPrompt = null;
+      await runNativeInstallPrompt();
       return;
     }
-    // Kein nativer Prompt → Plattform-Modal
+
+    // iOS-Pfad: Share-Sheet ist der direkteste Weg (Anleitung-Modal vermeiden)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    if (isIOS && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: 'CLAWBUIS Tools',
+          text: 'Werkzeuge die deinen Alltag entlasten — alles im Browser',
+          url: (window.location.origin || 'https://tools.clawbuis.com') + '/'
+        });
+        // Erfolgreich Share-Sheet geöffnet — User wählt selbst "Zum Home-Bildschirm".
+        // Toast als Hint im Share-Sheet wo das versteckt ist.
+        Toast.show('Im Menü unten nach "Zum Home-Bildschirm" suchen.');
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // User hat abgebrochen — OK
+        console.warn('[pwa] share failed, falling back:', e);
+        // Share fehlgeschlagen → Modal
+      }
+    }
+
+    // Kurzer Wait — manchmal feuert beforeinstallprompt erst nach erstem Klick
+    let waited = 0;
+    while (!deferredInstallPrompt && waited < 800) {
+      await new Promise(r => setTimeout(r, 50));
+      waited += 50;
+    }
+    if (deferredInstallPrompt) {
+      await runNativeInstallPrompt();
+      return;
+    }
+
+    // Letzter Fallback: Plattform-Modal mit Anleitung
     showInstallModal();
+  }
+
+  async function runNativeInstallPrompt() {
+    try {
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        document.querySelectorAll('.pwa-install-btn, .pwa-install-header').forEach(b => b.remove());
+      }
+    } catch (e) {
+      console.warn('[pwa] native prompt failed:', e);
+    }
+    deferredInstallPrompt = null;
   }
 
   // Plattform-spezifisches Install-Modal — nur Custom-SVG-Icons, kein Emoji.
