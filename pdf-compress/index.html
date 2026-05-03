@@ -140,7 +140,7 @@
     window.__tutorial = [
       { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert besonders gut bei großen Scans, Präsentationen mit vielen Bildern oder PDFs aus Office-Programmen.', side: 'bottom' },
       { target: '.preset-row', title: 'Qualität wählen', text: '"Mail" für E-Mail-Anhänge (max. Komprimierung). "Druck" wenn Druck-Tauglichkeit wichtig ist.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Wir rendern jede Seite neu als JPEG bei der gewählten Qualität — drastische Größenreduktion.', side: 'top' }
+      { target: '#btnProcess', title: 'Loslegen', text: 'Wir wandeln jede Seite in ein komprimiertes Bild um — bei gewählter Qualität wird das PDF deutlich kleiner.', side: 'top' }
     ];
 
     const state = { file: null, buffer: null, pageCount: 0, outBlob: null, quality: 0.75, scale: 1.5 };
@@ -268,6 +268,7 @@
           onPick: (file) => loadFile(file)
         });
       });
+      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); });
     });
   </script>
 </body>

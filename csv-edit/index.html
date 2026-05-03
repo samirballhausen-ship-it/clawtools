@@ -384,6 +384,7 @@
           onPick: (file) => load(file)
         });
       });
+      Shell.onMappeAutoLoad((files) => { if (files[0]) load(files[0]); });
     });
   </script>
 </body>

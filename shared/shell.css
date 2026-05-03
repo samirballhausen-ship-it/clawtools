@@ -994,16 +994,23 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   transition: all .3s var(--ease);
 }
 .tour-tooltip {
-  position: absolute;
-  width: 320px;
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(480px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: 70vh;
+  overflow-y: auto;
   background: var(--bg);
   border: 1px solid var(--border);
   border-top: 3px solid var(--magic);
   border-radius: var(--r-sm);
-  padding: 20px;
-  box-shadow: var(--shadow-3);
+  padding: 24px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--border);
   z-index: 1001;
-  transition: all .3s var(--ease);
+  box-sizing: border-box;
+  transition: bottom .25s var(--ease), opacity .2s var(--ease);
 }
 .tour-tooltip-step {
   font-family: var(--font-mono);
@@ -1084,20 +1091,17 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   .hub-tile-grid { grid-template-columns: 1fr; }
   .hub-section { margin-bottom: 40px; }
   .hub-section-title { font-size: 22px; }
-  /* Mobile: Tour als Bottom-Sheet — ALWAYS sichtbar, kein Position-Math, kein Scroll-Drift */
+  /* Mobile: Bottom-Sheet bündig — etwas höher Touch-Targets, kein transform */
   .tour-tooltip {
-    position: fixed !important;
     left: 12px !important;
     right: 12px !important;
     bottom: 16px !important;
     top: auto !important;
+    transform: none !important;
     width: auto !important;
     max-width: none !important;
     max-height: 60vh;
-    overflow-y: auto;
-    box-sizing: border-box;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--border);
-    border-top: 3px solid var(--magic);
+    padding: 20px;
   }
   .tour-tooltip h4 { font-size: 17px; }
   .tour-tooltip p { font-size: 14px; }
@@ -1542,7 +1546,304 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   letter-spacing: 0.04em;
 }
 
-/* ─── Hub Sticky Mappe-Panel (auf /index.html) ─── */
+/* ═════════════════════════════════════════════════════════════
+   ─── Hub v2: Drop-Zone-Hero + File-Library-Grid + Tool-Counters
+   ═════════════════════════════════════════════════════════════ */
+
+/* Drop-Zone-Hero — BIG, prominent, IS the main element on Hub */
+.hub-dropzone-hero {
+  margin: 24px 0 32px;
+  padding: 56px 32px;
+  background: var(--bg);
+  border: 2px dashed var(--magic);
+  border-radius: var(--r);
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all .2s var(--ease);
+  min-height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--ok-soft) 100%);
+}
+.hub-dropzone-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(circle at 25% 35%, var(--magic) 0%, transparent 35%),
+    radial-gradient(circle at 75% 65%, var(--magic) 0%, transparent 35%);
+  opacity: 0.05;
+  pointer-events: none;
+  transition: opacity .25s var(--ease);
+}
+.hub-dropzone-hero:hover {
+  border-color: var(--magic-strong);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(21, 128, 61, 0.15);
+}
+.hub-dropzone-hero:hover::before { opacity: 0.10; }
+.hub-dropzone-hero.dragover {
+  background: var(--ok-soft);
+  border-style: solid;
+  border-width: 3px;
+  transform: scale(1.005);
+  box-shadow: 0 10px 32px rgba(21, 128, 61, 0.22);
+}
+.hub-dropzone-hero.dragover::before { opacity: 0.18; }
+.hub-dropzone-hero-icon {
+  width: 72px; height: 72px;
+  color: var(--magic);
+  margin-bottom: 20px;
+  position: relative; z-index: 1;
+  transition: transform .2s var(--ease);
+}
+.hub-dropzone-hero:hover .hub-dropzone-hero-icon {
+  transform: translateY(-3px) scale(1.04);
+}
+.hub-dropzone-hero h2 {
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 3.5vw, 32px);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 10px;
+  position: relative; z-index: 1;
+}
+.hub-dropzone-hero p {
+  font-size: 15px;
+  color: var(--ink-2);
+  max-width: 520px;
+  position: relative; z-index: 1;
+  line-height: 1.5;
+}
+.hub-dropzone-hero .hub-dropzone-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 14px;
+  position: relative; z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .hub-dropzone-hero {
+    padding: 36px 20px;
+    min-height: 180px;
+    margin: 16px 0 24px;
+  }
+  .hub-dropzone-hero-icon { width: 56px; height: 56px; margin-bottom: 14px; }
+  .hub-dropzone-hero h2 { font-size: 20px; }
+  .hub-dropzone-hero p { font-size: 14px; }
+}
+
+/* File-Library — visible only when Mappe has files */
+.hub-library {
+  margin: 0 0 40px;
+  display: none;
+}
+.hub-library.has-files { display: block; }
+
+.hub-library-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.hub-library-title {
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 2.8vw, 24px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.hub-library-title strong { color: var(--magic); font-weight: 600; }
+.hub-library-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex; align-items: center; gap: 12px;
+}
+.hub-library-clear {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--ink-3);
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  transition: all .15s var(--ease);
+}
+.hub-library-clear:hover {
+  color: var(--risk);
+  border-color: var(--risk);
+  background: var(--risk-soft);
+}
+
+.hub-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .hub-library-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+.hub-library-card {
+  position: relative;
+  padding: 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-tool);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: all .15s var(--ease);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: default;
+}
+.hub-library-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-1);
+}
+.hub-library-card-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--surf-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  overflow: hidden;
+  position: relative;
+}
+.hub-library-card-thumb svg { width: 32px; height: 32px; }
+.hub-library-card-thumb img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.hub-library-card-thumb-pdf { background: var(--ok-soft); color: var(--magic); border-color: var(--magic); }
+.hub-library-card-thumb-video { background: #1f1f1f; color: rgba(255,255,255,0.85); border-color: #333; }
+.hub-library-card-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.hub-library-card-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hub-library-card-remove {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--ink-2);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: all .15s var(--ease);
+  backdrop-filter: blur(2px);
+}
+.hub-library-card:hover .hub-library-card-remove,
+.hub-library-card-remove:focus-visible {
+  opacity: 1;
+}
+.hub-library-card-remove:hover {
+  color: var(--risk);
+  border-color: var(--risk);
+  background: var(--risk-soft);
+}
+@media (max-width: 768px) {
+  .hub-library-card-remove { opacity: 1; }
+}
+
+/* Tool-Tile-Counter — shows match-count on hub tiles */
+.hub-tile-counter {
+  position: absolute;
+  top: 12px; right: 12px;
+  display: none;
+  align-items: center; gap: 4px;
+  padding: 3px 9px;
+  background: var(--magic);
+  color: white;
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.3);
+}
+.hub-tile-counter.show { display: inline-flex; }
+.hub-tile.has-mappe-match {
+  border-color: var(--magic);
+  background: linear-gradient(135deg, var(--bg) 0%, var(--ok-soft) 100%);
+}
+.hub-tile.has-mappe-match .hub-tile-status {
+  display: none;
+}
+
+/* Tool-Page Mappe-Banner — shows when files were auto-loaded from Mappe */
+.mappe-autoload-banner {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: var(--ok-soft);
+  border: 1px solid var(--magic);
+  border-left: 3px solid var(--magic);
+  border-radius: var(--r-tool);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.mappe-autoload-banner-icon {
+  width: 18px; height: 18px;
+  color: var(--magic);
+  flex-shrink: 0;
+}
+.mappe-autoload-banner-text {
+  flex: 1;
+  line-height: 1.4;
+}
+.mappe-autoload-banner-text strong { font-weight: 600; }
+.mappe-autoload-banner-text small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Empty-Hub state heading swap */
+.hub-tools-heading-empty { display: block; }
+.hub-tools-heading-with-files { display: none; }
+.hub-library.has-files ~ section .hub-tools-heading-empty { display: none; }
+.hub-library.has-files ~ section .hub-tools-heading-with-files { display: block; }
+
+/* ─── DEPRECATED v1 — Hub Sticky Mappe-Panel (kept for safety, not rendered in v2) ─── */
 .hub-mappe-panel {
   margin: 24px 0 32px;
   background: var(--bg);

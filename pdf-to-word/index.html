@@ -135,9 +135,9 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert mit Text-PDFs (aus Word, LibreOffice etc). Scan-PDFs erst durch OCR jagen.', side: 'bottom' },
+      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert mit Text-PDFs (aus Word, LibreOffice usw.). Eingescannte PDFs musst du erst durch das Werkzeug „PDF durchsuchbar machen" laufen lassen.', side: 'bottom' },
       { target: '.preview-pages', title: 'Vorschau', text: 'Hier siehst du was extrahiert wurde — vor dem Export prüfen ob alles dabei ist.', side: 'top' },
-      { target: '#btnExport', title: 'Format wählen', text: 'DOCX für Word-Bearbeitung. TXT für reinen Text. Layout/Formatierung wird vereinfacht.', side: 'left' }
+      { target: '#btnExport', title: 'Format wählen', text: 'Word-Datei (.docx) zum Bearbeiten. Reiner Text (.txt) wenn du nur den Inhalt brauchst. Layout wird vereinfacht.', side: 'left' }
     ];
 
     const state = { file: null, pages: [] };
@@ -370,6 +370,7 @@
           onPick: (file) => loadFile(file)
         });
       });
+      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); });
     });
   </script>
 </body>

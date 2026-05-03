@@ -112,7 +112,7 @@
     window.__tutorial = [
       { target: '#dropzone', title: 'PDF wählen', text: 'Lade dein PDF — alle Seiten werden zum Bearbeiten angezeigt.', side: 'bottom' },
       { target: '.pages-container', title: 'Schwärzen', text: 'Maus runterhalten und ein Rechteck über sensible Bereiche ziehen. Klick auf eine Schwärzung entfernt sie wieder.', side: 'top' },
-      { target: '#btnProcess', title: 'Anwenden', text: 'Wir rendern jede Seite neu mit den schwarzen Rechtecken eingebrannt. Echtes Schwärzen, kein Overlay.', side: 'left' }
+      { target: '#btnProcess', title: 'Anwenden', text: 'Wir bauen jede Seite neu mit echten schwarzen Pixeln an deinen markierten Stellen. Niemand kann das rückgängig machen — auch keine Forensik-Software.', side: 'left' }
     ];
 
     const state = { file: null, buffer: null, pages: [], rects: [], outBlob: null };
@@ -345,6 +345,7 @@
           onPick: (file) => loadFile(file)
         });
       });
+      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); });
     });
   </script>
 </body>

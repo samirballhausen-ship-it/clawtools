@@ -191,7 +191,7 @@
      'Keine Server-Logs zu Datei-Inhalten — die Seite ist statisches HTML.',
      'Externe Bibliotheken werden über öffentliche CDNs (jsdelivr, cdnjs) geladen — diese sehen nur die Anfrage nach den JS-Dateien selbst, niemals deine Daten.',
      'Mit Schließen des Tabs werden alle geladenen Dateien aus dem Speicher entfernt.',
-     'Datei-Mappe: liegt nur in deinem Browser (IndexedDB), wird nie übertragen. Du kannst sie jederzeit über das Mappe-Symbol oben rechts komplett leeren.'
+     'Deine Mappe (IndexedDB im Browser) bleibt zwischen Tabs und Sitzungen erhalten — nur du löschst sie. Tool-Verarbeitung, Reload und Tab-Wechsel berühren sie nicht. Komplett-Reset jederzeit über das Mappe-Symbol oben rechts → „Alles löschen" oder direkt im Hub-Library-Bereich.'
     ].forEach(t => ul.appendChild(el('li', { text: t })));
     body.appendChild(ul);
 
@@ -381,41 +381,21 @@
       }));
       tooltip.appendChild(actions);
 
-      Tour._positionTooltip(target, step.side || 'bottom');
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Bottom-Sheet via CSS — keine inline-Position mehr nötig.
+      // Nur scroll zum Target damit Cutout im sichtbaren Bereich liegt.
+      // Block: 'center' aber mit reservierter Bottom-Sheet-Höhe (max ~50% screen).
+      target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'center' });
+      // Korrektur: beim block:'start' kann Header verdecken — daher kleiner Offset
+      setTimeout(() => {
+        const r2 = target.getBoundingClientRect();
+        const headerH = document.querySelector('.app-header')?.offsetHeight || 64;
+        if (r2.top < headerH + 20) {
+          window.scrollBy({ top: r2.top - headerH - 24, behavior: 'smooth' });
+        }
+      }, 50);
     },
 
-    _positionTooltip(target, side) {
-      const r = target.getBoundingClientRect();
-      const tt = tourState.tooltip;
-      const ttW = 320;
-      const margin = 16;
-      const sx = window.scrollX, sy = window.scrollY;
-      let top, left;
-
-      switch (side) {
-        case 'top':
-          top = r.top + sy - tt.offsetHeight - margin;
-          left = r.left + sx + r.width / 2 - ttW / 2;
-          break;
-        case 'left':
-          top = r.top + sy + r.height / 2 - tt.offsetHeight / 2;
-          left = r.left + sx - ttW - margin;
-          break;
-        case 'right':
-          top = r.top + sy + r.height / 2 - tt.offsetHeight / 2;
-          left = r.right + sx + margin;
-          break;
-        case 'bottom':
-        default:
-          top = r.bottom + sy + margin;
-          left = r.left + sx + r.width / 2 - ttW / 2;
-      }
-      left = Math.max(margin, Math.min(left, window.innerWidth - ttW - margin));
-      top = Math.max(margin + sy, top);
-      tt.style.top = top + 'px';
-      tt.style.left = left + 'px';
-    },
+    _positionTooltip() { /* noop — Tooltip wird via CSS positioniert (bottom-sheet) */ },
 
     _reposition() {
       const step = tourState.steps[tourState.idx];
@@ -721,7 +701,98 @@
   }
 
   // ────────────────────────────────────────────────
+  // Mappe Auto-Load via URL-Params (?from=mappe&ids=1,2,3)
+  //
+  // Tools register a handler:
+  //   Shell.onMappeAutoLoad((files) => addFiles(files));
+  // shell.js parses URL, fetches files from Mappe, invokes handler,
+  // and injects a banner above tool's main work area.
+  // ────────────────────────────────────────────────
+
+  function parseMappeUrlParams() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const from = params.get('from');
+      const ids = (params.get('ids') || '').split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      return { fromMappe: from === 'mappe', ids };
+    } catch (e) {
+      return { fromMappe: false, ids: [] };
+    }
+  }
+
+  let _mappeAutoLoadHandler = null;
+  function onMappeAutoLoad(callback) {
+    if (typeof callback !== 'function') return;
+    _mappeAutoLoadHandler = callback;
+    // Trigger right away if Mappe is already ready and URL has params
+    tryAutoLoad();
+  }
+
+  async function tryAutoLoad() {
+    if (!_mappeAutoLoadHandler) return;
+    const { fromMappe, ids } = parseMappeUrlParams();
+    if (!fromMappe || ids.length === 0) return;
+    // Wait for Mappe (might still be loading)
+    let waited = 0;
+    while (!global.Mappe && waited < 4000) {
+      await new Promise(r => setTimeout(r, 50));
+      waited += 50;
+    }
+    if (!global.Mappe) return;
+    const records = [];
+    for (const id of ids) {
+      const rec = await global.Mappe.getFile(id);
+      if (rec && rec.blob) {
+        // Re-wrap blob as File-like object (with name, type, lastModified)
+        try {
+          const fileLike = new File([rec.blob], rec.name, {
+            type: rec.type,
+            lastModified: rec.addedAt
+          });
+          records.push(fileLike);
+        } catch (e) {
+          // Old browsers without File constructor — pass blob with name attached
+          rec.blob.name = rec.name;
+          records.push(rec.blob);
+        }
+      }
+    }
+    if (records.length === 0) return;
+    try {
+      _mappeAutoLoadHandler(records);
+      injectMappeAutoLoadBanner(records.length);
+    } catch (e) {
+      console.warn('[shell] onMappeAutoLoad handler error:', e);
+    }
+  }
+
+  function injectMappeAutoLoadBanner(count) {
+    // Find a sensible place — before the first .work-grid or .card
+    const main = document.querySelector('.app-main');
+    if (!main) return;
+    if (main.querySelector('.mappe-autoload-banner')) return; // already injected
+    const target = main.querySelector('.work-grid') || main.querySelector('.card') || main.children[0];
+    if (!target) return;
+
+    const banner = el('div', { class: 'mappe-autoload-banner', attrs: { role: 'status' } });
+    const ico = el('span', { class: 'mappe-autoload-banner-icon', attrs: { 'aria-hidden': 'true' } });
+    ico.appendChild(parseSVG(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polyline points="20 6 9 17 4 12"/></svg>`));
+    banner.appendChild(ico);
+    const text = el('div', { class: 'mappe-autoload-banner-text' });
+    const word = count === 1 ? 'Datei' : 'Dateien';
+    const strong = el('strong', { text: `${count} ${word} aus deiner Mappe geladen.` });
+    text.appendChild(strong);
+    text.appendChild(el('small', { text: 'Du kannst einzelne mit × entfernen — sie bleiben in deiner Mappe für später.' }));
+    banner.appendChild(text);
+    main.insertBefore(banner, target);
+  }
+
+  // ────────────────────────────────────────────────
   // Public API
   // ────────────────────────────────────────────────
-  global.Shell = { init, Toast, Tour, parseSVG, el, whenMappeReady, saveToMappe };
+  global.Shell = {
+    init, Toast, Tour, parseSVG, el,
+    whenMappeReady, saveToMappe,
+    onMappeAutoLoad, parseMappeUrlParams, injectMappeAutoLoadBanner
+  };
 })(window);

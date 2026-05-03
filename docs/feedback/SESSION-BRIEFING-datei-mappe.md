@@ -1,6 +1,24 @@
-# Session-Briefing: Globale Datei-Mappe (Cross-Tool File Library)
+# ⚠️ DEPRECATED — siehe `SESSION-BRIEFING-datei-mappe-v2.md`
 
-> **Status:** Spec ready für autonome Build-Session.
+**Diese v1-Version hat den User-Workflow falsch erfasst.** Build-Session 2026-05-03 hat 9/9 Tests grün geliefert — aber die Mappe wurde als Side-Feature mit Picker-Button gebaut. Samirs Reaktion: "das war nicht was ich wollte, ich sehe es gar nicht".
+
+**Was falsch war:**
+- Mappe als Sticky-Banner unter Hero (zu klein, übersieht man)
+- Per-Tool „Aus Mappe wählen"-Button (opt-in, Extra-Klick)
+- Tool-First-Flow: User wählt Tool → entscheidet zwischen Drop oder Mappe
+
+**Was richtig sein muss (siehe v2):**
+- Mappe IST der Workspace auf dem Hub. File-First.
+- Klick auf Tool → Tool öffnet AUTOMATISCH mit passenden Files vorgeladen
+- Drop-Zone Hero auf Hub mit großen visuellen File-Cards direkt darunter
+
+→ **Verweise auf v2:** `SESSION-BRIEFING-datei-mappe-v2.md` (mit User-Story-First, Mockups, Validation-Gate)
+
+---
+
+# Session-Briefing v1 (DEPRECATED): Globale Datei-Mappe (Cross-Tool File Library)
+
+> **Status:** ❌ DEPRECATED. Inhalt unter dieser Linie nur als historische Referenz.
 > **Erwartete Dauer:** 4-8 Stunden autonomes Arbeiten.
 > **Repo:** `C:\Apps\CLAWBUIS\projects\tools` (lokales git-Repo, push-deploy zu `tools.clawbuis.com` via Vercel).
 

@@ -228,7 +228,7 @@
     // Tutorial-Steps for this tool
     window.__tutorial = [
       { target: '#dropzone', title: 'PDFs ablegen', text: 'Zieh deine PDFs hierher oder klicke um sie auszuwählen. Du kannst mehrere gleichzeitig hinzufügen.', side: 'bottom' },
-      { target: '#fileList', title: 'Reihenfolge per Drag', text: 'Sobald die Dateien geladen sind, kannst du sie hier per Drag-and-Drop sortieren. Die Position oben links zeigt die Mergereihenfolge.', side: 'top' },
+      { target: '#fileList', title: 'Reihenfolge per Drag', text: 'Sobald die Dateien geladen sind, kannst du sie per Ziehen sortieren. Die Position oben links zeigt die Reihenfolge im fertigen PDF.', side: 'top' },
       { target: '#optBookmarks', title: 'Lesezeichen einfügen', text: 'Optional: jedes Original-PDF wird im Ergebnis als Lesezeichen markiert — praktisch für Navigation.', side: 'left' },
       { target: '#btnProcess', title: 'Loslegen', text: 'Klick und alles wird lokal in deinem Browser gemerged. Bei großen PDFs kann das ein paar Sekunden dauern.', side: 'top' }
     ];
@@ -675,6 +675,7 @@
           onPick: (file) => addFiles([file])
         });
       });
+      Shell.onMappeAutoLoad((files) => addFiles(files));
 
       // Pre-fill banner if from hub
       const params = new URLSearchParams(window.location.search);

@@ -43,48 +43,30 @@
       </div>
     </section>
 
-    <!-- Datei-Mappe Panel — wird per JS sichtbar gemacht, wenn Files in der Mappe sind -->
-    <section class="hub-mappe-panel" id="hubMappePanel" aria-label="Deine Datei-Mappe">
-      <div class="hub-mappe-head" id="hubMappeHead" role="button" tabindex="0" aria-expanded="false" aria-controls="hubMappeBody">
-        <div class="hub-mappe-head-left">
-          <span class="hub-mappe-head-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-          </span>
-          <strong>Deine Mappe</strong>
-          <span id="hubMappeSummary">0 Dateien</span>
-        </div>
-        <span class="hub-mappe-chevron" aria-hidden="true">▾</span>
-      </div>
-      <div class="hub-mappe-body" id="hubMappeBody">
-        <div class="hub-mappe-scroll" id="hubMappeScroll"></div>
-        <div class="hub-mappe-actions">
-          <button class="mappe-clear-btn" id="hubMappeManageBtn" type="button" style="border:1px solid var(--border-strong); color: var(--ink-2);">Mappe verwalten</button>
-          <span class="hub-mappe-actions-spacer"></span>
-          <span class="mappe-file-count" id="hubMappeQuota"></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Smart-Suggest DropZone -->
-    <section class="suggest-zone" id="suggestZone">
-      <svg class="suggest-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="16 16 12 12 8 16"/>
-        <line x1="12" y1="12" x2="12" y2="21"/>
-        <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
-        <polyline points="16 16 12 12 8 16"/>
+    <!-- Drop-Zone-Hero — Haupt-Element des Hubs. Lädt direkt in die Mappe. -->
+    <section class="hub-dropzone-hero" id="hubDropzone" aria-label="Dateien in die Mappe hochladen">
+      <input type="file" id="hubFileInput" multiple class="hidden" />
+      <svg class="hub-dropzone-hero-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
       </svg>
-      <h2>Schmeiß einfach was rein — wir sagen dir was geht.</h2>
-      <p>
-        Drop deine Dateien hier ab oder klick zum Auswählen.
-        Wir erkennen den Typ und schlagen passende Werkzeuge vor.
-      </p>
-      <div class="privacy-mini">
-        Wir lesen nur die ersten 12 Bytes (Magic-Bytes-Erkennung). Inhalte werden NIE angeschaut.
-        <a href="https://github.com/samirballhausen-ship-it/clawtools/blob/main/shared/suggest-engine.js" target="_blank" rel="noopener noreferrer">Code prüfen →</a>
-      </div>
+      <h2 id="hubDropzoneHeading">Wirf deine Dateien hier rein</h2>
+      <p id="hubDropzoneSub">Lade alles hoch — wähle dann was du damit machen willst. Alles bleibt 100 % in deinem Browser.</p>
+      <div class="hub-dropzone-hint">PDF · Bilder · Video · Word · Tabellen</div>
     </section>
 
-    <div class="suggest-results" id="suggestResults" aria-live="polite"></div>
+    <!-- File-Library — sichtbar wenn Mappe nicht-leer -->
+    <section class="hub-library" id="hubLibrary" aria-label="Deine Dateien">
+      <div class="hub-library-head">
+        <h3 class="hub-library-title">Deine Mappe <strong id="hubLibraryCount">0</strong> Dateien</h3>
+        <div class="hub-library-meta">
+          <span id="hubLibrarySize"></span>
+          <button class="hub-library-clear" id="hubLibraryClear" type="button">Alles löschen</button>
+        </div>
+      </div>
+      <div class="hub-library-grid" id="hubLibraryGrid"></div>
+    </section>
 
     <!-- Featured Card: PDF-Splitter -->
     <a class="hub-featured" href="/pdf-splitter">
@@ -377,84 +359,146 @@
   </main>
 
   <script src="/shared/shell.js"></script>
-  <script src="/shared/suggest-engine.js"></script>
   <script>
+    // Tool-Slug → Accept-Pattern Mapping (für Counter + Auto-Load-Routing)
+    const TOOL_ACCEPTS = {
+      'pdf-merger':       ['application/pdf'],
+      'pdf-splitter':     ['application/pdf'],
+      'pdf-redact':       ['application/pdf'],
+      'pdf-to-word':      ['application/pdf'],
+      'pdf-compress':     ['application/pdf'],
+      'pdf-watermark':    ['application/pdf'],
+      'pdf-sign':         ['application/pdf'],
+      'pdf-ocr':          ['application/pdf'],
+      'images-compress':  ['image/*'],
+      'images-to-pdf':    ['image/jpeg', 'image/png', 'image/webp'],
+      'heic-zu-jpg':      ['image/*'],
+      'exif-strip':       ['image/*'],
+      'exif-rename':      ['image/*'],
+      'docx-zu-pdf':      ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      'video-compress':   ['video/*'],
+      'video-zu-gif':     ['video/*'],
+      'bg-remove':        ['image/*'],
+      'csv-edit':         ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    };
+
+    const KIND_ICON_SVG = {
+      image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
+      pdf: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+      video: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
+      audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+      doc: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
+      sheet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>`,
+      file: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+    };
+
+    function slugFromHref(href) {
+      if (!href) return null;
+      const m = href.match(/^\/([a-z0-9-]+)\/?$/i);
+      return m ? m[1] : null;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'TOOLS', tour: false, isHub: true, toolName: 'Tools' });
-      Suggest.bindSuggestZone(
-        document.getElementById('suggestZone'),
-        document.getElementById('suggestResults')
-      );
 
-      // ─── Hub Mappe-Panel ─────────────────────────────
-      // Wartet bis Shell async Mappe geladen hat, dann wired panel up.
-      const panel = document.getElementById('hubMappePanel');
-      const head = document.getElementById('hubMappeHead');
-      const summary = document.getElementById('hubMappeSummary');
-      const scroll = document.getElementById('hubMappeScroll');
-      const quota = document.getElementById('hubMappeQuota');
-      const manageBtn = document.getElementById('hubMappeManageBtn');
-      if (!panel || !head || !scroll) return;
+      const dropzone = document.getElementById('hubDropzone');
+      const fileInput = document.getElementById('hubFileInput');
+      const library = document.getElementById('hubLibrary');
+      const libraryGrid = document.getElementById('hubLibraryGrid');
+      const libraryCount = document.getElementById('hubLibraryCount');
+      const librarySize = document.getElementById('hubLibrarySize');
+      const libraryClearBtn = document.getElementById('hubLibraryClear');
+      const heading = document.getElementById('hubDropzoneHeading');
+      const sub = document.getElementById('hubDropzoneSub');
 
-      async function waitForMappe(maxMs = 4000) {
-        const start = Date.now();
-        while (Date.now() - start < maxMs) {
-          if (window.Mappe && window.Mappe.UI) return true;
-          await new Promise(r => setTimeout(r, 50));
+      // Drop-Zone — direct upload to Mappe
+      ['dragenter', 'dragover'].forEach(ev => {
+        dropzone.addEventListener(ev, e => {
+          e.preventDefault();
+          if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files')) {
+            dropzone.classList.add('dragover');
+          }
+        });
+      });
+      ['dragleave', 'drop'].forEach(ev => {
+        dropzone.addEventListener(ev, e => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+        });
+      });
+      dropzone.addEventListener('drop', e => {
+        if (e.dataTransfer && e.dataTransfer.files.length) {
+          handleHubUpload(e.dataTransfer.files);
         }
-        return false;
+      });
+      dropzone.addEventListener('click', (e) => {
+        if (e.target.closest('input')) return;
+        fileInput.click();
+      });
+      fileInput.addEventListener('change', e => {
+        if (e.target.files.length) handleHubUpload(e.target.files);
+        e.target.value = '';
+      });
+
+      async function handleHubUpload(files) {
+        if (!window.Mappe) {
+          // Mappe not loaded yet — wait briefly
+          await new Promise(r => setTimeout(r, 200));
+        }
+        if (!window.Mappe) {
+          Shell.Toast.show('Mappe noch nicht bereit, bitte erneut versuchen', true);
+          return;
+        }
+        let added = 0;
+        for (const file of Array.from(files)) {
+          try {
+            await window.Mappe.addFile(file, 'hub');
+            added++;
+          } catch (e) {
+            console.error('[hub] addFile failed:', e);
+          }
+        }
+        if (added > 0) {
+          const word = added === 1 ? 'Datei' : 'Dateien';
+          Shell.Toast.show(`${added} ${word} in Mappe gespeichert`);
+        }
       }
 
-      waitForMappe().then((ok) => {
-        if (!ok) return;
-
+      // Wait for Mappe + render Library + wire up tools
+      Shell.whenMappeReady((Mappe) => {
         async function refresh() {
-          const files = await window.Mappe.listFiles({});
-          if (files.length === 0) {
-            panel.classList.remove('has-files');
-            panel.classList.remove('expanded');
-            head.setAttribute('aria-expanded', 'false');
-            return;
-          }
-          panel.classList.add('has-files');
-          summary.textContent = files.length === 1 ? '1 Datei' : `${files.length} Dateien`;
-
-          // Build cards
-          while (scroll.firstChild) scroll.removeChild(scroll.firstChild);
-          for (const f of files.slice(0, 12)) {
-            scroll.appendChild(buildCard(f));
-          }
-          if (files.length > 12) {
-            const more = document.createElement('button');
-            more.className = 'hub-mappe-card';
-            more.style.display = 'flex';
-            more.style.alignItems = 'center';
-            more.style.justifyContent = 'center';
-            more.style.minHeight = '160px';
-            more.style.color = 'var(--ink-2)';
-            more.textContent = `+${files.length - 12} weitere — alle anzeigen`;
-            more.addEventListener('click', () => window.Mappe.UI.openModal({}));
-            scroll.appendChild(more);
-          }
-
-          // Quota
-          try {
-            const q = await window.Mappe.getQuota();
-            quota.textContent = `${window.Mappe.formatBytes(q.used)} belegt`;
-          } catch (e) { quota.textContent = ''; }
+          const files = await Mappe.listFiles({});
+          renderLibrary(files);
+          updateToolCounters(files);
+          updateDropzoneCopy(files);
         }
 
-        function buildCard(f) {
-          const card = document.createElement('button');
-          card.type = 'button';
-          card.className = 'hub-mappe-card';
-          card.setAttribute('aria-label', `Datei ${f.name} — Optionen anzeigen`);
+        function renderLibrary(files) {
+          if (files.length === 0) {
+            library.classList.remove('has-files');
+            return;
+          }
+          library.classList.add('has-files');
+          libraryCount.textContent = String(files.length);
+          const totalSize = files.reduce((s, f) => s + (f.size || 0), 0);
+          librarySize.textContent = Mappe.formatBytes(totalSize);
 
+          while (libraryGrid.firstChild) libraryGrid.removeChild(libraryGrid.firstChild);
+          for (const f of files) {
+            libraryGrid.appendChild(buildLibraryCard(f));
+          }
+        }
+
+        function buildLibraryCard(f) {
+          const card = document.createElement('div');
+          card.className = 'hub-library-card';
+          card.setAttribute('data-file-id', String(f.id));
+
+          const kind = Mappe.getKindIcon(f.type, f.name);
           const thumb = document.createElement('div');
-          thumb.className = 'hub-mappe-card-thumb';
-          const kind = window.Mappe.getKindIcon(f.type, f.name);
+          thumb.className = 'hub-library-card-thumb hub-library-card-thumb-' + kind;
           if (kind === 'image') {
-            window.Mappe.getFile(f.id).then(rec => {
+            Mappe.getFile(f.id).then(rec => {
               if (rec && rec.blob) {
                 const img = document.createElement('img');
                 img.src = URL.createObjectURL(rec.blob);
@@ -465,56 +509,101 @@
               }
             }).catch(() => {});
           }
-          // Fallback Icon
-          const ico = Shell.parseSVG(KIND_ICON_SVG[kind] || KIND_ICON_SVG.file);
-          thumb.appendChild(ico);
+          thumb.appendChild(Shell.parseSVG(KIND_ICON_SVG[kind] || KIND_ICON_SVG.file));
           card.appendChild(thumb);
 
           const name = document.createElement('div');
-          name.className = 'hub-mappe-card-name';
+          name.className = 'hub-library-card-name';
           name.textContent = f.name;
           name.title = f.name;
           card.appendChild(name);
 
           const meta = document.createElement('div');
-          meta.className = 'hub-mappe-card-meta';
-          meta.textContent = `${window.Mappe.formatBytes(f.size)} · ${window.Mappe.formatRelativeTime(f.addedAt)}`;
+          meta.className = 'hub-library-card-meta';
+          meta.textContent = `${Mappe.formatBytes(f.size)} · ${Mappe.formatRelativeTime(f.addedAt)}`;
           card.appendChild(meta);
 
-          card.addEventListener('click', () => {
-            // Open modal as browse — user can download or delete from there
-            window.Mappe.UI.openModal({});
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'hub-library-card-remove';
+          removeBtn.type = 'button';
+          removeBtn.setAttribute('aria-label', `${f.name} aus Mappe entfernen`);
+          removeBtn.title = 'Aus Mappe entfernen';
+          removeBtn.textContent = '×';
+          removeBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await Mappe.deleteFile(f.id);
+            Shell.Toast.show('Aus Mappe entfernt');
           });
+          card.appendChild(removeBtn);
+
           return card;
         }
 
-        function toggle() {
-          const next = !panel.classList.contains('expanded');
-          panel.classList.toggle('expanded', next);
-          head.setAttribute('aria-expanded', String(next));
+        function updateToolCounters(files) {
+          const tiles = document.querySelectorAll('.hub-tile[href]');
+          tiles.forEach(tile => {
+            const slug = slugFromHref(tile.getAttribute('href'));
+            const accepts = TOOL_ACCEPTS[slug];
+            // Remove any existing counter
+            const existing = tile.querySelector('.hub-tile-counter');
+            if (existing) existing.remove();
+            tile.classList.remove('has-mappe-match');
+            tile.removeAttribute('data-mappe-ids');
+            if (!accepts || files.length === 0) return;
+            const matches = files.filter(f => Mappe.typeMatches(f.type, accepts));
+            if (matches.length === 0) return;
+            const counter = document.createElement('span');
+            counter.className = 'hub-tile-counter show';
+            counter.textContent = `${matches.length} aus Mappe`;
+            tile.appendChild(counter);
+            tile.classList.add('has-mappe-match');
+            tile.setAttribute('data-mappe-ids', matches.map(f => f.id).join(','));
+          });
         }
-        head.addEventListener('click', toggle);
-        head.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+
+        function updateDropzoneCopy(files) {
+          if (files.length === 0) {
+            heading.textContent = 'Wirf deine Dateien hier rein';
+            sub.textContent = 'Lade alles hoch — wähle dann was du damit machen willst. Alles bleibt 100 % in deinem Browser.';
+          } else {
+            heading.textContent = 'Mehr Dateien hinzufügen';
+            sub.textContent = 'Lege weitere Dateien rein — sie kommen zu deiner Mappe dazu.';
+          }
+        }
+
+        // Library "Alles löschen" button
+        libraryClearBtn.addEventListener('click', async () => {
+          const files = await Mappe.listFiles({});
+          if (files.length === 0) return;
+          const ok = confirm(`Alle ${files.length} Dateien aus der Mappe löschen?\n\nDie Originale auf deinem Gerät bleiben unberührt.`);
+          if (!ok) return;
+          await Mappe.clearAll();
+          Shell.Toast.show('Mappe geleert');
         });
-        manageBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          window.Mappe.UI.openModal({});
+
+        // Hub Tool-Click intercept: if Mappe-match exists, route via ?from=mappe&ids=
+        document.querySelectorAll('.hub-tile[href], .hub-featured[href]').forEach(tile => {
+          tile.addEventListener('click', (e) => {
+            // Don't intercept if user middle-clicked or Cmd/Ctrl-clicked (new tab)
+            if (e.metaKey || e.ctrlKey || e.button === 1) return;
+            const ids = tile.getAttribute('data-mappe-ids');
+            if (!ids) return;
+            e.preventDefault();
+            const href = tile.getAttribute('href');
+            const url = new URL(href, window.location.origin);
+            url.searchParams.set('from', 'mappe');
+            url.searchParams.set('ids', ids);
+            const matchCount = ids.split(',').length;
+            const word = matchCount === 1 ? 'Datei wird mitgenommen' : 'Dateien werden mitgenommen';
+            Shell.Toast.show(`${matchCount} ${word}…`);
+            // Tiny delay so toast appears before navigation
+            setTimeout(() => { window.location.href = url.toString(); }, 250);
+          });
         });
 
         refresh();
-        window.Mappe.onChange(refresh);
+        Mappe.onChange(refresh);
       });
-
-      const KIND_ICON_SVG = {
-        image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
-        pdf: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
-        video: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`,
-        audio: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
-        doc: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
-        sheet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>`,
-        file: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
-      };
     });
   </script>
 </body>

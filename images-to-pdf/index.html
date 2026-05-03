@@ -456,6 +456,7 @@
           onPick: (file) => addFiles([file])
         });
       });
+      Shell.onMappeAutoLoad((files) => addFiles(files));
       render();
     });
   </script>

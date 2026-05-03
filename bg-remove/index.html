@@ -24,7 +24,7 @@
   <main class="app-main">
     <section class="hero">
       <div class="eyebrow">BILD · <span class="num">·</span> KI-Editor</div>
-      <h1>Hintergrund entfernen.<br><span class="accent">KI im Browser.</span></h1>
+      <h1>Hintergrund entfernen.<br><span class="accent">Direkt im Browser.</span></h1>
       <p class="lede">Person, Produkt oder Objekt aus dem Hintergrund freistellen. Funktioniert am besten bei klar erkennbaren Motiven mit gutem Kontrast — Personen, Produkt-Fotos, Tiere. Alles läuft direkt in deinem Browser. Kein Upload, keine Cloud, deine Bilder verlassen deinen Rechner nicht. Beim ersten Mal lädt das Werkzeug (~50 MB) — danach sofort einsatzbereit.</p>
     </section>
 
@@ -122,7 +122,7 @@
   <script>
     window.__tutorial = [
       { target: '#dropzone', title: 'Bild wählen', text: 'JPG, PNG oder WebP. Funktioniert besonders gut bei Personen, Tieren, Produkten.', side: 'bottom' },
-      { target: '#btnProcess', title: 'Erstes Mal', text: 'Beim ersten Klick lädt das KI-Modell (~50 MB). Folgende Bilder gehen sofort. Alles im Browser, kein Upload.', side: 'left' }
+      { target: '#btnProcess', title: 'Erstes Mal dauert etwas', text: 'Beim ersten Klick wird die Bilderkennung in deinen Browser geladen (~50 MB). Folgende Bilder gehen sofort. Alles bleibt auf deinem Gerät, kein Upload.', side: 'left' }
     ];
 
     const state = { file: null, origUrl: null, resultBlob: null, resultUrl: null };
@@ -288,6 +288,7 @@
           onPick: (file) => loadFile(file)
         });
       });
+      Shell.onMappeAutoLoad((files) => { if (files[0]) loadFile(files[0]); });
     });
   </script>
 </body>

@@ -505,6 +505,7 @@
           onPick: (file) => addFiles([file])
         });
       });
+      Shell.onMappeAutoLoad((files) => addFiles(files));
       render();
       const params = new URLSearchParams(window.location.search);
       if (params.get('from') === 'hub') {
