@@ -123,9 +123,10 @@
     import { loadFFmpeg } from '/shared/ffmpeg-loader.js';
 
     window.__tutorial = [
-      { target: '#dropzone', title: 'Video wählen', text: 'Lade ein Video — du wählst danach welcher Abschnitt zum GIF wird.', side: 'bottom' },
-      { target: '#trimStart', title: 'Start + Dauer', text: 'Welcher Abschnitt soll zum GIF? Maximal 30 Sekunden für vernünftige Dateigröße.', side: 'left' },
-      { target: '#optWidth', title: 'Größe + Bildrate', text: 'Kleinere Breite + niedrige Bildrate = kleines GIF. Für Social Media reichen oft 320 Pixel × 15 fps.', side: 'left' }
+      { target: "#dropzone", title: "Video ablegen", text: "Lege das Video ab, aus dem ein kurzer GIF-Ausschnitt werden soll.", side: "bottom" },
+      { target: "#trimStart", fallback: "#dropzone", title: "Ausschnitt festlegen", text: "Wähle Startzeit und Dauer. Kurze Ausschnitte bleiben klein und laden schneller.", side: "left" },
+      { target: "#optWidth", fallback: "#dropzone", title: "Größe wählen", text: "Kleinere Breite und weniger Bilder pro Sekunde ergeben ein kleineres GIF. Für Chats reichen oft 320 Pixel.", side: "left" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "GIF erstellen", text: "Klicke auf GIF erstellen. Danach kannst du das fertige GIF ansehen und herunterladen.", side: "top" }
     ];
 
     const state = { file: null, outBlob: null };

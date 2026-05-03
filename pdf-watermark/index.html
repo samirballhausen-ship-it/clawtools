@@ -122,9 +122,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Lade dein PDF — alle Seiten bekommen das gleiche Wasserzeichen.', side: 'bottom' },
-      { target: '#optPosition', title: 'Position', text: 'Diagonal mittig ist klassisch für "VERTRAULICH". Raster für maximale Sichtbarkeit.', side: 'left' },
-      { target: '#btnProcess', title: 'Anwenden', text: 'Das Original bleibt unangetastet — nur die heruntergeladene Datei hat das Wasserzeichen.', side: 'top' }
+      { target: "#dropzone", title: "PDF ablegen", text: "Lege das PDF ab, das auf jeder Seite ein sichtbares Wasserzeichen bekommen soll.", side: "bottom" },
+      { target: "#optText", title: "Text festlegen", text: "Schreibe zum Beispiel Entwurf, Vertraulich oder Muster. Genau dieser Text erscheint auf den Seiten.", side: "left" },
+      { target: "#optPosition", title: "Position und Stil wählen", text: "Diagonal ist gut für Vertraulich. Oben, unten oder mittig ist besser für kurze Hinweise oder Versionen.", side: "left" },
+      { target: "#btnProcess", title: "Wasserzeichen anwenden", text: "Klicke auf Anwenden. Du bekommst eine neue PDF-Datei; das Original ohne Wasserzeichen bleibt erhalten.", side: "top" }
     ];
 
     const state = { file: null, buffer: null, pageCount: 0, outBlob: null };

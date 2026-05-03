@@ -153,9 +153,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '.qr-tabs', title: 'Inhalts-Typ wählen', text: 'URL für Links, WLAN für WiFi-Zugänge, vCard für Visitenkarten. Jeder Typ hat eigene Felder.', side: 'bottom' },
-      { target: '#optEC', title: 'Robust gegen Verschmutzung', text: 'Bei Logo im QR-Code oder Druck auf rauer Oberfläche: stärkere Fehlerkorrektur wählen — Code bleibt scanbar auch wenn ein Stück fehlt.', side: 'left' },
-      { target: '#btnPng', title: 'Download', text: 'PNG für Web und normalen Druck. SVG wenn du den Code groß ausdrucken willst (bleibt scharf bei jeder Größe).', side: 'top' }
+      { target: ".qr-tabs", title: "Inhalt auswählen", text: "Wähle zuerst, was der QR-Code öffnen soll: Webseite, freier Text, WLAN-Zugang oder Kontaktkarte.", side: "bottom" },
+      { target: "#urlInput", title: "Daten eintragen", text: "Fuellen nur die Felder aus, die du brauchst. Die Vorschau aktualisiert sich automatisch, ohne Upload oder Konto.", side: "bottom" },
+      { target: "#optEC", title: "Scan-Sicherheit wählen", text: "Mehr Fehlerkorrektur macht den Code robuster für Druck, Aufkleber oder kleine Beschädigungen.", side: "left" },
+      { target: "#btnPng", title: "QR-Code herunterladen", text: "PNG ist gut für Web und normale Dokumente. SVG bleibt scharf, wenn der QR-Code sehr groß gedruckt wird.", side: "top" }
     ];
 
     const $ = id => document.getElementById(id);

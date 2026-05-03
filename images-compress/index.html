@@ -192,10 +192,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Bilder ablegen', text: 'Drag oder Klick. Auch ganze Foto-Sammlungen aus einem Ordner möglich.', side: 'bottom' },
-      { target: '#optQuality', title: 'Qualität wählen', text: '80% ist ein super Kompromiss zwischen Größe und Qualität. 60-70% für Mail, 90+ für Druck.', side: 'left' },
-      { target: '#optResize', title: 'Größe begrenzen', text: 'Optional: hochauflösende Fotos auf Web-Standard runterskalieren. Reduziert die Größe oft um 80-90%.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Alle Bilder werden parallel im Browser komprimiert. Bei 50+ Bildern kann das ein paar Sekunden dauern.', side: 'top' }
+      { target: "#dropzone", title: "Bilder hineinlegen", text: "Lege einzelne Bilder oder ganze Sammlungen ab. JPG, PNG und WebP werden direkt im Browser verkleinert.", side: "bottom" },
+      { target: "#optQuality", title: "Bildqualität wählen", text: "80 Prozent ist meist der beste Kompromiss. Für Mail kleiner, für Druck oder wichtige Produktbilder höher.", side: "left" },
+      { target: "#optResize", title: "Riesenbilder begrenzen", text: "Aktiviere die Breitenbegrenzung, wenn Fotos aus Kamera oder Smartphone viel zu groß für Web oder E-Mail sind.", side: "left" },
+      { target: "#btnProcess", title: "Komprimieren und speichern", text: "Klicke auf Komprimieren. Danach siehst du, wie viel Speicher gespart wurde, und kannst alles als ZIP herunterladen.", side: "top" }
     ];
 
     const state = { files: [], nextId: 1, processing: false, results: [] };

@@ -993,6 +993,10 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   pointer-events: none;
   transition: all .3s var(--ease);
 }
+.tour-cutout.soft {
+  outline: 2px solid rgba(21, 128, 61, 0.35);
+  outline-offset: 0;
+}
 .tour-tooltip {
   position: fixed;
   left: 50%;
@@ -1689,13 +1693,62 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
 
 .hub-library-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
 }
-@media (max-width: 480px) {
+/* Mobile: 1-Spalten Horizontal-Layout (thumb + info + actions) — Touch-friendly */
+@media (max-width: 768px) {
   .hub-library-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .hub-library-card {
+    display: grid !important;
+    grid-template-columns: 64px 1fr auto !important;
+    gap: 14px;
+    align-items: center;
+    padding: 12px !important;
+    flex-direction: row !important;
+    cursor: pointer !important;
+  }
+  .hub-library-card:active {
+    background: var(--surf);
+    transform: scale(0.99);
+  }
+  .hub-library-card-thumb {
+    width: 64px !important;
+    height: 64px !important;
+    aspect-ratio: 1 / 1 !important;
+    flex-shrink: 0;
+  }
+  .hub-library-card-thumb svg { width: 28px; height: 28px; }
+  .hub-library-card-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .hub-library-card-name {
+    font-size: 14px !important;
+    margin-bottom: 4px;
+  }
+  .hub-library-card-meta {
+    font-size: 11px !important;
+  }
+  /* Mobile: x always visible + bigger Touch-Target */
+  .hub-library-card-remove {
+    position: static !important;
+    opacity: 1 !important;
+    width: 44px !important;
+    height: 44px !important;
+    background: var(--surf-2) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 18px !important;
+  }
+  .hub-library-card-remove:active {
+    background: var(--risk-soft);
+    color: var(--risk);
+    border-color: var(--risk);
   }
 }
 
@@ -1735,6 +1788,10 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
 }
 .hub-library-card-thumb-pdf { background: var(--ok-soft); color: var(--magic); border-color: var(--magic); }
 .hub-library-card-thumb-video { background: #1f1f1f; color: rgba(255,255,255,0.85); border-color: #333; }
+.hub-library-card-info {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;
+}
 .hub-library-card-name {
   font-size: 13px;
   font-weight: 500;
@@ -1969,4 +2026,3 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   .hub-mappe-head { padding: 12px 16px; }
   .hub-mappe-body { padding: 12px 16px; }
 }
-

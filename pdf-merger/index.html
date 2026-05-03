@@ -227,10 +227,10 @@
   <script>
     // Tutorial-Steps for this tool
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDFs ablegen', text: 'Zieh deine PDFs hierher oder klicke um sie auszuwählen. Du kannst mehrere gleichzeitig hinzufügen.', side: 'bottom' },
-      { target: '#fileList', title: 'Reihenfolge per Drag', text: 'Sobald die Dateien geladen sind, kannst du sie per Ziehen sortieren. Die Position oben links zeigt die Reihenfolge im fertigen PDF.', side: 'top' },
-      { target: '#optBookmarks', title: 'Lesezeichen einfügen', text: 'Optional: jedes Original-PDF wird im Ergebnis als Lesezeichen markiert — praktisch für Navigation.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Klick und alles wird lokal in deinem Browser gemerged. Bei großen PDFs kann das ein paar Sekunden dauern.', side: 'top' }
+      { target: "#dropzone", title: "PDFs sammeln", text: "Lege zwei oder mehr PDFs ab. Du kannst auch später weitere Dateien hinzufügen.", side: "bottom" },
+      { target: "#fileList", fallback: "#dropzone", title: "Reihenfolge setzen", text: "Die Liste bestimmt die Reihenfolge im fertigen PDF. Ziehe Dateien nach oben oder unten, bevor du startest.", side: "top" },
+      { target: "#optBookmarks", title: "Lesezeichen optional", text: "Aktiviere Lesezeichen, wenn jede Ursprungsdatei im Ergebnis als eigener Abschnitt auffindbar sein soll.", side: "left" },
+      { target: "#btnProcess", title: "Zusammenfuegen", text: "Klicke auf Zusammenfuegen. Das neue Gesamt-PDF wird im Browser erstellt und danach als Download angeboten.", side: "top" }
     ];
 
     // ────────────────────────────────────────────────

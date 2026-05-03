@@ -325,6 +325,7 @@
         Toast.show('Für dieses Werkzeug gibt es noch keine Anleitung.');
         return;
       }
+      if (tourState.backdrop) Tour._end();
       tourState.steps = steps;
       tourState.idx = 0;
       Tour._buildOverlay();
@@ -350,11 +351,22 @@
       const step = steps[idx];
       if (!step) return Tour._end();
 
-      const target = document.querySelector(step.target);
-      if (!target) return Tour.next();
+      const requestedTarget = step.target ? document.querySelector(step.target) : null;
+      const targetIsVisible = (node) => {
+        if (!node || typeof node.getBoundingClientRect !== 'function') return false;
+        const style = window.getComputedStyle(node);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      };
+      const fallbackSelector = step.fallback || '#dropzone, .dropzone, .hero, .app-main';
+      const fallbackTarget = document.querySelector(fallbackSelector) || document.querySelector('.app-main') || document.body;
+      const usesFallback = !targetIsVisible(requestedTarget);
+      const target = usesFallback ? fallbackTarget : requestedTarget;
 
       const r = target.getBoundingClientRect();
       const pad = 6;
+      cutout.classList.toggle('soft', usesFallback);
       cutout.style.top = (r.top + window.scrollY - pad) + 'px';
       cutout.style.left = (r.left + window.scrollX - pad) + 'px';
       cutout.style.width = (r.width + pad * 2) + 'px';
@@ -522,8 +534,9 @@
     if (cfg.privacy) injectPrivacy();
     if (cfg.footer) injectFooter(cfg.toolName);
     if (cfg.tour) {
+      const tourRequested = new URLSearchParams(window.location.search).get('tour') === '1';
       checkUrlTour();
-      if (!opts.isHub) {
+      if (!opts.isHub && !tourRequested) {
         setTimeout(() => Tour.maybeShowWelcome(), 1500);
       }
     }

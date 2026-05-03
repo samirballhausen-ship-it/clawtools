@@ -121,8 +121,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Bild wählen', text: 'JPG, PNG oder WebP. Funktioniert besonders gut bei Personen, Tieren, Produkten.', side: 'bottom' },
-      { target: '#btnProcess', title: 'Erstes Mal dauert etwas', text: 'Beim ersten Klick wird die Bilderkennung in deinen Browser geladen (~50 MB). Folgende Bilder gehen sofort. Alles bleibt auf deinem Gerät, kein Upload.', side: 'left' }
+      { target: "#dropzone", title: "Bild hineinlegen", text: "Lege ein JPG, PNG oder WebP ab. Am besten funktionieren klare Fotos von Personen, Produkten oder Gegenstaenden mit erkennbarem Vordergrund.", side: "bottom" },
+      { target: "#origPreview", fallback: "#dropzone", title: "Vorher und Nachher sehen", text: "Nach dem Auswählen erscheint links dein Original und rechts das freigestellte Bild. Du siehst also sofort, ob der Rand sauber geworden ist.", side: "top" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "Hintergrund entfernen", text: "Klicke auf den Button. Beim ersten Mal lädt der Browser das Freistell-Modell; danach bleibt es im Cache und geht deutlich schneller.", side: "left" },
+      { target: "#btnDownload", fallback: "#dropzone", title: "PNG speichern", text: "Das Ergebnis wird als PNG mit transparentem Hintergrund gespeichert. Deine Originaldatei wird nicht verändert und nie hochgeladen.", side: "top" }
     ];
 
     const state = { file: null, origUrl: null, resultBlob: null, resultUrl: null };

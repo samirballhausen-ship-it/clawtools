@@ -110,9 +110,10 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Lade dein PDF — alle Seiten werden zum Bearbeiten angezeigt.', side: 'bottom' },
-      { target: '.pages-container', title: 'Schwärzen', text: 'Maus runterhalten und ein Rechteck über sensible Bereiche ziehen. Klick auf eine Schwärzung entfernt sie wieder.', side: 'top' },
-      { target: '#btnProcess', title: 'Anwenden', text: 'Wir bauen jede Seite neu mit echten schwarzen Pixeln an deinen markierten Stellen. Niemand kann das rückgängig machen — auch keine Forensik-Software.', side: 'left' }
+      { target: "#dropzone", title: "PDF ablegen", text: "Lege das PDF ab, aus dem sensible Stellen wirklich verschwinden sollen: Namen, Nummern, Preise oder Adressen.", side: "bottom" },
+      { target: "#pagesContainer", fallback: "#dropzone", title: "Bereiche markieren", text: "Nach dem Laden ziehst du mit der Maus schwarze Rechtecke über die Stellen, die niemand mehr lesen darf.", side: "top" },
+      { target: "#btnClearAll", fallback: "#dropzone", title: "Markierungen korrigieren", text: "Eine falsche Markierung kannst du entfernen. Mit Alle entfernen startest du die Auswahl noch einmal neu.", side: "left" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "Endgültig schwärzen", text: "Klicke erst zum Schluss auf Anwenden. Dann werden die Stellen fest ins neue PDF geschrieben und sind nicht wiederherstellbar.", side: "left" }
     ];
 
     const state = { file: null, buffer: null, pages: [], rects: [], outBlob: null };

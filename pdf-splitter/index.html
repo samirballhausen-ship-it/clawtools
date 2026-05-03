@@ -15,6 +15,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="/shared/shell.js"></script>
 
 <style>
   :root {
@@ -114,6 +115,40 @@
     text-transform: uppercase; color: var(--ink-3);
     margin-top: 4px;
   }
+  .header-actions { display: flex; align-items: center; gap: 16px; }
+  .tour-trigger {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    color: var(--ink-2);
+    font-family: "Geist Mono", monospace;
+    font-size: 13px; font-weight: 600;
+    transition: all .15s var(--ease);
+  }
+  .tour-trigger:hover { border-color: var(--ok); color: var(--ok); background: var(--ok-soft); }
+  .tour-backdrop { position: fixed; inset: 0; background: rgba(10,10,10,.55); z-index: 1000; display: none; }
+  .tour-backdrop.active { display: block; }
+  .tour-cutout { position: absolute; border-radius: 4px; box-shadow: 0 0 0 9999px rgba(10,10,10,.55); pointer-events: none; transition: all .3s var(--ease); }
+  .tour-cutout.soft { outline: 2px solid rgba(21,128,61,.35); }
+  .tour-tooltip { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); width: min(480px, calc(100vw - 32px)); max-width: calc(100vw - 32px); background: #fff; border: 1px solid var(--border); border-top: 3px solid var(--ok); border-radius: 8px; padding: 18px 20px 16px; box-shadow: 0 12px 32px rgba(0,0,0,.18); z-index: 1002; }
+  .tour-tooltip-step { font-family: "Geist Mono", monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; }
+  .tour-tooltip-step strong { color: var(--ok); }
+  .tour-tooltip h4 { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .tour-tooltip p { font-size: 13px; color: var(--ink-2); line-height: 1.45; margin-bottom: 16px; }
+  .tour-tooltip-actions { display: flex; justify-content: space-between; gap: 8px; }
+  .tour-btn { font-family: "Geist", sans-serif; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 4px; transition: all .15s var(--ease); }
+  .tour-btn-skip { color: var(--ink-3); background: transparent; }
+  .tour-btn-skip:hover { color: var(--ink-2); }
+  .tour-btn-next { background: var(--ok); color: #fff; border: 1px solid var(--ok); }
+  .tour-btn-next:hover { background: #166534; }
+  .tour-welcome { position: fixed; bottom: 24px; right: 24px; width: 340px; background: #fff; border: 1px solid var(--border); border-top: 3px solid var(--ok); border-radius: 8px; padding: 18px; box-shadow: 0 12px 32px rgba(0,0,0,.14); z-index: 900; transform: translateY(calc(100% + 40px)); transition: transform .4s var(--ease-spring); }
+  .tour-welcome.show { transform: translateY(0); }
+  .tour-welcome h4 { font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .tour-welcome p { font-size: 13px; color: var(--ink-2); line-height: 1.4; margin-bottom: 14px; }
+  .tour-welcome-actions { display: flex; gap: 8px; }
+  @media (max-width: 960px) { .tour-tooltip { left: 12px !important; right: 12px !important; bottom: 16px !important; transform: none !important; width: auto !important; max-width: none !important; padding: 20px; } .tour-tooltip-actions .tour-btn { flex: 1; min-height: 44px; } .tour-welcome { left: 16px; right: 16px; width: auto; bottom: 16px; } }
+
   .header-meta {
     font-family: "Geist Mono", monospace;
     font-size: 11px; color: var(--ink-3);
@@ -607,8 +642,11 @@
         <span class="brand-tag">PDF · Splitter</span>
       </div>
     </div>
-    <div class="header-meta">
+    <div class="header-actions">
+      <button class="tour-trigger" type="button" id="tourTrigger" title="Anleitung anzeigen" aria-label="Anleitung starten">?</button>
+      <div class="header-meta">
       <span class="dot"></span>Local · No Upload
+      </div>
     </div>
   </div>
 </header>
@@ -802,9 +840,23 @@
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+    window.__tutorial = [
+      { target: "#dropzone", title: "PDFs ablegen", text: "Lege ein oder mehrere PDFs ab. Jede Seite wird später als einzelne Datei gespeichert.", side: "bottom" },
+      { target: "#queue", fallback: "#dropzone", title: "Dateien prüfen", text: "Nach dem Laden siehst du alle PDFs in der Liste. Du kannst weitere hinzufügen oder falsche Dateien wieder entfernen.", side: "top" },
+      { target: "#optExcel", title: "Excel optional", text: "Wenn du den Haken aktiv lässt, bekommst du zusätzlich eine Excel-Datei mit dem Text jeder Seite. Praktisch zum Suchen und Sortieren.", side: "left" },
+      { target: "#btnProcess", title: "Splitten und ZIP laden", text: "Klicke auf Verarbeiten. Das Ergebnis ist ein ZIP-Ordner mit einer Datei pro PDF-Seite und optional der Excel-Übersicht.", side: "top" }
+    ];
+
   // ────────────────────────────────────────────────
   // State
   // ────────────────────────────────────────────────
+  document.getElementById('tourTrigger')?.addEventListener('click', () => Shell.Tour.start(window.__tutorial));
+  const tourRequested = new URLSearchParams(window.location.search).get('tour') === '1';
+  if (tourRequested) {
+    setTimeout(() => Shell.Tour.start(window.__tutorial), 600);
+  }
+  if (!tourRequested) setTimeout(() => Shell.Tour.maybeShowWelcome(), 1500);
+
   const state = {
     files: [],
     nextId: 1,

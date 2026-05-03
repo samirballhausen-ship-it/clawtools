@@ -234,9 +234,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Bilder ablegen', text: 'JPG, PNG, WebP, TIFF — alle gängigen Foto-Formate. Ziehen oder klicken.', side: 'bottom' },
-      { target: '#exifPreview', title: 'Vorschau der Daten', text: 'Sobald Bilder geladen sind, zeigen wir was alles drinsteckt: Aufnahmeort (GPS), Kamera-Modell, Datum, Bearbeitungs-Spuren. Vor dem Entfernen siehst du alles.', side: 'top' },
-      { target: '#btnProcess', title: 'Daten löschen', text: 'Ein Klick und alle versteckten Foto-Daten sind weg. Das sichtbare Bild bleibt unverändert.', side: 'top' }
+      { target: "#dropzone", title: "Fotos ablegen", text: "Lege JPG, PNG, WebP oder TIFF ab. Das Werkzeug sammelt alle Bilder in einer Liste, auch ganze Ordner-Sammlungen.", side: "bottom" },
+      { target: "#exifPreview", fallback: "#dropzone", title: "Versteckte Daten ansehen", text: "Nach dem Laden siehst du, welche unsichtbaren Foto-Daten gefunden wurden: Standort, Kamera, Datum oder Bearbeitungs-Hinweise.", side: "top" },
+      { target: "#btnProcess", title: "Daten entfernen", text: "Ein Klick entfernt diese versteckten Daten aus Kopien deiner Bilder. Das sichtbare Bild bleibt gleich.", side: "top" },
+      { target: "#btnDownload", fallback: "#dropzone", title: "Saubere Bilder speichern", text: "Lade die bereinigten Dateien herunter. Wichtig vor Uploads ins Internet, wenn Ort oder Kamera nicht sichtbar sein sollen.", side: "top" }
     ];
 
     const state = { files: [], nextId: 1, processing: false, results: [] };

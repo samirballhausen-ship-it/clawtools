@@ -138,9 +138,10 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert besonders gut bei großen Scans, Präsentationen mit vielen Bildern oder PDFs aus Office-Programmen.', side: 'bottom' },
-      { target: '.preset-row', title: 'Qualität wählen', text: '"Mail" für E-Mail-Anhänge (max. Komprimierung). "Druck" wenn Druck-Tauglichkeit wichtig ist.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Wir wandeln jede Seite in ein komprimiertes Bild um — bei gewählter Qualität wird das PDF deutlich kleiner.', side: 'top' }
+      { target: "#dropzone", title: "PDF ablegen", text: "Lege ein großes PDF ab, zum Beispiel Scan, Praesentation oder Dokument mit vielen Bildern.", side: "bottom" },
+      { target: ".preset-list", title: "Ziel wählen", text: "Klein für Mail spart am meisten. Ausgewogen ist für die meisten Dokumente richtig. Druck-tauglich hält mehr Schärfe.", side: "left" },
+      { target: "#btnProcess", title: "Kleiner machen", text: "Klicke auf Verarbeiten. Jede Seite wird neu und kleiner gespeichert, damit die Datei leichter zu verschicken ist.", side: "top" },
+      { target: "#result", fallback: "#dropzone", title: "Ersparnis prüfen", text: "Am Ende siehst du, wie viel kleiner das PDF geworden ist, und speicherst die neue Version herunter.", side: "top" }
     ];
 
     const state = { file: null, buffer: null, pageCount: 0, outBlob: null, quality: 0.75, scale: 1.5 };

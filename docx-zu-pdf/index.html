@@ -120,9 +120,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Word-Datei wählen', text: 'Word-Dokumente ab Version 2007 (Endung .docx). Ältere .doc-Dateien funktionieren nicht — die musst du erst in Word öffnen und neu speichern.', side: 'bottom' },
-      { target: '#previewPage', title: 'Vorschau prüfen', text: 'So sieht das spätere PDF aus. Komplexe Layouts (Tabellen, Bilder, Kopfzeilen) können leicht vereinfacht werden.', side: 'top' },
-      { target: '#btnProcess', title: 'PDF erstellen', text: 'Wir erstellen ein PDF mit A4-Seiten. Wenn der Inhalt länger ist, wird automatisch umbrochen.', side: 'left' }
+      { target: "#dropzone", title: "Word-Datei ablegen", text: "Lege eine .docx-Datei ab. Ältere .doc-Dateien bitte vorher einmal in Word oder LibreOffice als .docx neu speichern.", side: "bottom" },
+      { target: "#previewPage", fallback: "#dropzone", title: "Vorschau prüfen", text: "Nach dem Laden siehst du den Inhalt so, wie er ins PDF kommt. Sehr komplizierte Word-Layouts können einfacher aussehen.", side: "top" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "PDF erstellen", text: "Klicke auf PDF erstellen. Der Inhalt wird im Browser in A4-Seiten umgewandelt, ohne dass dein Dokument hochgeladen wird.", side: "left" },
+      { target: "#btnDownload", fallback: "#dropzone", title: "PDF herunterladen", text: "Speichere die neue PDF-Datei. Dein Word-Dokument bleibt dabei unverändert auf deinem Gerät.", side: "top" }
     ];
 
     const state = { file: null, outBlob: null };

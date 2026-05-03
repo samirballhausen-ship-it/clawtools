@@ -111,9 +111,10 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert besonders gut bei Scans aus Druckern oder fotografierten Dokumenten. Maschinen-Schrift = sehr genau, Handschrift = nicht zuverlässig.', side: 'bottom' },
-      { target: '.card-body', title: 'Sprachen wählen', text: 'Aktiviere alle Sprachen die im PDF vorkommen können — das macht die Erkennung genauer. Mehr Sprachen = etwas längere Ladezeit beim ersten Mal.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Mal werden die Sprach-Erkennungen geladen (~25 MB pro Sprache). Danach sofort einsatzbereit für alle weiteren PDFs.', side: 'top' }
+      { target: "#dropzone", title: "Scan-PDF ablegen", text: "Nutze dieses Werkzeug für PDFs, bei denen du Text nicht markieren oder suchen kannst, zum Beispiel Scans vom Drucker.", side: "bottom" },
+      { target: "#langDeu", fallback: "#dropzone", title: "Sprache wählen", text: "Wähle Deutsch, Englisch oder beides. Je besser die Sprache passt, desto sauberer wird der erkannte Text.", side: "left" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "Text erkennen lassen", text: "Beim ersten Start lädt dein Browser die Spracherkennung. Danach wird Seite für Seite gelesen und Text gesammelt.", side: "top" },
+      { target: "#btnDownloadTxt", fallback: "#dropzone", title: "Text speichern", text: "Nach der Erkennung kannst du den gefundenen Text als Datei speichern und in Suche, Word oder E-Mail weiterverwenden.", side: "top" }
     ];
 
     const state = { file: null, buffer: null, pages: [], allText: '' };

@@ -163,9 +163,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Bilder ablegen', text: 'JPG, PNG, WebP — auch durcheinander. Wir konvertieren alles passend für PDF.', side: 'bottom' },
-      { target: '#fileList', title: 'Reihenfolge per Drag', text: 'Sobald Bilder geladen sind, kannst du sie hier sortieren. Position links zeigt PDF-Seite.', side: 'top' },
-      { target: '#btnProcess', title: 'PDF erstellen', text: 'Wir bauen das PDF im Browser. Bei vielen Bildern kann das ein paar Sekunden dauern.', side: 'top' }
+      { target: "#dropzone", title: "Bilder ablegen", text: "Lege alle Bilder ab, die in ein PDF sollen. Jedes Bild wird später zu einer eigenen PDF-Seite.", side: "bottom" },
+      { target: "#fileList", fallback: "#dropzone", title: "Reihenfolge festlegen", text: "Nach dem Laden kannst du die Bilder sortieren. Oben in der Liste wird Seite 1, danach Seite 2 und so weiter.", side: "top" },
+      { target: "#optMargin", title: "Rand für Druck wählen", text: "Mit Rand sieht das PDF auf Papier sauberer aus. Ohne Rand nutzt jedes Bild mehr Platz auf der Seite.", side: "left" },
+      { target: "#btnProcess", title: "PDF bauen", text: "Klicke auf PDF erstellen. Das fertige Dokument entsteht lokal und kann danach direkt heruntergeladen werden.", side: "top" }
     ];
 
     // A4 dimensions in points (1pt = 1/72 inch)

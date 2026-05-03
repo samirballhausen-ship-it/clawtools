@@ -135,9 +135,10 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Funktioniert mit Text-PDFs (aus Word, LibreOffice usw.). Eingescannte PDFs musst du erst durch das Werkzeug „PDF durchsuchbar machen" laufen lassen.', side: 'bottom' },
-      { target: '.preview-pages', title: 'Vorschau', text: 'Hier siehst du was extrahiert wurde — vor dem Export prüfen ob alles dabei ist.', side: 'top' },
-      { target: '#btnExport', title: 'Format wählen', text: 'Word-Datei (.docx) zum Bearbeiten. Reiner Text (.txt) wenn du nur den Inhalt brauchst. Layout wird vereinfacht.', side: 'left' }
+      { target: "#dropzone", title: "Text-PDF ablegen", text: "Nutze dieses Werkzeug für PDFs, bei denen Text schon markierbar ist. Reine Scans vorher durch PDF durchsuchbar machen laufen lassen.", side: "bottom" },
+      { target: "#previewPages", fallback: "#dropzone", title: "Extraktion prüfen", text: "Nach dem Laden siehst du, welcher Text gefunden wurde. Das Layout wird vereinfacht, aber der Inhalt soll stimmen.", side: "top" },
+      { target: "input[name=\"format\"]", fallback: "#dropzone", title: "Ausgabe wählen", text: "Word ist gut zum Weiterbearbeiten. Reiner Text ist gut, wenn du nur den Inhalt kopieren, suchen oder weitergeben willst.", side: "left" },
+      { target: "#btnExport", fallback: "#dropzone", title: "Datei speichern", text: "Klicke auf Export. Die neue Datei entsteht lokal in deinem Browser und dein PDF bleibt unverändert.", side: "left" }
     ];
 
     const state = { file: null, pages: [] };

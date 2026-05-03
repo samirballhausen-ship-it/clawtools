@@ -512,16 +512,22 @@
           thumb.appendChild(Shell.parseSVG(KIND_ICON_SVG[kind] || KIND_ICON_SVG.file));
           card.appendChild(thumb);
 
+          // Info-Wrapper (name + meta) — Mobile horizontal-grid braucht single-info-col
+          const info = document.createElement('div');
+          info.className = 'hub-library-card-info';
+
           const name = document.createElement('div');
           name.className = 'hub-library-card-name';
           name.textContent = f.name;
           name.title = f.name;
-          card.appendChild(name);
+          info.appendChild(name);
 
           const meta = document.createElement('div');
           meta.className = 'hub-library-card-meta';
           meta.textContent = `${Mappe.formatBytes(f.size)} · ${Mappe.formatRelativeTime(f.addedAt)}`;
-          card.appendChild(meta);
+          info.appendChild(meta);
+
+          card.appendChild(info);
 
           const removeBtn = document.createElement('button');
           removeBtn.className = 'hub-library-card-remove';
@@ -535,6 +541,14 @@
             Shell.Toast.show('Aus Mappe entfernt');
           });
           card.appendChild(removeBtn);
+
+          // Tap auf Card (außer ×): Mappe-Modal öffnen für Detail/Aktions
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('.hub-library-card-remove')) return;
+            if (window.Shell?.MappeUI?.openMappeModal) {
+              window.Shell.MappeUI.openMappeModal();
+            }
+          });
 
           return card;
         }

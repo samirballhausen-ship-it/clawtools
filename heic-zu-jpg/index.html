@@ -220,10 +220,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'iPhone-Fotos ablegen', text: 'Ziehen oder Klicken. iPhone speichert Fotos in einem Format das nur Apple-Geräte gut öffnen können. Wir wandeln sie in JPG um — das öffnet jeder.', side: 'bottom' },
-      { target: '#optQuality', title: 'Qualität wählen', text: '92% ist ein guter Mittelwert. Für Druck → 100%. Für E-Mail/Web-Versand → 75-85% (kleinere Dateien).', side: 'left' },
-      { target: '#optKeepExif', title: 'Foto-Daten behalten?', text: 'Aufnahmedatum und Kamera-Info können erhalten bleiben. Wenn du das Bild ins Internet stellst: lieber abschalten — sonst sieht jeder wo das Foto gemacht wurde.', side: 'left' },
-      { target: '#btnProcess', title: 'Loslegen', text: 'Beim ersten Klick wird der Konverter (~3.5 MB) einmal geladen. Danach läuft alles direkt — kein Upload, kein Server.', side: 'top' }
+      { target: "#dropzone", title: "iPhone-Fotos ablegen", text: "Lege HEIC-Fotos ab. Das ist das iPhone-Format, das auf vielen Nicht-Apple-Geräten Probleme macht.", side: "bottom" },
+      { target: "#optQuality", title: "Qualität einstellen", text: "92 Prozent ist der sichere Standard. Für E-Mail kleiner stellen, für Druck oder Archiv höher lassen.", side: "left" },
+      { target: "#optKeepExif", title: "Foto-Daten entscheiden", text: "Wenn du Aufnahmezeit und Kamera behalten willst, lass den Haken aktiv. Für Online-Upload lieber ausschalten.", side: "left" },
+      { target: "#btnProcess", title: "In JPG umwandeln", text: "Klicke auf Umwandeln. Die JPG-Dateien entstehen direkt im Browser und werden anschließend als Download vorbereitet.", side: "top" }
     ];
 
     const state = { files: [], nextId: 1, processing: false, results: [], libReady: false };

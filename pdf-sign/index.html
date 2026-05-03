@@ -118,9 +118,10 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     window.__tutorial = [
-      { target: '#dropzone', title: 'PDF wählen', text: 'Lade das Dokument das du unterschreiben willst.', side: 'bottom' },
-      { target: '#sigPad', title: 'Unterschreiben', text: 'Zeichne deine Signatur direkt im Browser. Funktioniert mit Maus und Touch (Tablet/Smartphone).', side: 'left' },
-      { target: '.pages-container', title: 'Platzieren', text: 'Klick auf die Stelle wo deine Unterschrift hin soll. Drag zum Verschieben, Ecke zum Skalieren.', side: 'top' }
+      { target: "#dropzone", title: "PDF ablegen", text: "Lege das Dokument ab, das eine sichtbare Unterschrift bekommen soll.", side: "bottom" },
+      { target: "#sigPad", fallback: "#dropzone", title: "Unterschrift erstellen", text: "Zeichne deine Unterschrift mit Maus, Stift oder Finger. Du kannst sie auch als Bild laden.", side: "left" },
+      { target: "#pagesContainer", fallback: "#dropzone", title: "Auf Seite platzieren", text: "Klicke im Dokument dorthin, wo die Unterschrift sitzen soll. Danach kannst du sie verschieben und größer oder kleiner machen.", side: "top" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "Signiertes PDF speichern", text: "Wenn alles sitzt, erstellst du eine neue PDF-Datei. Das Original bleibt unverändert.", side: "left" }
     ];
 
     const state = { file: null, buffer: null, pages: [], placed: [], outBlob: null, sigDataUrl: null };

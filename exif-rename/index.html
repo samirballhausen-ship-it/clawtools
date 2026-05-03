@@ -199,9 +199,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'Bilder ablegen', text: 'Lade alle Bilder rein die du sortieren willst — egal in welcher Reihenfolge. Wir lesen das Aufnahmedatum aus jedem Foto und sortieren automatisch.', side: 'bottom' },
-      { target: '#fileList', title: 'Vorschau', text: 'Hier siehst du den alten Namen (durchgestrichen) und den neuen Namen. Bevor du auf "Umbenennen" klickst, prüf ob alles passt.', side: 'top' },
-      { target: '#btnProcess', title: 'Erstellen', text: 'Wir packen alle umbenannten Dateien in ein ZIP-Paket zum Herunterladen. Deine Originale auf dem Gerät bleiben unverändert.', side: 'top' }
+      { target: "#dropzone", title: "Fotos sammeln", text: "Lege alle Bilder ab, die du sortiert umbenennen willst. Die Reihenfolge ist egal, weil das Aufnahmedatum aus den Fotos gelesen wird.", side: "bottom" },
+      { target: ".sidebar", title: "Namensart wählen", text: "Wähle, wie die neuen Dateinamen aussehen sollen: Datum plus Nummer, genauer Zeitstempel oder eigener Projektname.", side: "left" },
+      { target: "#fileList", fallback: "#dropzone", title: "Vorschau kontrollieren", text: "Hier siehst du vor dem Download alten und neuen Namen nebeneinander. So erkennst du falsche Daten sofort.", side: "top" },
+      { target: "#btnProcess", title: "ZIP erstellen", text: "Klicke auf Erstellen. Du bekommst ein ZIP mit den umbenannten Kopien; die Originalbilder auf deinem Gerät bleiben wie sie sind.", side: "top" }
     ];
 
     const state = { files: [], nextId: 1, zipBlob: null };

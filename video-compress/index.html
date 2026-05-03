@@ -116,9 +116,10 @@
     import { loadFFmpeg } from '/shared/ffmpeg-loader.js';
 
     window.__tutorial = [
-      { target: '#dropzone', title: 'Video wählen', text: 'Auch große Dateien (>1 GB) — verarbeitet wird direkt im Browser, nicht hochgeladen.', side: 'bottom' },
-      { target: '.preset-grid', title: 'Preset wählen', text: 'WhatsApp für maximale Komprimierung. Web für Streaming. Original-Qualität für Archivierung.', side: 'left' },
-      { target: '#btnProcess', title: 'Erstes Mal dauert etwas', text: 'Beim ersten Klick wird das Video-Werkzeug geladen (~25 MB). Folgende Videos gehen sofort.', side: 'top' }
+      { target: "#dropzone", title: "Video ablegen", text: "Lege ein Video ab. Auch große Dateien bleiben auf deinem Gerät und werden nicht hochgeladen.", side: "bottom" },
+      { target: ".preset-grid", fallback: "#dropzone", title: "Zielgröße wählen", text: "WhatsApp spart am meisten. Mail ist ein guter Standard. Web hält mehr Schärfe für Webseiten oder Social Media.", side: "left" },
+      { target: "#btnProcess", fallback: "#dropzone", title: "Komprimieren starten", text: "Beim ersten Mal lädt dein Browser das Videowerkzeug. Danach wird das Video lokal kleiner gerechnet.", side: "top" },
+      { target: "#result", fallback: "#dropzone", title: "Kleineres Video speichern", text: "Am Ende siehst du die Ersparnis und kannst die neue Videodatei herunterladen.", side: "top" }
     ];
 
     const state = { file: null, outBlob: null, crf: 28, scale: 1280 };

@@ -150,9 +150,10 @@
   <script src="/shared/shell.js"></script>
   <script>
     window.__tutorial = [
-      { target: '#dropzone', title: 'CSV ablegen', text: 'Du kannst aus Excel als CSV exportieren (Datei → Speichern unter → CSV). Wir erkennen das Trennzeichen automatisch (Komma, Strichpunkt oder Tab) und auch deutsche Umlaute.', side: 'bottom' },
-      { target: '#filterInput', title: 'Filtern', text: 'Tippe einen Suchbegriff — alle Zeilen die das Wort irgendwo enthalten bleiben sichtbar.', side: 'bottom' },
-      { target: '#btnExport', title: 'Speichern', text: 'Bereinigte/gefilterte Tabelle als neue CSV-Datei speichern. Kannst du direkt wieder in Excel öffnen.', side: 'left' }
+      { target: "#dropzone", title: "Tabelle öffnen", text: "Lege eine CSV- oder Excel-Datei ab. Das Werkzeug erkennt die Spalten automatisch, auch wenn die Datei mit Semikolon statt Komma gespeichert wurde.", side: "bottom" },
+      { target: "#filterInput", fallback: "#dropzone", title: "Zeilen schnell finden", text: "Tippe oben ein Wort oder eine Zahl ein. Es bleiben nur die Zeilen sichtbar, in denen dieser Inhalt vorkommt.", side: "bottom" },
+      { target: "#btnTrimWhitespace", fallback: "#dropzone", title: "Tabelle aufräumen", text: "Mit den Bereinigen-Buttons entfernst du Leerzeichen, leere Zeilen oder doppelte Einträge. Gut vor dem Weitergeben oder Importieren.", side: "left" },
+      { target: "#btnExport", fallback: "#dropzone", title: "Neue Datei speichern", text: "Wähle CSV oder Excel und speichere die bereinigte Tabelle als neue Datei. Die Originaldatei bleibt unverändert.", side: "left" }
     ];
 
     const state = { file: null, headers: [], rows: [], filtered: [], sortCol: null, sortDir: 1 };
