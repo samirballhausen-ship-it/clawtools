@@ -508,6 +508,8 @@
     try {
       if (!global.Mappe) await loadScript('/shared/mappe.js');
       if (global.Mappe && !global.Mappe.UI) await loadScript('/shared/mappe-ui.js');
+      if (!global.Suggestions) await loadScript('/shared/suggestions.js');
+      if (!global.MappeGrouped) await loadScript('/shared/mappe-grouped.js');
       if (global.Mappe && global.Mappe.UI) {
         const rightCluster = document.querySelector('.app-header .header-right');
         if (rightCluster) global.Mappe.UI.injectHeaderIcon(rightCluster);

@@ -56,8 +56,9 @@
       <div class="hub-dropzone-hint">PDF · Bilder · Video · Word · Tabellen</div>
     </section>
 
-    <!-- File-Library — sichtbar wenn Mappe nicht-leer -->
-    <section class="hub-library" id="hubLibrary" aria-label="Deine Dateien">
+    <!-- Smart-Mappe — sichtbar wenn Mappe nicht-leer. Gruppiert nach Datei-Typ
+         mit kontextuellen Vorschlägen direkt unter jeder Gruppe. -->
+    <section class="hub-library" id="hubLibrary" aria-label="Deine Dateien und Vorschläge">
       <div class="hub-library-head">
         <h3 class="hub-library-title">Deine Mappe <strong id="hubLibraryCount">0</strong> Dateien</h3>
         <div class="hub-library-meta">
@@ -65,7 +66,7 @@
           <button class="hub-library-clear" id="hubLibraryClear" type="button">Alles löschen</button>
         </div>
       </div>
-      <div class="hub-library-grid" id="hubLibraryGrid"></div>
+      <div class="mg-container" id="hubLibraryGrid"></div>
     </section>
 
     <!-- Featured Card: PDF-Splitter -->
@@ -483,6 +484,26 @@
           const totalSize = files.reduce((s, f) => s + (f.size || 0), 0);
           librarySize.textContent = Mappe.formatBytes(totalSize);
 
+          // Smart-Mappe: Gruppen + Vorschläge pro Datei-Typ
+          if (window.MappeGrouped) {
+            MappeGrouped.render(libraryGrid, files, {
+              onSuggestionClick: (tool, fileIds) => {
+                const url = new URL('/' + tool + '/', window.location.origin);
+                url.searchParams.set('from', 'mappe');
+                url.searchParams.set('ids', fileIds.join(','));
+                const word = fileIds.length === 1 ? 'Datei wird mitgenommen' : 'Dateien werden mitgenommen';
+                Shell.Toast.show(`${fileIds.length} ${word}…`);
+                setTimeout(() => { window.location.href = url.toString(); }, 220);
+              },
+              onFileRemove: async (id) => {
+                await Mappe.deleteFile(id);
+                Shell.Toast.show('Aus Mappe entfernt');
+              }
+            });
+            return;
+          }
+
+          // Fallback wenn MappeGrouped nicht geladen — flat list
           while (libraryGrid.firstChild) libraryGrid.removeChild(libraryGrid.firstChild);
           for (const f of files) {
             libraryGrid.appendChild(buildLibraryCard(f));

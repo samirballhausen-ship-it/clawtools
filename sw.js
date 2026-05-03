@@ -1,8 +1,8 @@
 // CLAWBUIS Tools Service Worker — network-first für HTML, cache-first für statische CDN-Libs
-// VERSION 4 — Hub-Redesign (Drop-Zone-Hero + Library-Grid + Tool-Counters + Auto-Load via URL).
-//             Cache-Bump damit Browser den neuen Code lädt.
-//             IndexedDB (Mappe-Files) überlebt — separater Storage-Bereich, nicht vom SW-Cache betroffen.
-const CACHE_VERSION = 'clawtools-v4-2026-05-03-mappe-hub-v2';
+// VERSION 5 — Smart-Mappe: Typ-Gruppen + kontextuelle Vorschläge pro Gruppe.
+//             Plus PWA-Icon-Fix (Base Arc / Halbkreis unten ergänzt).
+//             IndexedDB (Mappe-Files) überlebt — separater Storage-Bereich.
+const CACHE_VERSION = 'clawtools-v5-2026-05-03-smart-mappe';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const LIB_CACHE = `${CACHE_VERSION}-lib`;
 

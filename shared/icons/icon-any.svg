@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <!-- Any-Purpose PWA Icon — 5 Claws + Base Arc + Sprout, less padding than maskable -->
+  <rect width="100" height="100" fill="#ffffff"/>
+
+  <g transform="translate(15, 7)" fill="none" stroke="#0a0a0a" stroke-linecap="round">
+    <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.4"/>
+    <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.6"/>
+    <path d="M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3" stroke-width="2.8"/>
+    <path d="M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4" stroke-width="2.6"/>
+    <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2.2"/>
+
+    <path d="M 18 56 C 20 62, 26 66, 32 66 C 38 66, 44 62, 46 56"
+          stroke="#c29b62" stroke-width="2.2" opacity="0.85"/>
+  </g>
+  <circle cx="47" cy="63" r="2.8" fill="#15803d"/>
+</svg>
