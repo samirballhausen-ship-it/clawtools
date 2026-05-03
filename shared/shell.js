@@ -605,22 +605,6 @@
     ensure('link', { rel: 'apple-touch-icon', sizes: '152x152', href: '/shared/icons/apple-touch-icon-152.png' });
   }
 
-  let deferredInstallPrompt = null;
-
-  // BUG-PWA-001 v4: Listener REGISTRIEREN sobald shell.js läuft — nicht erst
-  // in setupPWA() das in DOMContentLoaded läuft. Sonst kann das Event
-  // zwischen Page-Load und DOMContentLoaded verloren gehen.
-  if (typeof window !== 'undefined') {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      console.log('[PWA] beforeinstallprompt captured — install ready');
-      if (!document.querySelector('.pwa-install-header') && !document.querySelector('.pwa-install-btn')) {
-        // Buttons evtl noch nicht gerendert — wird später in setupPWA gemacht
-      }
-    });
-  }
-
   function setupPWA(isHub) {
     // Register service worker — mit auto-reload bei Update
     if ('serviceWorker' in navigator) {
@@ -660,291 +644,73 @@
       });
     }
 
-    // beforeinstallprompt-Listener wurde bereits AM SCRIPT-START registriert
-    // (siehe oben außerhalb von setupPWA). Hier nur noch nachträglich Buttons
-    // refreshen falls Event nach Script-Load aber vor setupPWA fired.
-    if (deferredInstallPrompt && !document.querySelector('.pwa-install-header')) {
-      showInstallButton();
-    }
-
-    // Hide if already installed + persist Flag damit es auch beim nächsten
-    // Browser-Visit (nicht-Standalone-Mode) NICHT mehr erscheint
-    window.addEventListener('appinstalled', () => {
-      try { localStorage.setItem('clawtools-installed', '1'); } catch (e) {}
-      const btn = document.querySelector('.pwa-install-btn');
-      if (btn) btn.remove();
-      const headerBtn = document.querySelector('.pwa-install-header');
-      if (headerBtn) headerBtn.remove();
-      deferredInstallPrompt = null;
-      Toast.show('Als App installiert — du findest sie auf deinem Homescreen.');
-    });
-
-    // Plattform-Detection
-    const ua = navigator.userAgent;
-    const isIOS = /iPhone|iPad|iPod/.test(ua);
-    const isIOSChrome = isIOS && /CriOS/.test(ua);  // iOS Chrome = Safari-Engine, kein PWA-Install
-    const isIOSFirefox = isIOS && /FxiOS/.test(ua); // gleiches Problem
+    // BUG-PWA-001 v5: User-Wunsch — kein Install-Button, kein Modal mit
+    // Anleitung. Stattdessen ein dezenter Bottom-Banner auf dem Hub der
+    // erklärt wie man die Site als Shortcut auf den Startbildschirm legt.
+    // Wer in der bereits-installierten PWA browst (display-mode:standalone)
+    // sieht den Banner nicht.
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-
-    // BUG-PWA-001 v3: Install-Button-Visibility-Logic
-    //   1) bereits-installed-Flag (localStorage) gesetzt → Button NICHT zeigen
-    //   2) currently-standalone (PWA-Mode) → Button NICHT zeigen + Flag setzen
-    //   3) iOS Chrome/Firefox → Apple erlaubt PWA nur in Safari → Button NICHT zeigen
-    //   4) sonst → Button zeigen
-    let alreadyInstalled = false;
-    try {
-      alreadyInstalled = localStorage.getItem('clawtools-installed') === '1';
-    } catch (e) { /* localStorage block — egal */ }
-
     if (isStandalone) {
-      // User ist gerade in der installierten PWA → Flag persistieren für künftige Browser-Visits
-      try { localStorage.setItem('clawtools-installed', '1'); } catch (e) {}
-      alreadyInstalled = true;
+      try { sessionStorage.setItem('clawtools-shortcut-hint-shown', '1'); } catch (e) {}
+      return;
     }
 
-    const canShowInstall = !isStandalone && !alreadyInstalled && !isIOSChrome && !isIOSFirefox;
-    if (canShowInstall) {
-      showInstallButton();
-    }
-
-    // iOS-Hint nur in Safari (NICHT iOS Chrome) auf dem Hub
-    if (isIOS && !isIOSChrome && !isIOSFirefox && !isStandalone && isHub && !alreadyInstalled) {
-      setTimeout(() => showIOSHint(), 2500);
+    // Hint nur auf dem Hub einmal pro Browser-Session
+    if (isHub) {
+      setTimeout(() => showShortcutHint(), 2500);
     }
   }
 
-  function showInstallButton() {
-    // BUG-PWA-001: Floater + Header-Button parallel.
-    // Floater bleibt für unaufmerksame User, Header-Button macht es prominent.
+  // BUG-PWA-001 v5: KEIN Install-Button, KEIN Modal. Nur ein dezenter
+  // Bottom-Banner pro Browser-Session der Plattform-spezifisch erklärt
+  // wie man die Site als Shortcut auf den Startbildschirm legt.
+  // User-Story: User auf Hub → 2.5s warten → Banner unten → User folgt
+  // Browser-Anleitung selbst ODER schließt mit ×.
+  function showShortcutHint() {
+    try {
+      if (sessionStorage.getItem('clawtools-shortcut-hint-shown')) return;
+    } catch (e) { /* sessionStorage block — egal */ }
+    if (document.querySelector('.pwa-ios-hint')) return;
+    try { sessionStorage.setItem('clawtools-shortcut-hint-shown', '1'); } catch (e) {}
 
-    // Header-Button: dezent, custom-SVG (Bildschirm + Pfeil-Down-In)
-    const rightCluster = document.querySelector('.app-header .header-right');
-    if (rightCluster && !rightCluster.querySelector('.pwa-install-header')) {
-      const headerBtn = el('button', {
-        class: 'pwa-install-header',
-        attrs: { type: 'button', title: 'Als App installieren — auf Homescreen ablegen', 'aria-label': 'Als App installieren' },
-        on: { click: () => triggerInstall() }
-      });
-      const ico = el('span', { class: 'pwa-install-header-icon', attrs: { 'aria-hidden': 'true' } });
-      ico.appendChild(parseSVG(`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2.5" y="3" width="15" height="11" rx="1.5"/>
-        <line x1="2.5" y1="11" x2="17.5" y2="11"/>
-        <line x1="7" y1="17" x2="13" y2="17"/>
-        <line x1="10" y1="14" x2="10" y2="17"/>
-        <path d="M10 5.5v3.5"/>
-        <polyline points="8.2,7.3 10,9 11.8,7.3"/>
-      </svg>`));
-      headerBtn.appendChild(ico);
-      headerBtn.appendChild(el('span', { class: 'pwa-install-header-label', text: 'Als App' }));
-      // Insert before the meta cluster (after Mappe-trigger if present)
-      const meta = rightCluster.querySelector('.header-meta');
-      if (meta) rightCluster.insertBefore(headerBtn, meta);
-      else rightCluster.appendChild(headerBtn);
-    }
-
-    // Floater bleibt parallel
-    if (document.querySelector('.pwa-install-btn')) return;
-    const btn = el('button', {
-      class: 'pwa-install-btn',
-      attrs: { type: 'button', 'aria-label': 'Als App auf Homescreen installieren' },
-      on: { click: () => triggerInstall() }
-    });
-    const floatIco = el('span', { class: 'pwa-install-btn-icon', attrs: { 'aria-hidden': 'true' } });
-    floatIco.appendChild(parseSVG(`<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2.5" y="3" width="15" height="11" rx="1.5"/>
-      <line x1="2.5" y1="11" x2="17.5" y2="11"/>
-      <line x1="7" y1="17" x2="13" y2="17"/>
-      <line x1="10" y1="14" x2="10" y2="17"/>
-      <path d="M10 5.5v3.5"/>
-      <polyline points="8.2,7.3 10,9 11.8,7.3"/>
-    </svg>`));
-    btn.appendChild(floatIco);
-    btn.appendChild(document.createTextNode(' Als App installieren'));
-    document.body.appendChild(btn);
-  }
-
-  async function triggerInstall() {
-    // BUG-PWA-001 v4: Diagnostic-Mode für User-Debugging.
-    // Alle Plattform-Werte werden geloggt damit User in DevTools-Console
-    // sehen kann WARUM Native-Prompt nicht kommt.
     const ua = navigator.userAgent;
     const isIOS = /iPhone|iPad|iPod/.test(ua) ||
                   (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
     const isIOSChrome = isIOS && /CriOS/.test(ua);
-    const isAndroidChrome = /Android/.test(ua) && /Chrome/.test(ua);
-    const hasShare = typeof navigator.share === 'function';
-    const hasPrompt = !!deferredInstallPrompt;
-
-    console.log('[PWA Install Debug]', {
-      hasNativePrompt: hasPrompt,
-      hasWebShare: hasShare,
-      isIOS, isIOSChrome, isAndroidChrome,
-      ua: ua.slice(0, 80) + (ua.length > 80 ? '…' : '')
-    });
-
-    // Pfad 1: Nativer Chrome/Edge/Android-Prompt (das was User möchte)
-    if (deferredInstallPrompt) {
-      await runNativeInstallPrompt();
-      return;
-    }
-
-    // Pfad 2: iOS Safari → Share-Sheet (NICHT auf iOS Chrome — dort hat
-    // Share-Sheet keine "Zum-Home-Bildschirm"-Option)
-    if (isIOS && !isIOSChrome && hasShare) {
-      try {
-        await navigator.share({
-          title: 'CLAWBUIS Tools',
-          text: 'Werkzeuge die deinen Alltag entlasten — alles im Browser',
-          url: (window.location.origin || 'https://tools.clawbuis.com') + '/'
-        });
-        Toast.show('Im Menü unten "Zum Home-Bildschirm" wählen.');
-        return;
-      } catch (e) {
-        if (e && e.name === 'AbortError') return;
-        console.warn('[PWA] share failed, falling back:', e);
-      }
-    }
-
-    // Pfad 3: Wait kurz auf beforeinstallprompt (manchmal asynchron auch nach Klick)
-    let waited = 0;
-    while (!deferredInstallPrompt && waited < 1500) {
-      await new Promise(r => setTimeout(r, 50));
-      waited += 50;
-    }
-    if (deferredInstallPrompt) {
-      await runNativeInstallPrompt();
-      return;
-    }
-
-    // Pfad 4: Kein nativer Pfad möglich → klare Toast-Erklärung WARUM,
-    // dann Modal mit Anleitung. So weiß User dass es nicht an ihm liegt.
-    let reason = 'Dein Browser bietet keinen direkten Install-Knopf.';
-    if (isAndroidChrome) {
-      reason = 'Chrome zeigt den Install-Knopf erst nach kurzer Nutzung — oder wenn die App nicht in den letzten 90 Tagen abgelehnt wurde.';
-    } else if (isIOSChrome) {
-      reason = 'iOS Chrome unterstützt keine App-Installation — bitte in Safari öffnen.';
-    } else if (isIOS && !hasShare) {
-      reason = 'Dein iOS-Browser bietet kein Teilen-Menü hier — Anleitung folgt.';
-    }
-    Toast.show(reason, true);
-    setTimeout(() => showInstallModal(), 600);
-  }
-
-  async function runNativeInstallPrompt() {
-    try {
-      deferredInstallPrompt.prompt();
-      const choice = await deferredInstallPrompt.userChoice;
-      if (choice && choice.outcome === 'accepted') {
-        document.querySelectorAll('.pwa-install-btn, .pwa-install-header').forEach(b => b.remove());
-      }
-    } catch (e) {
-      console.warn('[pwa] native prompt failed:', e);
-    }
-    deferredInstallPrompt = null;
-  }
-
-  // Plattform-spezifisches Install-Modal — nur Custom-SVG-Icons, kein Emoji.
-  function showInstallModal() {
-    const ua = navigator.userAgent;
-    const isIOS = /iPhone|iPad|iPod/.test(ua);
-    const isMac = /Macintosh/.test(ua) && !isIOS;
     const isAndroid = /Android/.test(ua);
-    const isFirefox = /Firefox/.test(ua);
 
-    let title, steps;
-    if (isIOS) {
-      title = 'Auf iPhone/iPad';
-      steps = [
-        'Tippe unten in Safari auf das Teilen-Symbol — das Quadrat mit dem Pfeil nach oben.',
-        'Wische in der Liste nach unten zu „Zum Home-Bildschirm".',
-        'Bestätige oben rechts mit „Hinzufügen". Die App liegt jetzt wie eine native App auf deinem Home-Bildschirm.'
+    // Plattform-Anleitung als DOM-Fragmente — keine innerHTML-Risiken
+    let titleText, bodyParts;
+    if (isIOS && !isIOSChrome) {
+      titleText = 'Als App auf Homescreen';
+      bodyParts = [
+        { text: 'Tippe auf ' },
+        { strong: 'Teilen' },
+        { text: ' (Quadrat mit Pfeil unten) → ' },
+        { strong: 'Zum Home-Bildschirm' },
+        { text: ' → fertig.' }
+      ];
+    } else if (isIOSChrome) {
+      titleText = 'Als App auf Homescreen';
+      bodyParts = [
+        { text: 'In iOS Chrome leider nicht möglich. Bitte ' },
+        { strong: 'in Safari öffnen' },
+        { text: ' und dort über Teilen → Zum Home-Bildschirm.' }
       ];
     } else if (isAndroid) {
-      title = 'Auf Android';
-      steps = [
-        'Tippe oben rechts auf das Drei-Punkte-Menü.',
-        'Wähle „App installieren" oder „Zum Startbildschirm hinzufügen".',
-        'Bestätige die Installation. Die App startet danach wie eine native App.'
-      ];
-    } else if (isMac) {
-      title = 'Auf macOS';
-      steps = [
-        'Klicke in der Safari-Adresszeile rechts auf das Teilen-Symbol oder im Menü auf Datei → „Zum Dock hinzufügen".',
-        'In Chrome: rechts in der Adresszeile auf das Install-Symbol — der kleine Bildschirm mit Pfeil-nach-unten.',
-        'Bestätige mit „Installieren".'
-      ];
-    } else if (isFirefox) {
-      title = 'Auf Firefox';
-      steps = [
-        'Firefox unterstützt App-Installation aktuell nicht direkt.',
-        'Setze stattdessen ein Lesezeichen in der Lesezeichen-Leiste — dann ist die Seite einen Klick weit weg.',
-        'Für volle App-Erfahrung: Chrome, Edge oder Safari nutzen.'
+      titleText = 'Als App auf Startbildschirm';
+      bodyParts = [
+        { text: 'Tippe auf das ' },
+        { strong: 'Drei-Punkte-Menü' },
+        { text: ' oben rechts → ' },
+        { strong: 'Zum Startbildschirm hinzufügen' },
+        { text: ' → fertig.' }
       ];
     } else {
-      title = 'Im Browser';
-      steps = [
-        'Klicke rechts in der Adresszeile auf das Install-Symbol — meist ein kleiner Bildschirm mit Pfeil.',
-        'Oder im Menü auf „App installieren" / „Auf Homescreen ablegen".',
-        'Bestätige die Installation.'
-      ];
+      // Desktop oder unbekannt — zeige nichts, da der Hinweis dort weniger sinnvoll ist
+      return;
     }
 
-    const backdrop = el('div', {
-      class: 'pwa-modal-backdrop',
-      on: { click: (e) => { if (e.target === backdrop) closePwaModal(); } }
-    });
-    const dialog = el('div', {
-      class: 'pwa-modal-dialog',
-      attrs: { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Als App installieren' }
-    });
-
-    const head = el('div', { class: 'pwa-modal-head' });
-    const eyebrow = el('div', { class: 'pwa-modal-eyebrow' });
-    const eyebrowIcon = el('span', { class: 'pwa-modal-eyebrow-icon', attrs: { 'aria-hidden': 'true' } });
-    eyebrowIcon.appendChild(parseSVG('<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="3" width="15" height="11" rx="1.5"/><line x1="2.5" y1="11" x2="17.5" y2="11"/><line x1="7" y1="17" x2="13" y2="17"/><line x1="10" y1="14" x2="10" y2="17"/><path d="M10 5.5v3.5"/><polyline points="8.2,7.3 10,9 11.8,7.3"/></svg>'));
-    eyebrow.appendChild(eyebrowIcon);
-    eyebrow.appendChild(document.createTextNode('Als App installieren'));
-    head.appendChild(eyebrow);
-    head.appendChild(el('h3', { class: 'pwa-modal-title', text: title }));
-    head.appendChild(el('p', { class: 'pwa-modal-sub', text: 'Vorteil: liegt wie eine native App auf deinem Gerät, funktioniert offline, kein App-Store nötig — und bleibt 100 % lokal.' }));
-    dialog.appendChild(head);
-
-    const list = el('ol', { class: 'pwa-modal-steps' });
-    steps.forEach((s, idx) => {
-      const li = el('li', { class: 'pwa-modal-step' });
-      const num = el('span', { class: 'pwa-modal-step-num', text: String(idx + 1).padStart(2, '0') });
-      const txt = el('span', { class: 'pwa-modal-step-text', text: s });
-      li.appendChild(num);
-      li.appendChild(txt);
-      list.appendChild(li);
-    });
-    dialog.appendChild(list);
-
-    const closeBtn = el('button', {
-      class: 'pwa-modal-close',
-      attrs: { type: 'button' },
-      text: 'Verstanden',
-      on: { click: closePwaModal }
-    });
-    dialog.appendChild(closeBtn);
-
-    backdrop.appendChild(dialog);
-    document.body.appendChild(backdrop);
-    requestAnimationFrame(() => backdrop.classList.add('show'));
-
-    function closePwaModal() {
-      backdrop.classList.remove('show');
-      setTimeout(() => backdrop.remove(), 220);
-      document.removeEventListener('keydown', escHandler);
-    }
-    function escHandler(e) { if (e.key === 'Escape') closePwaModal(); }
-    document.addEventListener('keydown', escHandler);
-  }
-
-  function showIOSHint() {
-    if (sessionStorage.getItem('clawtools-ios-hint-shown')) return;
-    if (document.querySelector('.pwa-ios-hint')) return;
-    sessionStorage.setItem('clawtools-ios-hint-shown', '1');
     const card = el('div', { class: 'pwa-ios-hint' });
     const close = el('button', {
       class: 'pwa-ios-hint-close',
@@ -952,13 +718,12 @@
       text: '×',
       on: { click: () => card.remove() }
     });
-    const title = el('div', { class: 'pwa-ios-hint-title', text: 'Als App auf Homescreen' });
+    const title = el('div', { class: 'pwa-ios-hint-title', text: titleText });
     const body = el('div', { class: 'pwa-ios-hint-body' });
-    body.appendChild(document.createTextNode('Tippe auf '));
-    body.appendChild(el('strong', { text: 'Teilen' }));
-    body.appendChild(document.createTextNode(' (das Quadrat mit Pfeil) und dann auf '));
-    body.appendChild(el('strong', { text: 'Zum Home-Bildschirm' }));
-    body.appendChild(document.createTextNode('. Schon hast du Tools immer griffbereit.'));
+    bodyParts.forEach(part => {
+      if (part.text) body.appendChild(document.createTextNode(part.text));
+      if (part.strong) body.appendChild(el('strong', { text: part.strong }));
+    });
     card.appendChild(close);
     card.appendChild(title);
     card.appendChild(body);

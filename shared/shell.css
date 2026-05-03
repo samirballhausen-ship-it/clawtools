@@ -2,33 +2,7 @@
  * Header · Footer · Cosmos · Privacy · Tour · Hub-Tiles · Tool-Workshop · PWA
  */
 
-/* ─── PWA Install Button & iOS Hint ─────────────────── */
-.pwa-install-btn {
-  position: fixed;
-  bottom: 20px; right: 20px;
-  z-index: 100;
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 18px;
-  background: var(--magic, #15803d);
-  color: white;
-  border: none;
-  border-radius: 999px;
-  font-family: var(--font-body);
-  font-size: 14px; font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.pwa-install-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-.pwa-install-btn:active { transform: translateY(0); }
-.pwa-install-btn span { font-size: 18px; line-height: 1; }
-@media (max-width: 768px) {
-  .pwa-install-btn { bottom: 16px; right: 16px; left: 16px; justify-content: center; }
-}
-
+/* ─── PWA Shortcut-Hint (Bottom-Banner mit Plattform-Anleitung) ─── */
 .pwa-ios-hint {
   position: fixed;
   bottom: 20px; left: 16px; right: 16px;
@@ -2557,50 +2531,6 @@ html, body {
   flex-shrink: 0;
 }
 
-/* ─── PWA Install Header-Button (BUG-PWA-001) ─────────────── */
-.pwa-install-header {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  height: 32px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-pill);
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s var(--ease);
-}
-.pwa-install-header:hover {
-  border-color: var(--magic);
-  color: var(--magic);
-  background: var(--magic-soft);
-}
-.pwa-install-header-icon {
-  display: inline-flex;
-  width: 16px; height: 16px;
-  flex-shrink: 0;
-}
-.pwa-install-header-icon svg { width: 100%; height: 100%; }
-.pwa-install-header-label { display: inline; }
-@media (max-width: 540px) {
-  .pwa-install-header { padding: 6px 8px; }
-  .pwa-install-header-label { display: none; }
-}
-
-/* Floater install button: refined icon */
-.pwa-install-btn-icon {
-  display: inline-flex;
-  width: 18px; height: 18px;
-  margin-right: 2px;
-}
-.pwa-install-btn-icon svg { width: 100%; height: 100%; }
-
 /* ─── Mappe-Picker-Modal (BUG-MAPPE-002 N>1 Fix) ──────────── */
 .mappe-picker-backdrop {
   position: fixed; inset: 0;
@@ -2820,100 +2750,6 @@ html, body {
 .mg-pill .mg-pill-text {
   flex: 1;
   text-align: left;
-}
-
-/* ─── PWA Install-Modal (Plattform-Anleitung wenn kein nativer Prompt) ─── */
-.pwa-modal-backdrop {
-  position: fixed; inset: 0; z-index: 1000;
-  background: rgba(10,10,10,0.55);
-  backdrop-filter: blur(6px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 24px;
-  opacity: 0;
-  transition: opacity 0.22s var(--ease);
-}
-.pwa-modal-backdrop.show { opacity: 1; }
-.pwa-modal-dialog {
-  background: var(--bg);
-  width: 100%;
-  max-width: 520px;
-  max-height: 88vh;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  box-shadow: 0 24px 64px -16px rgba(10,10,10,0.4);
-  transform: translateY(8px);
-  transition: transform 0.32s var(--ease-spring);
-  padding: 32px 32px 24px;
-}
-.pwa-modal-backdrop.show .pwa-modal-dialog { transform: translateY(0); }
-
-.pwa-modal-eyebrow {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-  color: var(--magic);
-  font-weight: 500;
-  margin-bottom: 14px;
-}
-.pwa-modal-eyebrow-icon { display: inline-flex; width: 18px; height: 18px; flex-shrink: 0; }
-.pwa-modal-eyebrow-icon svg { width: 100%; height: 100%; }
-
-.pwa-modal-title {
-  font-family: var(--font-heading);
-  font-size: 28px; font-weight: 300;
-  letter-spacing: -0.025em;
-  color: var(--ink);
-  margin-bottom: 8px;
-}
-.pwa-modal-sub {
-  font-size: 14px; color: var(--ink-2);
-  line-height: 1.55;
-  margin-bottom: 24px;
-}
-
-.pwa-modal-steps {
-  list-style: none;
-  padding: 0; margin: 0 0 24px;
-  display: flex; flex-direction: column;
-  gap: 14px;
-}
-.pwa-modal-step {
-  display: flex; gap: 14px;
-  padding: 14px 16px;
-  background: var(--surf);
-  border-left: 3px solid var(--magic);
-}
-.pwa-modal-step-num {
-  font-family: var(--font-mono);
-  font-size: 13px; font-weight: 600;
-  color: var(--magic);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-  letter-spacing: 0.04em;
-}
-.pwa-modal-step-text {
-  font-size: 14px;
-  color: var(--ink);
-  line-height: 1.55;
-}
-
-.pwa-modal-close {
-  display: block;
-  width: 100%;
-  padding: 12px 18px;
-  background: var(--ink);
-  color: white;
-  border: 1px solid var(--ink);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.18s var(--ease);
-}
-.pwa-modal-close:hover { background: #1a1a1a; }
-@media (max-width: 520px) {
-  .pwa-modal-dialog { padding: 24px 22px 20px; }
-  .pwa-modal-title { font-size: 22px; }
 }
 
 /* ─── BUG-RESET-001: Card-Head Reset-Button (always visible in editor) ─── */
