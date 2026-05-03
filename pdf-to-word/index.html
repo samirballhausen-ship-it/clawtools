@@ -149,6 +149,7 @@
     async function loadFile(file) {
       try {
         state.file = file;
+        Shell.saveToMappe(file, 'pdf-to-word');
         const buf = await file.arrayBuffer();
         const pdfJsDoc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
         state.pages = [];
@@ -363,6 +364,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'PDF · ZU WORD', tour: true, toolName: 'PDF zu Word' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['application/pdf'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>

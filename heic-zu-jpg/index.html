@@ -384,6 +384,7 @@
           id: state.nextId++, file, name: file.name, size: file.size,
           state: 'queued', progress: 0, error: null, _result: null
         });
+        Shell.saveToMappe(file, 'heic-zu-jpg');
         added++;
       }
       if (alreadyJpg > 0 && added === 0) {
@@ -576,6 +577,12 @@
     // ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'HEIC · JPG', tour: true, toolName: 'HEIC zu JPG' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['image/*'],
+          onPick: (file) => addFiles([file])
+        });
+      });
       render();
       const params = new URLSearchParams(window.location.search);
       if (params.get('from') === 'hub') {

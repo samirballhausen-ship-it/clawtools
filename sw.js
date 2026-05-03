@@ -1,6 +1,7 @@
 // CLAWBUIS Tools Service Worker — network-first für HTML, cache-first für statische CDN-Libs
-// VERSION 2 — bumpt Cache komplett, fixt "ich sehe alte Version"-Bug.
-const CACHE_VERSION = 'clawtools-v2-2026-05-03';
+// VERSION 3 — Datei-Mappe (IndexedDB) shipped. Cache-Bump damit Browser den neuen Code lädt.
+//             IndexedDB-Daten überleben den Cache-Clear (separater Storage-Bereich).
+const CACHE_VERSION = 'clawtools-v3-2026-05-03-mappe';
 const SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const LIB_CACHE = `${CACHE_VERSION}-lib`;
 

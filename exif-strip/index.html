@@ -450,6 +450,7 @@
           _result: null
         };
         state.files.push(entry);
+        Shell.saveToMappe(file, 'exif-strip');
         added++;
         checkExif(entry).catch((e) => {
           console.error(`[exif-strip] checkExif fail [${entry.name}]`, e);
@@ -590,6 +591,12 @@
     // ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'EXIF · STRIP', tour: true, toolName: 'EXIF entfernen' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['image/*'],
+          onPick: (file) => addFiles([file])
+        });
+      });
       render();
       const params = new URLSearchParams(window.location.search);
       if (params.get('from') === 'hub') {

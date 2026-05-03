@@ -291,6 +291,7 @@
           thumbUrl: URL.createObjectURL(file), dimensions: null
         };
         state.files.push(entry);
+        Shell.saveToMappe(file, 'images-to-pdf');
         // Probe dimensions
         const im = new Image();
         im.onload = () => {
@@ -449,6 +450,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'BILD · ZU PDF', tour: true, toolName: 'Bilder zu PDF' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['image/jpeg', 'image/png', 'image/webp'],
+          onPick: (file) => addFiles([file])
+        });
+      });
       render();
     });
   </script>

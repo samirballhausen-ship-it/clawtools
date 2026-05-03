@@ -372,6 +372,7 @@
           state: 'queued', error: null, outSize: null, _result: null,
           thumbUrl: URL.createObjectURL(file)
         });
+        Shell.saveToMappe(file, 'images-compress');
         added++;
       }
       if (skipped > 0 && added === 0) Shell.Toast.show('Nur JPG/PNG/WebP', true);
@@ -498,6 +499,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'BILD · KOMPRIMIEREN', tour: true, toolName: 'Bilder komprimieren' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['image/*'],
+          onPick: (file) => addFiles([file])
+        });
+      });
       render();
       const params = new URLSearchParams(window.location.search);
       if (params.get('from') === 'hub') {

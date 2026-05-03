@@ -161,6 +161,7 @@
 
     async function load(file) {
       state.file = file;
+      Shell.saveToMappe(file, 'csv-edit');
       const isExcel = /\.(xlsx|xls|xlsm)$/i.test(file.name);
       try {
         if (isExcel) {
@@ -377,6 +378,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'CSV · EDITOR', tour: true, toolName: 'CSV bearbeiten' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+          onPick: (file) => load(file)
+        });
+      });
     });
   </script>
 </body>

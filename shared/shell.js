@@ -190,7 +190,8 @@
      'Keine Cookies, kein Tracking, keine Analytics.',
      'Keine Server-Logs zu Datei-Inhalten — die Seite ist statisches HTML.',
      'Externe Bibliotheken werden über öffentliche CDNs (jsdelivr, cdnjs) geladen — diese sehen nur die Anfrage nach den JS-Dateien selbst, niemals deine Daten.',
-     'Mit Schließen des Tabs werden alle geladenen Dateien aus dem Speicher entfernt.'
+     'Mit Schließen des Tabs werden alle geladenen Dateien aus dem Speicher entfernt.',
+     'Datei-Mappe: liegt nur in deinem Browser (IndexedDB), wird nie übertragen. Du kannst sie jederzeit über das Mappe-Symbol oben rechts komplett leeren.'
     ].forEach(t => ul.appendChild(el('li', { text: t })));
     body.appendChild(ul);
 
@@ -494,6 +495,37 @@
   }
 
   // ────────────────────────────────────────────────
+  // Datei-Mappe — Auto-Load & Header-Icon
+  // Mappe-Scripts werden dynamisch nachgeladen, damit Tools sie nicht
+  // einzeln einbinden müssen. Falls bereits geladen (z.B. test-harness),
+  // skippt loadScript via Cache-Check.
+  // ────────────────────────────────────────────────
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[data-src="${src}"]`)) return resolve();
+      const s = document.createElement('script');
+      s.src = src;
+      s.dataset.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function setupMappeUI() {
+    try {
+      if (!global.Mappe) await loadScript('/shared/mappe.js');
+      if (global.Mappe && !global.Mappe.UI) await loadScript('/shared/mappe-ui.js');
+      if (global.Mappe && global.Mappe.UI) {
+        const rightCluster = document.querySelector('.app-header .header-right');
+        if (rightCluster) global.Mappe.UI.injectHeaderIcon(rightCluster);
+      }
+    } catch (e) {
+      console.warn('[shell] Mappe load failed:', e);
+    }
+  }
+
+  // ────────────────────────────────────────────────
   // Init
   // ────────────────────────────────────────────────
   function init(opts = {}) {
@@ -502,6 +534,7 @@
       tour: opts.tour !== false,
       privacy: opts.privacy !== false,
       footer: opts.footer !== false,
+      mappe: opts.mappe !== false,
       toolName: opts.toolName || ''
     };
     injectPWAMeta();
@@ -515,6 +548,7 @@
       }
     }
     setupPWA(opts.isHub);
+    if (cfg.mappe) setupMappeUI();
   }
 
   // ────────────────────────────────────────────────
@@ -651,7 +685,43 @@
   }
 
   // ────────────────────────────────────────────────
+  // whenMappeReady — for tools to wire Mappe-Dropzone-Alt + auto-save
+  //
+  // Usage in a tool's DOMContentLoaded:
+  //   Shell.whenMappeReady((Mappe) => {
+  //     Mappe.UI.injectDropzoneAlternative(dropzone, {
+  //       accept: ['application/pdf'],
+  //       onPick: (file) => addFiles([file])
+  //     });
+  //   });
+  // ────────────────────────────────────────────────
+  function whenMappeReady(callback, timeoutMs = 4000) {
+    const start = Date.now();
+    function poll() {
+      if (global.Mappe && global.Mappe.UI) {
+        try { callback(global.Mappe); } catch (e) { console.warn('[shell] whenMappeReady cb error:', e); }
+        return;
+      }
+      if (Date.now() - start > timeoutMs) return;
+      setTimeout(poll, 50);
+    }
+    poll();
+  }
+
+  // saveToMappe — convenience for tools: store a validated file in Mappe.
+  // Silently no-ops if Mappe isn't loaded (graceful degrade).
+  async function saveToMappe(file, sourceTool) {
+    if (!global.Mappe || typeof global.Mappe.addFile !== 'function') return null;
+    try {
+      return await global.Mappe.addFile(file, sourceTool);
+    } catch (e) {
+      console.warn('[shell] saveToMappe failed:', e);
+      return null;
+    }
+  }
+
+  // ────────────────────────────────────────────────
   // Public API
   // ────────────────────────────────────────────────
-  global.Shell = { init, Toast, Tour, parseSVG, el };
+  global.Shell = { init, Toast, Tour, parseSVG, el, whenMappeReady, saveToMappe };
 })(window);

@@ -438,6 +438,7 @@
           pages: null, error: null, _buffer: null
         };
         state.files.push(entry);
+        Shell.saveToMappe(file, 'pdf-merger');
         added++;
         probePages(entry).catch((e) => {
           console.error(`[pdf-merger] probePages fail [${entry.name}]`, e);
@@ -667,6 +668,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'PDF · MERGER', tour: true, toolName: 'PDF Merger' });
       render();
+
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['application/pdf'],
+          onPick: (file) => addFiles([file])
+        });
+      });
 
       // Pre-fill banner if from hub
       const params = new URLSearchParams(window.location.search);

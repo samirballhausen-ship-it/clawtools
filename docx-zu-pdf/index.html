@@ -138,6 +138,7 @@
         const buf = await file.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer: buf });
         state.file = file;
+        Shell.saveToMappe(file, 'docx-zu-pdf');
 
         // Sanitize mammoth output via DOMPurify, return as DocumentFragment (safe DOM)
         const safeFragment = DOMPurify.sanitize(result.value, {
@@ -279,6 +280,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'DOCX · PDF', tour: true, toolName: 'DOCX zu PDF' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>

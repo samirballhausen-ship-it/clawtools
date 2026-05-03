@@ -221,6 +221,7 @@
     async function loadFile(file) {
       try {
         state.file = file;
+        Shell.saveToMappe(file, 'pdf-sign');
         state.buffer = await file.arrayBuffer();
         const pdfJsDoc = await pdfjsLib.getDocument({ data: state.buffer.slice(0) }).promise;
         state.pages = [];
@@ -413,6 +414,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'PDF · SIGNIEREN', tour: true, toolName: 'PDF signieren' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['application/pdf'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>

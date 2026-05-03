@@ -176,6 +176,7 @@
 
     async function loadFile(file) {
       state.file = file;
+      Shell.saveToMappe(file, 'bg-remove');
       if (state.origUrl) URL.revokeObjectURL(state.origUrl);
       state.origUrl = URL.createObjectURL(file);
       $('origPreview').src = state.origUrl;
@@ -281,6 +282,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'BG · REMOVE', tour: true, toolName: 'Hintergrund entfernen' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['image/*'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>

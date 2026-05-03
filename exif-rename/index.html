@@ -366,6 +366,7 @@
           thumbUrl: /\.(jpe?g|png|webp|gif)$/i.test(file.name) ? URL.createObjectURL(file) : null
         };
         state.files.push(entry);
+        Shell.saveToMappe(file, 'exif-rename');
         readExifDate(entry).then(({ date, source }) => {
           entry.date = date; entry.dateSource = source;
           render();
@@ -448,6 +449,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'EXIF · UMBENENNEN', tour: true, toolName: 'Nach Datum umbenennen' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['image/*'],
+          onPick: (file) => addFiles([file])
+        });
+      });
       render();
     });
   </script>

@@ -199,6 +199,7 @@
     async function loadFile(file) {
       try {
         state.file = file;
+        Shell.saveToMappe(file, 'pdf-watermark');
         state.buffer = await file.arrayBuffer();
         const doc = await PDFLib.PDFDocument.load(state.buffer, { ignoreEncryption: true });
         state.pageCount = doc.getPageCount();
@@ -330,6 +331,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'PDF · WASSERZEICHEN', tour: true, toolName: 'PDF Wasserzeichen' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['application/pdf'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>

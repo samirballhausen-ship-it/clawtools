@@ -1131,3 +1131,541 @@ details.privacy[open] .privacy-chevron { transform: rotate(180deg); }
   .hub-featured-headline { font-size: 22px; }
   .eyebrow { font-size: 10px; padding: 3px 8px; }
 }
+
+/* ═════════════════════════════════════════════════════════════
+   ─── Datei-Mappe (Cross-Tool File Library) ────────────────────
+   Header-Trigger · Modal · File-Cards · Dropzone-Alt · Hub-Panel
+   ═════════════════════════════════════════════════════════════ */
+
+/* ─── Header-Trigger mit Counter-Badge ─── */
+.mappe-trigger {
+  position: relative;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  color: var(--ink-2);
+  background: var(--bg);
+  transition: all .15s var(--ease);
+  flex-shrink: 0;
+}
+.mappe-trigger:hover {
+  border-color: var(--magic);
+  color: var(--magic);
+  background: var(--magic-soft);
+}
+.mappe-trigger-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+}
+.mappe-trigger-icon svg { width: 100%; height: 100%; }
+.mappe-trigger-badge {
+  position: absolute;
+  top: -4px; right: -4px;
+  min-width: 18px; height: 18px;
+  padding: 0 5px;
+  background: var(--magic);
+  color: white;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px; font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  letter-spacing: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform .2s var(--ease-spring), opacity .2s var(--ease);
+}
+.mappe-trigger-badge.hidden { transform: scale(0); opacity: 0; pointer-events: none; }
+
+/* ─── Modal Backdrop + Dialog ─── */
+.mappe-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(10, 10, 10, 0.55);
+  z-index: 1100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity .2s var(--ease);
+}
+.mappe-backdrop.show { opacity: 1; }
+
+.mappe-dialog {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-tool);
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-3);
+  transform: translateY(8px);
+  opacity: 0;
+  transition: transform .25s var(--ease-spring), opacity .2s var(--ease);
+  overflow: hidden;
+}
+.mappe-backdrop.show .mappe-dialog {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Dialog Header */
+.mappe-dialog-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.mappe-dialog-title {
+  display: flex; align-items: baseline; gap: 8px;
+  flex-wrap: wrap;
+}
+.mappe-dialog-title strong {
+  font-family: var(--font-heading);
+  font-size: 18px; font-weight: 500;
+  color: var(--ink);
+}
+.mappe-dialog-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.mappe-dialog-close {
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  border-radius: var(--r-sm);
+  transition: all .15s var(--ease);
+  flex-shrink: 0;
+}
+.mappe-dialog-close:hover { background: var(--surf-2); color: var(--ink); }
+.mappe-dialog-close svg { width: 16px; height: 16px; }
+
+/* Quota Bar */
+.mappe-quota {
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surf);
+}
+.mappe-quota-track {
+  flex: 1;
+  height: 4px;
+  background: var(--surf-3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.mappe-quota-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--magic);
+  transition: width .3s var(--ease), background .15s var(--ease);
+}
+.mappe-quota-fill.warn { background: var(--warn); }
+.mappe-quota-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Filter-Pills */
+.mappe-pills {
+  display: flex; gap: 6px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.mappe-pill {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  white-space: nowrap;
+  transition: all .15s var(--ease);
+}
+.mappe-pill:hover { border-color: var(--ink-3); color: var(--ink); }
+.mappe-pill.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+/* Dialog Body */
+.mappe-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 20px;
+  min-height: 200px;
+}
+.mappe-empty {
+  display: none;
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--ink-3);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mappe-file-list {
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+
+/* File-Card */
+.mappe-file-card {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-tool);
+  background: var(--bg);
+  transition: all .15s var(--ease);
+}
+.mappe-file-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-1);
+}
+
+.mappe-thumb {
+  width: 56px; height: 56px;
+  border-radius: var(--r-sm);
+  background: var(--surf-2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+.mappe-thumb svg { width: 24px; height: 24px; }
+.mappe-thumb img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.mappe-thumb-pdf { background: var(--ok-soft); color: var(--magic); border-color: var(--magic); }
+.mappe-thumb-image { background: var(--surf-2); }
+.mappe-thumb-video { background: #1f1f1f; color: rgba(255,255,255,0.85); border-color: #333; }
+.mappe-thumb-doc { background: var(--surf-2); color: var(--ink-2); }
+.mappe-thumb-sheet { background: var(--surf-2); color: var(--ink-2); }
+
+.mappe-info { min-width: 0; }
+.mappe-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+.mappe-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Card Actions */
+.mappe-actions {
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.mappe-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: var(--r-sm);
+  transition: all .15s var(--ease);
+  cursor: pointer;
+}
+.mappe-btn:hover { background: var(--surf-2); border-color: var(--ink-3); }
+.mappe-btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+.mappe-btn-primary:hover { background: var(--magic); border-color: var(--magic); }
+.mappe-btn-icon {
+  width: 36px;
+  padding: 0;
+  color: var(--ink-3);
+}
+.mappe-btn-icon:hover { color: var(--ink); }
+.mappe-btn-icon svg { width: 16px; height: 16px; }
+.mappe-btn-danger:hover {
+  border-color: var(--risk);
+  color: var(--risk);
+  background: var(--risk-soft);
+}
+
+/* Dialog Footer */
+.mappe-dialog-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surf);
+  gap: 12px;
+}
+.mappe-clear-btn {
+  font-size: 12px;
+  color: var(--ink-3);
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  transition: all .15s var(--ease);
+}
+.mappe-clear-btn:hover:not(:disabled) {
+  color: var(--risk);
+  border-color: var(--risk);
+  background: var(--risk-soft);
+}
+.mappe-clear-btn:disabled { color: var(--ink-4); cursor: not-allowed; }
+.mappe-file-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* ─── Mobile Bottom-Sheet ─── */
+@media (max-width: 720px) {
+  .mappe-backdrop { padding: 0; align-items: flex-end; }
+  .mappe-dialog {
+    max-width: 100%;
+    max-height: 88vh;
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+  }
+  .mappe-backdrop.show .mappe-dialog { transform: translateY(0); }
+  .mappe-dialog-head { padding: 14px 16px 12px; }
+  .mappe-dialog-title strong { font-size: 17px; }
+  .mappe-dialog-body { padding: 8px 16px; }
+  .mappe-pills { padding: 10px 16px; }
+  .mappe-quota { padding: 8px 16px; }
+  .mappe-dialog-foot { padding: 10px 16px; }
+  .mappe-file-card {
+    grid-template-columns: 48px 1fr auto;
+    gap: 10px;
+    padding: 10px;
+  }
+  .mappe-thumb { width: 48px; height: 48px; }
+  .mappe-thumb svg { width: 20px; height: 20px; }
+  .mappe-name { font-size: 13px; }
+  .mappe-meta { font-size: 10px; }
+  .mappe-btn { height: 36px; padding: 0 10px; font-size: 12px; }
+  .mappe-btn-icon { width: 36px; }
+  /* Drag-handle for bottom-sheet */
+  .mappe-dialog::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: 50%;
+    transform: translateX(-50%);
+    width: 36px; height: 4px;
+    background: var(--border-strong);
+    border-radius: 999px;
+    z-index: 1;
+  }
+  .mappe-dialog-head { padding-top: 18px; }
+}
+
+/* ─── Dropzone-Alternative — „Aus Mappe wählen" ─── */
+.dropzone-alt {
+  position: relative;
+  margin-top: 20px;
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  z-index: 1;
+}
+.dropzone-alt.hidden { display: none; }
+.dropzone-alt::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%; right: 25%;
+  height: 1px;
+  background: var(--border);
+}
+.dropzone-alt-sep {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.dropzone-alt-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 36px;
+  width: auto;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  transition: all .15s var(--ease);
+}
+.dropzone-alt-btn:hover {
+  border-color: var(--magic);
+  color: var(--magic);
+  background: var(--magic-soft);
+}
+.dropzone-alt-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.dropzone-alt-hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* ─── Hub Sticky Mappe-Panel (auf /index.html) ─── */
+.hub-mappe-panel {
+  margin: 24px 0 32px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--magic);
+  border-radius: var(--r-tool);
+  overflow: hidden;
+  display: none;
+}
+.hub-mappe-panel.has-files { display: block; }
+
+.hub-mappe-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--surf);
+  border-bottom: 1px solid var(--border);
+  transition: background .15s var(--ease);
+}
+.hub-mappe-head:hover { background: var(--surf-2); }
+.hub-mappe-head-left {
+  display: flex; align-items: center; gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+.hub-mappe-head-left strong {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.hub-mappe-head-icon {
+  width: 18px; height: 18px;
+  color: var(--magic);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.hub-mappe-head-icon svg { width: 100%; height: 100%; }
+.hub-mappe-chevron {
+  font-size: 14px;
+  color: var(--ink-3);
+  transition: transform .25s var(--ease);
+}
+.hub-mappe-panel.expanded .hub-mappe-chevron { transform: rotate(180deg); }
+
+.hub-mappe-body {
+  display: none;
+  padding: 16px 20px;
+}
+.hub-mappe-panel.expanded .hub-mappe-body { display: block; }
+.hub-mappe-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.hub-mappe-scroll::-webkit-scrollbar { height: 6px; }
+.hub-mappe-scroll::-webkit-scrollbar-track { background: var(--surf-2); }
+.hub-mappe-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+.hub-mappe-card {
+  flex-shrink: 0;
+  width: 200px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-tool);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all .15s var(--ease);
+  text-align: left;
+}
+.hub-mappe-card:hover {
+  border-color: var(--magic);
+  box-shadow: var(--shadow-1);
+  transform: translateY(-1px);
+}
+.hub-mappe-card-thumb {
+  width: 100%;
+  aspect-ratio: 16/10;
+  background: var(--surf-2);
+  border-radius: var(--r-sm);
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3);
+  overflow: hidden;
+  position: relative;
+}
+.hub-mappe-card-thumb svg { width: 28px; height: 28px; }
+.hub-mappe-card-thumb img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.hub-mappe-card-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.hub-mappe-card-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+.hub-mappe-actions {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.hub-mappe-actions .mappe-clear-btn { padding: 6px 10px; }
+.hub-mappe-actions-spacer { flex: 1; }
+
+@media (max-width: 600px) {
+  .hub-mappe-card { width: 160px; }
+  .hub-mappe-head { padding: 12px 16px; }
+  .hub-mappe-body { padding: 12px 16px; }
+}
+

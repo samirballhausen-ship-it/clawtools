@@ -151,6 +151,7 @@
 
     async function loadFile(file) {
       state.file = file;
+      Shell.saveToMappe(file, 'video-zu-gif');
       $('videoPreview').src = URL.createObjectURL(file);
       $('emptyView').style.display = 'none';
       $('editorView').style.display = 'block';
@@ -262,6 +263,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'VIDEO · GIF', tour: true, toolName: 'Video zu GIF' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['video/*'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>

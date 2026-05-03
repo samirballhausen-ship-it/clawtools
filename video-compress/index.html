@@ -151,6 +151,7 @@
 
     async function loadFile(file) {
       state.file = file;
+      Shell.saveToMappe(file, 'video-compress');
       $('videoPreview').src = URL.createObjectURL(file);
       $('emptyView').style.display = 'none';
       $('editorView').style.display = 'block';
@@ -248,6 +249,12 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       Shell.init({ tag: 'VIDEO · KOMPRIMIEREN', tour: true, toolName: 'Video komprimieren' });
+      Shell.whenMappeReady((Mappe) => {
+        Mappe.UI.injectDropzoneAlternative(dropzone, {
+          accept: ['video/*'],
+          onPick: (file) => loadFile(file)
+        });
+      });
     });
   </script>
 </body>
