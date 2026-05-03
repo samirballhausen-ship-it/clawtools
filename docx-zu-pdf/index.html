@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="/shared/shell.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js"></script>
   <style>
     .preview-wrap { padding: 20px; max-height: 60vh; overflow-y: auto; background: var(--surf); }
     .preview-page {
@@ -189,72 +189,152 @@
       e.target.value = '';
     });
 
+    function htmlToPdfMakeContent(rootEl) {
+      const result = [];
+      for (const child of rootEl.childNodes) {
+        const item = nodeToPdfmake(child);
+        if (item == null) continue;
+        if (Array.isArray(item)) result.push(...item);
+        else result.push(item);
+      }
+      return result;
+    }
+
+    function nodeToPdfmake(node) {
+      if (node.nodeType === 3) {
+        const t = node.textContent;
+        return t && t.trim() ? { text: t, style: 'body' } : null;
+      }
+      if (node.nodeType !== 1) return null;
+      const tag = node.tagName.toLowerCase();
+      switch (tag) {
+        case 'h1': return { text: node.textContent.trim(), style: 'h1' };
+        case 'h2': return { text: node.textContent.trim(), style: 'h2' };
+        case 'h3': return { text: node.textContent.trim(), style: 'h3' };
+        case 'h4': case 'h5': case 'h6': return { text: node.textContent.trim(), style: 'h4' };
+        case 'p': {
+          const runs = collectInlineRuns(node);
+          return runs.length ? { text: runs, style: 'body' } : { text: ' ', style: 'body' };
+        }
+        case 'br': return { text: '\n' };
+        case 'hr': return { canvas: [{ type: 'line', x1: 0, y1: 2, x2: 475, y2: 2, lineWidth: 0.5, lineColor: '#cccccc' }], margin: [0, 6, 0, 6] };
+        case 'ul': {
+          const items = Array.from(node.children).filter(c => c.tagName === 'LI').map(li => ({ text: collectInlineRuns(li), style: 'listItem' }));
+          return items.length ? { ul: items, margin: [0, 0, 0, 6] } : null;
+        }
+        case 'ol': {
+          const items = Array.from(node.children).filter(c => c.tagName === 'LI').map(li => ({ text: collectInlineRuns(li), style: 'listItem' }));
+          return items.length ? { ol: items, margin: [0, 0, 0, 6] } : null;
+        }
+        case 'blockquote': {
+          const runs = collectInlineRuns(node);
+          return runs.length ? { text: runs, style: 'blockquote' } : null;
+        }
+        case 'pre': case 'code': return { text: node.textContent, style: 'code' };
+        case 'table': {
+          const rows = Array.from(node.querySelectorAll('tr'));
+          if (!rows.length) return null;
+          const body = rows.map(tr => Array.from(tr.children).map(cell => ({ text: cell.textContent.trim(), style: cell.tagName === 'TH' ? 'tableHeader' : undefined, fontSize: 10 })));
+          const colCount = body[0]?.length || 1;
+          const headerRows = rows[0]?.children[0]?.tagName === 'TH' ? 1 : 0;
+          return { table: { headerRows, body, widths: Array(colCount).fill('*') }, layout: 'lightHorizontalLines', margin: [0, 4, 0, 8] };
+        }
+        case 'img': {
+          const src = node.getAttribute('src') || '';
+          if (src.startsWith('data:image')) return { image: src, fit: [460, 460], margin: [0, 6, 0, 6], alignment: 'center' };
+          return null;
+        }
+        case 'figure': case 'figcaption': case 'div': case 'section': case 'article': case 'span': {
+          const result = [];
+          for (const ch of node.childNodes) {
+            const sub = nodeToPdfmake(ch);
+            if (sub == null) continue;
+            if (Array.isArray(sub)) result.push(...sub);
+            else result.push(sub);
+          }
+          return result.length ? result : null;
+        }
+        default: {
+          const runs = collectInlineRuns(node);
+          return runs.length ? { text: runs, style: 'body' } : null;
+        }
+      }
+    }
+
+    function collectInlineRuns(node) {
+      const runs = [];
+      function walk(el, b, i, u, s) {
+        for (const ch of el.childNodes) {
+          if (ch.nodeType === 3) {
+            const text = ch.textContent;
+            if (!text) continue;
+            const r = { text };
+            if (b) r.bold = true;
+            if (i) r.italics = true;
+            const decs = [];
+            if (u) decs.push('underline');
+            if (s) decs.push('lineThrough');
+            if (decs.length) r.decoration = decs.length === 1 ? decs[0] : decs;
+            runs.push(r);
+            continue;
+          }
+          if (ch.nodeType !== 1) continue;
+          const t = ch.tagName.toLowerCase();
+          if (t === 'br') { runs.push({ text: '\n' }); continue; }
+          if (t === 'img') continue;
+          walk(ch, b || t === 'strong' || t === 'b', i || t === 'em' || t === 'i', u || t === 'u', s || t === 's' || t === 'strike' || t === 'del');
+        }
+      }
+      walk(node, false, false, false, false);
+      return runs;
+    }
+
     $('btnProcess').addEventListener('click', async () => {
       $('btnProcess').disabled = true;
       $('btnLabel').textContent = 'Erstelle PDF…';
       $('globalProgress').classList.add('active');
-      $('globalStage').textContent = 'Rendere…';
-
+      $('globalStage').textContent = 'Erstelle Vector-Seiten…';
       try {
         const previewEl = $('previewPage');
-        // CRITICAL: render in dedicated off-screen container at FIXED 794px width.
-        // Previous bug: max-width:100% shrank preview on mobile (322px), text wrapped 2-3× more,
-        // generating 36 pages from a 4-page document.
-        const renderHost = document.createElement('div');
-        renderHost.style.cssText = 'position:fixed; left:-99999px; top:0; width:794px; background:white; padding:60px 80px; box-sizing:border-box; font-family:"Geist",sans-serif; font-size:14px; line-height:1.6; color:#0a0a0a;';
-        // Clone preview content (skip the preview-page wrapper which has max-width)
-        Array.from(previewEl.childNodes).forEach(n => renderHost.appendChild(n.cloneNode(true)));
-        document.body.appendChild(renderHost);
-
-        let canvas;
-        try {
-          canvas = await html2canvas(renderHost, {
-            scale: 2, useCORS: true, backgroundColor: '#fff', logging: false,
-            width: 794, windowWidth: 794
-          });
-        } finally {
-          document.body.removeChild(renderHost);
+        const content = htmlToPdfMakeContent(previewEl);
+        if (!content.length) {
+          Shell.Toast.show('Keine Inhalte gefunden', true);
+          return;
         }
-
-        const A4_W = 794, A4_H = 1123;
-        const scale = canvas.width / A4_W;
-        const sliceH = A4_H * scale;
-
-        const pdf = await PDFLib.PDFDocument.create();
-        let yOffset = 0;
-        const total = Math.ceil(canvas.height / sliceH);
-
-        while (yOffset < canvas.height) {
-          $('globalStage').textContent = `Seite ${Math.ceil(yOffset / sliceH) + 1} / ${total}`;
-          const sliceCanvas = document.createElement('canvas');
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = Math.min(sliceH, canvas.height - yOffset);
-          const ctx = sliceCanvas.getContext('2d');
-          ctx.fillStyle = '#fff';
-          ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-          ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceCanvas.height, 0, 0, canvas.width, sliceCanvas.height);
-
-          const blob = await new Promise(r => sliceCanvas.toBlob(r, 'image/jpeg', 0.92));
-          const jpg = await pdf.embedJpg(new Uint8Array(await blob.arrayBuffer()));
-          const page = pdf.addPage([595.28, 841.89]);
-          const drawH = (sliceCanvas.height / canvas.width) * 595.28;
-          page.drawImage(jpg, { x: 0, y: 841.89 - drawH, width: 595.28, height: drawH });
-
-          sliceCanvas.width = 0; sliceCanvas.height = 0;
-          yOffset += sliceH;
-          await new Promise(r => setTimeout(r, 0));
-        }
-
-        pdf.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
-        pdf.setTitle(state.file.name.replace(/\.docx$/i, ''));
-        const bytes = await pdf.save();
-        state.outBlob = new Blob([bytes], { type: 'application/pdf' });
-        const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
-        $('resultInfo').textContent = `${total} Seiten · ${sizeMB} MB`;
+        const baseName = state.file.name.replace(/\.docx$/i, '');
+        const docDef = {
+          info: { title: baseName, creator: 'CLAWBUIS Tools', producer: 'CLAWBUIS Tools — tools.clawbuis.com' },
+          pageSize: 'A4',
+          pageMargins: [60, 60, 60, 70],
+          content,
+          defaultStyle: { font: 'Roboto', fontSize: 11, lineHeight: 1.4, color: '#1a1a1a' },
+          styles: {
+            h1: { fontSize: 22, bold: true, margin: [0, 14, 0, 8], color: '#0a0a0a' },
+            h2: { fontSize: 18, bold: true, margin: [0, 12, 0, 6], color: '#0a0a0a' },
+            h3: { fontSize: 15, bold: true, margin: [0, 10, 0, 5], color: '#1a1a1a' },
+            h4: { fontSize: 13, bold: true, margin: [0, 8, 0, 4] },
+            body: { fontSize: 11, margin: [0, 0, 0, 6] },
+            listItem: { fontSize: 11, margin: [0, 0, 0, 3] },
+            tableHeader: { bold: true, fillColor: '#f5f5f5', color: '#0a0a0a' },
+            blockquote: { italics: true, margin: [16, 4, 0, 6], color: '#525252' },
+            code: { font: 'Roboto', fontSize: 10, color: '#525252', margin: [0, 2, 0, 6] }
+          },
+          footer: function (currentPage, pageCount) {
+            return { text: `${currentPage} / ${pageCount}`, alignment: 'center', fontSize: 9, color: '#999999', margin: [0, 20, 0, 0] };
+          }
+        };
+        const pdfDoc = pdfMake.createPdf(docDef);
+        const blob = await new Promise((resolve, reject) => {
+          try { pdfDoc.getBlob(resolve); } catch (e) { reject(e); }
+        });
+        state.outBlob = blob;
+        const sizeKB = blob.size / 1024;
+        const sizeStr = blob.size < 1024 * 1024 ? `${Math.round(sizeKB)} KB` : `${(blob.size / (1024 * 1024)).toFixed(2)} MB`;
+        $('resultInfo').textContent = `${sizeStr} · echter Text (durchsuchbar, markierbar)`;
         $('result').classList.add('active');
       } catch (e) {
         console.error(e);
-        Shell.Toast.show('PDF-Erstellung fehlgeschlagen', true);
+        Shell.Toast.show('PDF-Erstellung fehlgeschlagen: ' + (e.message || ''), true);
       } finally {
         $('btnProcess').disabled = false;
         $('btnLabel').textContent = 'Als PDF speichern';
