@@ -606,6 +606,21 @@
   }
 
   let deferredInstallPrompt = null;
+
+  // BUG-PWA-001 v4: Listener REGISTRIEREN sobald shell.js läuft — nicht erst
+  // in setupPWA() das in DOMContentLoaded läuft. Sonst kann das Event
+  // zwischen Page-Load und DOMContentLoaded verloren gehen.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      console.log('[PWA] beforeinstallprompt captured — install ready');
+      if (!document.querySelector('.pwa-install-header') && !document.querySelector('.pwa-install-btn')) {
+        // Buttons evtl noch nicht gerendert — wird später in setupPWA gemacht
+      }
+    });
+  }
+
   function setupPWA(isHub) {
     // Register service worker — mit auto-reload bei Update
     if ('serviceWorker' in navigator) {
@@ -645,13 +660,12 @@
       });
     }
 
-    // Capture install prompt for later
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-      // Header-Button is already injected in setupPWA — kein duplicate
-      if (!document.querySelector('.pwa-install-header')) showInstallButton();
-    });
+    // beforeinstallprompt-Listener wurde bereits AM SCRIPT-START registriert
+    // (siehe oben außerhalb von setupPWA). Hier nur noch nachträglich Buttons
+    // refreshen falls Event nach Script-Load aber vor setupPWA fired.
+    if (deferredInstallPrompt && !document.querySelector('.pwa-install-header')) {
+      showInstallButton();
+    }
 
     // Hide if already installed + persist Flag damit es auch beim nächsten
     // Browser-Visit (nicht-Standalone-Mode) NICHT mehr erscheint
@@ -750,41 +764,50 @@
   }
 
   async function triggerInstall() {
-    // BUG-PWA-001 v3: User-Wunsch "direkt installieren statt Anleitung".
-    // 3 Pfade nach Plattform-Capability:
-    //   1) deferredInstallPrompt vorhanden → nativer PWA-Prompt (Chrome/Edge/Android)
-    //   2) iOS + Web Share API → native Share-Sheet öffnen, "Zum Home-Bildschirm" ist 1 Tap
-    //   3) sonst → Plattform-Modal als letzter Fallback (Firefox etc.)
+    // BUG-PWA-001 v4: Diagnostic-Mode für User-Debugging.
+    // Alle Plattform-Werte werden geloggt damit User in DevTools-Console
+    // sehen kann WARUM Native-Prompt nicht kommt.
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/.test(ua) ||
+                  (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const isIOSChrome = isIOS && /CriOS/.test(ua);
+    const isAndroidChrome = /Android/.test(ua) && /Chrome/.test(ua);
+    const hasShare = typeof navigator.share === 'function';
+    const hasPrompt = !!deferredInstallPrompt;
 
+    console.log('[PWA Install Debug]', {
+      hasNativePrompt: hasPrompt,
+      hasWebShare: hasShare,
+      isIOS, isIOSChrome, isAndroidChrome,
+      ua: ua.slice(0, 80) + (ua.length > 80 ? '…' : '')
+    });
+
+    // Pfad 1: Nativer Chrome/Edge/Android-Prompt (das was User möchte)
     if (deferredInstallPrompt) {
       await runNativeInstallPrompt();
       return;
     }
 
-    // iOS-Pfad: Share-Sheet ist der direkteste Weg (Anleitung-Modal vermeiden)
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-                  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-    if (isIOS && typeof navigator.share === 'function') {
+    // Pfad 2: iOS Safari → Share-Sheet (NICHT auf iOS Chrome — dort hat
+    // Share-Sheet keine "Zum-Home-Bildschirm"-Option)
+    if (isIOS && !isIOSChrome && hasShare) {
       try {
         await navigator.share({
           title: 'CLAWBUIS Tools',
           text: 'Werkzeuge die deinen Alltag entlasten — alles im Browser',
           url: (window.location.origin || 'https://tools.clawbuis.com') + '/'
         });
-        // Erfolgreich Share-Sheet geöffnet — User wählt selbst "Zum Home-Bildschirm".
-        // Toast als Hint im Share-Sheet wo das versteckt ist.
-        Toast.show('Im Menü unten nach "Zum Home-Bildschirm" suchen.');
+        Toast.show('Im Menü unten "Zum Home-Bildschirm" wählen.');
         return;
       } catch (e) {
-        if (e && e.name === 'AbortError') return; // User hat abgebrochen — OK
-        console.warn('[pwa] share failed, falling back:', e);
-        // Share fehlgeschlagen → Modal
+        if (e && e.name === 'AbortError') return;
+        console.warn('[PWA] share failed, falling back:', e);
       }
     }
 
-    // Kurzer Wait — manchmal feuert beforeinstallprompt erst nach erstem Klick
+    // Pfad 3: Wait kurz auf beforeinstallprompt (manchmal asynchron auch nach Klick)
     let waited = 0;
-    while (!deferredInstallPrompt && waited < 800) {
+    while (!deferredInstallPrompt && waited < 1500) {
       await new Promise(r => setTimeout(r, 50));
       waited += 50;
     }
@@ -793,8 +816,18 @@
       return;
     }
 
-    // Letzter Fallback: Plattform-Modal mit Anleitung
-    showInstallModal();
+    // Pfad 4: Kein nativer Pfad möglich → klare Toast-Erklärung WARUM,
+    // dann Modal mit Anleitung. So weiß User dass es nicht an ihm liegt.
+    let reason = 'Dein Browser bietet keinen direkten Install-Knopf.';
+    if (isAndroidChrome) {
+      reason = 'Chrome zeigt den Install-Knopf erst nach kurzer Nutzung — oder wenn die App nicht in den letzten 90 Tagen abgelehnt wurde.';
+    } else if (isIOSChrome) {
+      reason = 'iOS Chrome unterstützt keine App-Installation — bitte in Safari öffnen.';
+    } else if (isIOS && !hasShare) {
+      reason = 'Dein iOS-Browser bietet kein Teilen-Menü hier — Anleitung folgt.';
+    }
+    Toast.show(reason, true);
+    setTimeout(() => showInstallModal(), 600);
   }
 
   async function runNativeInstallPrompt() {
