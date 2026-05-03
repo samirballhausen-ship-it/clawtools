@@ -50,7 +50,8 @@
       letter-spacing: 0.14em; margin-bottom: 20px; text-transform: uppercase;
       padding-bottom: 8px; border-bottom: 1px solid #e8e8e8;
     }
-    .preview-page p { margin: 8px 0; white-space: pre-wrap; word-break: break-word; }
+    .preview-page p { margin: 8px 0; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; max-width: 100%; }
+    .preview-page p span { white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; }
     .preview-page .heading-1 { font-size: 22px; font-weight: 700; margin: 16px 0 10px; color: #0a0a0a; line-height: 1.25; }
     .preview-page .heading-2 { font-size: 17px; font-weight: 600; margin: 14px 0 8px; color: #1a1a1a; }
     .preview-empty { color: #aaa; font-style: italic; }
@@ -162,13 +163,30 @@
           const items = content.items.map(it => {
             const fontSize = Math.abs(it.transform[3]) || Math.abs(it.transform[0]) || 10;
             const fontStyle = styles[it.fontName] || {};
-            const ffName = (fontStyle.fontFamily || it.fontName || '').toLowerCase();
+            // Suche bold/italic in mehreren Quellen: fontFamily, fontName, font-suffix-Pattern (-B, -BI, -Italic, etc.)
+            const candidates = [
+              fontStyle.fontFamily || '',
+              it.fontName || '',
+            ].join(' ').toLowerCase();
+            // Direct keywords
+            let bold = /bold|black|heavy|semibold|demibold/.test(candidates);
+            let italic = /italic|oblique/.test(candidates);
+            // PDF font-name Suffix-Pattern (Geist-Bold, Helvetica-BoldOblique, etc.)
+            const suffix = (it.fontName || '').match(/[-_,\s](B|Bd|Bold|BI|BoldItalic|It|Italic|Oblique)(?:$|[^a-z])/i);
+            if (suffix) {
+              const s = suffix[1].toLowerCase();
+              if (/^b/.test(s)) bold = true;
+              if (/i/.test(s) || /oblique/.test(s)) italic = true;
+            }
+            // PDF standard-name conventions: "F2" mit fontStyle.fontWeight
+            if (typeof fontStyle.fontWeight === 'number' && fontStyle.fontWeight >= 600) bold = true;
+            if (fontStyle.italic === true) italic = true;
             return {
               str: it.str,
               y: it.transform[5],
               fontSize,
-              bold: /bold|black|heavy|semibold/.test(ffName),
-              italic: /italic|oblique/.test(ffName),
+              bold,
+              italic,
             };
           });
           items.forEach(it => { if (it.str.trim()) allSizes.push(it.fontSize); });
