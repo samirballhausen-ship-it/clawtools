@@ -189,7 +189,7 @@
       suggestions.push({
         tag: 'BILD-EDIT',
         title: 'Hintergrund entfernen',
-        pitch: `Person/Objekt freistellen — KI-Modell läuft komplett im Browser (WebGPU).`,
+        pitch: `Person oder Objekt freistellen. Verarbeitung laeuft komplett im Browser.`,
         href: `/bg-remove?from=hub&n=1`,
         weight: 75
       });

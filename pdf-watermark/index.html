@@ -302,6 +302,17 @@
         const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
         $('resultInfo').textContent = `${state.pageCount} Seiten markiert · ${sizeMB} MB`;
         $('result').classList.add('active');
+        const baseName = state.file.name.replace(/\.pdf$/i, '');
+        Shell.showWorkflowNextSteps({
+          blob: state.outBlob,
+          filename: `${baseName}_wasserzeichen.pdf`,
+          type: 'application/pdf',
+          sourceTool: 'pdf-watermark',
+          container: $('result'),
+          preferredTools: ['pdf-compress', 'pdf-sign', 'pdf-redact', 'pdf-ocr'],
+          title: 'Wasserzeichen sitzt. Was als Naechstes?',
+          description: 'Die markierte PDF liegt in deiner Mappe. Der naechste Schritt kann direkt starten.'
+        });
       } catch (e) {
         console.error(e);
         Shell.Toast.show('Fehler bei Wasserzeichen-Erstellung', true);

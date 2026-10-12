@@ -1,0 +1,2858 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAWBUIS Tools · Workflow-Labor</title>
+  <meta name="description" content="Interne Planungsansicht fuer neue CLAWBUIS Tools, Workflow-Ideen, Notizen und schnelle Auswahl." />
+  <link rel="stylesheet" href="/shared/tokens.css" />
+  <link rel="stylesheet" href="/shared/shell.css" />
+  <style>
+    :root {
+      --lab-line: rgba(10, 10, 10, 0.08);
+      --lab-muted: #6b7280;
+      --lab-green: #15803d;
+      --lab-teal: #0f766e;
+      --lab-gold: #8a5f24;
+    }
+
+    .lab-main {
+      padding-top: 28px;
+    }
+
+    .lab-board {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .lab-top {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .lab-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .lab-kicker {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--magic);
+      margin-bottom: 8px;
+    }
+
+    .lab-title-row h1 {
+      font-family: var(--font-heading);
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 0.98;
+      margin: 0;
+      max-width: 780px;
+      letter-spacing: 0;
+    }
+
+    .lab-title-row p {
+      margin: 10px 0 0;
+      max-width: 760px;
+      color: var(--ink-2);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    .lab-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .lab-btn,
+    .lab-chip,
+    .idea-decision,
+    .voice-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      border-radius: var(--r-sm);
+      min-height: 36px;
+      padding: 8px 11px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: border-color .15s var(--ease), background .15s var(--ease), color .15s var(--ease), transform .15s var(--ease);
+    }
+
+    .lab-btn:hover,
+    .lab-chip:hover,
+    .idea-decision:hover,
+    .voice-btn:hover {
+      border-color: var(--magic);
+      transform: translateY(-1px);
+    }
+
+    .lab-btn.primary {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .lab-btn.subtle {
+      background: var(--bg-soft);
+    }
+
+    .lab-btn:disabled,
+    .voice-btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .workflow-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .workflow-lane {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      border-radius: var(--r);
+      padding: 12px;
+      min-height: 112px;
+    }
+
+    .workflow-lane strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .workflow-lane span {
+      display: block;
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat-box {
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      border-radius: var(--r);
+      padding: 12px;
+    }
+
+    .stat-box span {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-3);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat-box strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .lab-controls {
+      position: sticky;
+      top: calc(var(--header-h) + 10px);
+      z-index: 8;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 10px;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: var(--r);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-1);
+    }
+
+    .lab-search {
+      display: grid;
+      grid-template-columns: 1fr 160px 150px;
+      gap: 8px;
+    }
+
+    .lab-input,
+    .lab-select,
+    .note-box,
+    .output-area,
+    .import-area {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .lab-input,
+    .lab-select {
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+
+    .lab-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    .lab-chip.active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .idea-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .idea-card {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: #fff;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .idea-card[data-decision="build"] {
+      border-color: rgba(21, 128, 61, .45);
+      box-shadow: 0 0 0 1px rgba(21, 128, 61, .12);
+    }
+
+    .idea-card[data-decision="shortlist"] {
+      border-color: rgba(15, 118, 110, .38);
+    }
+
+    .idea-card[data-decision="discard"] {
+      opacity: .58;
+    }
+
+    .idea-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+    }
+
+    .idea-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 4px;
+      font-size: 17px;
+      line-height: 1.22;
+      letter-spacing: 0;
+    }
+
+    .idea-id {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-3);
+      font-weight: 500;
+    }
+
+    .idea-summary {
+      margin: 0;
+      color: var(--ink-2);
+      line-height: 1.48;
+      font-size: 13px;
+    }
+
+    .idea-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+      align-content: flex-start;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: var(--r-pill);
+      padding: 5px 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-2);
+      background: var(--bg-soft);
+      white-space: nowrap;
+    }
+
+    .metric.impact-high,
+    .metric.wow-high {
+      color: var(--lab-green);
+      background: rgba(21, 128, 61, .08);
+      border-color: rgba(21, 128, 61, .18);
+    }
+
+    .metric.cost-zero {
+      color: var(--lab-teal);
+      background: rgba(45, 212, 191, .10);
+      border-color: rgba(45, 212, 191, .22);
+    }
+
+    .idea-body {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .idea-fact {
+      border-left: 2px solid var(--lab-line);
+      padding-left: 9px;
+      min-width: 0;
+    }
+
+    .idea-fact span {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--ink-3);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 3px;
+    }
+
+    .idea-fact strong {
+      display: block;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 550;
+      color: var(--ink-2);
+    }
+
+    .note-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .note-box {
+      min-height: 58px;
+      resize: vertical;
+      padding: 9px 10px;
+      line-height: 1.45;
+    }
+
+    .idea-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .idea-decision[data-decision="build"].active,
+    .idea-decision[data-decision="build"]:hover {
+      background: var(--magic);
+      color: #fff;
+      border-color: var(--magic);
+    }
+
+    .idea-decision[data-decision="shortlist"].active,
+    .idea-decision[data-decision="shortlist"]:hover {
+      background: var(--teal);
+      color: #061312;
+      border-color: var(--teal);
+    }
+
+    .idea-decision[data-decision="later"].active,
+    .idea-decision[data-decision="later"]:hover {
+      background: var(--gold);
+      color: #120c04;
+      border-color: var(--gold);
+    }
+
+    .idea-decision[data-decision="discard"].active,
+    .idea-decision[data-decision="discard"]:hover {
+      background: var(--risk-soft);
+      color: var(--risk);
+      border-color: rgba(153, 27, 27, .22);
+    }
+
+    .lab-side {
+      position: sticky;
+      top: calc(var(--header-h) + 10px);
+      display: grid;
+      gap: 12px;
+    }
+
+    .side-panel {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: var(--r);
+      padding: 13px;
+    }
+
+    .side-panel h2 {
+      margin: 0 0 9px;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    .queue-list {
+      display: grid;
+      gap: 7px;
+      max-height: 270px;
+      overflow: auto;
+    }
+
+    .queue-item {
+      display: grid;
+      gap: 3px;
+      padding: 9px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--bg-soft);
+    }
+
+    .queue-item strong {
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .queue-item span {
+      font-size: 11px;
+      color: var(--ink-3);
+      line-height: 1.35;
+    }
+
+    .output-area,
+    .import-area {
+      min-height: 138px;
+      padding: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.45;
+      resize: vertical;
+    }
+
+    .import-area {
+      min-height: 84px;
+    }
+
+    .side-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .voice-status {
+      min-height: 18px;
+      font-size: 11px;
+      color: var(--ink-3);
+      margin-top: 7px;
+    }
+
+    .empty-state {
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--r);
+      padding: 24px;
+      text-align: center;
+      color: var(--ink-3);
+      background: var(--bg-soft);
+    }
+
+    .analysis-panel,
+    .interview-panel,
+    .decision-panel {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: var(--r);
+      padding: 16px;
+    }
+
+    .analysis-head,
+    .interview-head,
+    .decision-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .analysis-head h2,
+    .interview-head h2,
+    .decision-head h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .analysis-head p,
+    .interview-head p,
+    .decision-head p {
+      margin: 0;
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 760px;
+    }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .analysis-card {
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      min-height: 132px;
+    }
+
+    .analysis-card span {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+      margin-bottom: 7px;
+    }
+
+    .analysis-card strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .analysis-card p {
+      margin: 0;
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .decision-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .decision-hero {
+      border: 1px solid rgba(21,128,61,.24);
+      background: linear-gradient(135deg, rgba(21,128,61,.08), rgba(45,212,191,.08));
+      border-radius: var(--r);
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .decision-hero span {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--magic);
+    }
+
+    .decision-hero strong {
+      font-size: clamp(22px, 3vw, 34px);
+      line-height: 1.05;
+      letter-spacing: 0;
+      max-width: 980px;
+    }
+
+    .decision-hero p {
+      margin: 0;
+      color: var(--ink-2);
+      line-height: 1.55;
+      max-width: 980px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .decision-card {
+      border: 1px solid var(--border);
+      background: var(--bg-soft);
+      border-radius: var(--r-sm);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .decision-card span {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+
+    .decision-card strong {
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .decision-card p {
+      margin: 0;
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .sprint-list {
+      display: grid;
+      gap: 8px;
+      counter-reset: sprint;
+    }
+
+    .sprint-step {
+      counter-increment: sprint;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: #fff;
+      padding: 11px 12px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .sprint-step::before {
+      content: counter(sprint);
+      width: 26px;
+      height: 26px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: var(--r-pill);
+      background: var(--ink);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      margin-top: 1px;
+    }
+
+    .sprint-step strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+
+    .sprint-step span {
+      display: block;
+      color: var(--ink-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .office-transfer {
+      border: 1px solid rgba(45,212,191,.24);
+      background: linear-gradient(135deg, rgba(45,212,191,.08), rgba(194,155,98,.07));
+      border-radius: var(--r);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .office-transfer h3 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .office-transfer-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .office-transfer-item {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.82);
+      border-radius: var(--r-sm);
+      padding: 10px;
+    }
+
+    .office-transfer-item strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .office-transfer-item span {
+      display: block;
+      color: var(--ink-2);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .interview-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .interview-progress {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 2px;
+    }
+
+    .interview-progress-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--ink-3);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .interview-bar {
+      height: 7px;
+      border-radius: var(--r-pill);
+      background: var(--surf-2);
+      overflow: hidden;
+    }
+
+    .interview-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--magic), var(--teal));
+      transition: width .2s var(--ease);
+    }
+
+    .question-card {
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      background: var(--bg-soft);
+      padding: 16px;
+      display: grid;
+      gap: 13px;
+    }
+
+    .question-card h3 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 30px);
+      line-height: 1.05;
+      letter-spacing: 0;
+      max-width: 920px;
+    }
+
+    .question-context {
+      color: var(--ink-2);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 900px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .option-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      border-radius: var(--r-sm);
+      padding: 11px 12px;
+      min-height: 48px;
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+      display: grid;
+      gap: 3px;
+      transition: border-color .15s var(--ease), background .15s var(--ease), transform .15s var(--ease);
+    }
+
+    .option-btn:hover {
+      border-color: var(--magic);
+      transform: translateY(-1px);
+    }
+
+    .option-btn.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .option-btn strong {
+      font-size: 13px;
+      line-height: 1.25;
+    }
+
+    .option-btn span {
+      color: var(--ink-3);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .option-btn.active span {
+      color: rgba(255,255,255,.74);
+    }
+
+    .interview-text-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .interview-text {
+      width: 100%;
+      min-height: 96px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: #fff;
+      padding: 10px;
+      font: inherit;
+      font-size: 14px;
+      line-height: 1.5;
+      resize: vertical;
+    }
+
+    .question-feedback {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .thumb-btn {
+      width: 38px;
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: #fff;
+      color: var(--ink);
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .thumb-btn.active {
+      background: var(--magic);
+      color: #fff;
+      border-color: var(--magic);
+    }
+
+    .thumb-btn[data-thumb="down"].active {
+      background: var(--risk-soft);
+      color: var(--risk);
+      border-color: rgba(153, 27, 27, .24);
+    }
+
+    .interview-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .interview-nav-left,
+    .interview-nav-right {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .interview-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .interview-summary .stat-box {
+      background: #fff;
+    }
+
+    @media (max-width: 1050px) {
+      .lab-board {
+        grid-template-columns: 1fr;
+      }
+      .lab-side,
+      .lab-controls {
+        position: static;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .lab-title-row {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .idea-head,
+      .note-row {
+        grid-template-columns: 1fr;
+      }
+      .lab-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        width: 100%;
+      }
+      .lab-actions .lab-btn {
+        padding-inline: 8px;
+      }
+      .lab-actions,
+      .idea-metrics,
+      .lab-filters {
+        justify-content: flex-start;
+      }
+      .workflow-strip,
+      .stats-grid,
+      .analysis-grid,
+      .decision-grid,
+      .office-transfer-grid,
+      .option-grid,
+      .interview-summary,
+      .idea-body,
+      .lab-search,
+      .lab-controls {
+        grid-template-columns: 1fr;
+      }
+      .analysis-head,
+      .interview-head,
+      .decision-head,
+      .interview-text-row,
+      .interview-nav {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-main wide lab-main">
+    <section class="lab-top">
+      <div class="lab-title-row">
+        <div>
+          <div class="lab-kicker">CLAWBUIS Tools · Workflow-Labor</div>
+          <h1>Alltagsprobleme sammeln, priorisieren und in echte Werkzeuge verwandeln.</h1>
+          <p>
+            Diese Seite ist unser schnelles Auswahlbrett fuer tools.clawbuis.com: Ideen markieren,
+            Notizen diktieren, Build-Kandidaten sammeln und den Stand als JSON zurueckgeben.
+          </p>
+        </div>
+        <div class="lab-actions">
+          <button class="lab-btn primary" id="refreshOutput" type="button">Output aktualisieren</button>
+          <button class="lab-btn" id="copyOutput" type="button">Output kopieren</button>
+          <button class="lab-btn subtle" id="resetState" type="button">Zuruecksetzen</button>
+        </div>
+      </div>
+
+      <div class="workflow-strip" aria-label="Aktuelle Workflow-Logik">
+        <div class="workflow-lane">
+          <strong>Mappe als Zentrum</strong>
+          <span>Dateien kommen einmal rein und koennen danach ohne erneuten Upload durch mehrere Tools laufen.</span>
+        </div>
+        <div class="workflow-lane">
+          <strong>PDF-Kette</strong>
+          <span>Signieren, schwaerzen, komprimieren, Wasserzeichen, OCR und Zusammenfuehren werden Schritt fuer Schritt verbunden.</span>
+        </div>
+        <div class="workflow-lane">
+          <strong>Kostenfrei bauen</strong>
+          <span>Prioritaet haben Tools, die lokal im Browser laufen und keine API-Kosten ausloesen.</span>
+        </div>
+        <div class="workflow-lane">
+          <strong>Alltagsnutzen</strong>
+          <span>Gesucht sind Dinge, fuer die Leute sonst Accounts, Downloads, Office-Frust oder lange Google-Suchen brauchen.</span>
+        </div>
+      </div>
+
+      <div class="stats-grid" aria-label="Auswahlstatus">
+        <div class="stat-box"><span>Ideen</span><strong id="statTotal">0</strong></div>
+        <div class="stat-box"><span>Sofort bauen</span><strong id="statBuild">0</strong></div>
+        <div class="stat-box"><span>Gemerkte</span><strong id="statShortlist">0</strong></div>
+        <div class="stat-box"><span>Notizen</span><strong id="statNotes">0</strong></div>
+      </div>
+
+      <section class="analysis-panel" aria-label="Analyse aus Samirs Auswahl">
+        <div class="analysis-head">
+          <div>
+            <h2>Analyse aus deinem ersten Durchgang</h2>
+            <p>
+              Das Ergebnis ist kein Wunsch nach mehr Kacheln. Das Signal ist ein System:
+              Datei rein, Zustand verstehen, sinnvoll weiterfuehren, nur echte Alltagsreibung bauen.
+            </p>
+          </div>
+          <button class="lab-btn primary" id="startInterviewTop" type="button">Fragerunde starten</button>
+        </div>
+        <div class="analysis-grid">
+          <div class="analysis-card">
+            <span>01 Kernprodukt</span>
+            <strong>Vernetzung ist Pflicht.</strong>
+            <p>Smart Suggestions, Workflow-Graph, Problemfrage und Mappe-Versionen sind der Kern, nicht Zusatzfeatures.</p>
+          </div>
+          <div class="analysis-card">
+            <span>02 Mappe</span>
+            <strong>Original + Versionen + Zustand.</strong>
+            <p>Bearbeitete PDFs duerfen sich nicht chaotisch ansammeln. Die Mappe braucht Herkunft, v2/v3 und Verlauf.</p>
+          </div>
+          <div class="analysis-card">
+            <span>03 Integrationen</span>
+            <strong>Option im richtigen Tool statt neues Tool.</strong>
+            <p>Deckblatt in PDF-Merge, QR auf PDF, Fristen nach OCR, Listenvergleich im Tabellen-Tool.</p>
+          </div>
+          <div class="analysis-card">
+            <span>04 Filter</span>
+            <strong>Raus, wenn es generisch, schon drin oder zu spezifisch ist.</strong>
+            <p>Keine Spielzeug-Rechner, keine reinen IT-Nischen, keine Handwerker-Spezial-App in dieser Tools-Seite.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="interview-panel" id="interviewPanel" aria-label="Gefuehrte Fragerunde">
+        <div class="interview-head">
+          <div>
+            <h2>Gefuehrte Fragerunde</h2>
+            <p>
+              Ein Fragefeld statt langer Liste. Du antwortest per Auswahl, Text oder Diktat.
+              Daumen hoch/runter bewertet die Frage selbst, damit unsere Abfragemethodik besser wird.
+            </p>
+          </div>
+          <button class="lab-btn subtle" id="resetInterview" type="button">Fragerunde resetten</button>
+        </div>
+        <div class="interview-progress">
+          <div class="interview-progress-row">
+            <span id="questionCounter">Frage 1 / 1</span>
+            <span id="answeredCounter">0 beantwortet</span>
+          </div>
+          <div class="interview-bar"><div class="interview-bar-fill" id="interviewBarFill"></div></div>
+        </div>
+        <div class="question-card" id="questionCard"></div>
+        <div class="interview-summary">
+          <div class="stat-box"><span>Beantwortet</span><strong id="interviewAnswered">0</strong></div>
+          <div class="stat-box"><span>Gute Fragen</span><strong id="interviewGood">0</strong></div>
+          <div class="stat-box"><span>Schwache Fragen</span><strong id="interviewBad">0</strong></div>
+        </div>
+      </section>
+
+      <section class="decision-panel" aria-label="CLAWBUIS Entscheidung aus der Fragerunde">
+        <div class="decision-head">
+          <div>
+            <h2>CLAWBUIS Entscheidung</h2>
+            <p>
+              Aus deinen Antworten folgt kein isolierter PDF-Sprint. Die naechste Stufe ist ein lokales
+              Workflow-Gehirn mit Mappe v2. Erst danach werden die PDF-Module richtig stark.
+            </p>
+          </div>
+          <button class="lab-btn primary" id="copyDecision" type="button">Entscheidung kopieren</button>
+        </div>
+
+        <div class="decision-hero">
+          <span>North Star</span>
+          <strong>Dateien rein. Ziel aussprechen. CLAWBUIS baut einen sichtbaren, editierbaren Workflow und fuehrt den Nutzer durch.</strong>
+          <p>
+            Die App soll wie ein Office-AGI-Concierge wirken: ohne Account, ohne Upload, ohne Werbung,
+            aber mit spuerbarer Intelligenz. Sie fragt nur nach, wenn die Confidence niedrig ist oder ein Konflikt entsteht.
+          </p>
+        </div>
+
+        <div class="decision-grid">
+          <div class="decision-card">
+            <span>Produktmodus</span>
+            <strong>Hybrid, aber Datei-first.</strong>
+            <p>User kann immer Dateien in die Mappe werfen. Danach versteht die App Ziel, Dateien und Kontext.</p>
+          </div>
+          <div class="decision-card">
+            <span>Routenlogik</span>
+            <strong>Confidence statt Fragebogen.</strong>
+            <p>Bei klarer Intention direkt planen. Bei Unsicherheit kurz nachfragen, aber Workflow schon sichtbar machen.</p>
+          </div>
+          <div class="decision-card">
+            <span>Mappe</span>
+            <strong>Originale getrennt von Bearbeitungen.</strong>
+            <p>Aktuelle Version sichtbar, Verlauf per Klick. Keine losen Ergebnis-Kopien ohne Herkunft.</p>
+          </div>
+          <div class="decision-card">
+            <span>Nach Ergebnis</span>
+            <strong>Download oder Mappe.</strong>
+            <p>Direkter Download bleibt. Bei Folgeaktion wird automatisch zwischengespeichert und weiterverarbeitet.</p>
+          </div>
+          <div class="decision-card">
+            <span>Schwache Fragen</span>
+            <strong>Nicht Samir Feature-Synergie abfragen.</strong>
+            <p>Die App soll selbst entscheiden, welche Badges, Optionen und PDF-Blöcke zusammen gehoeren.</p>
+          </div>
+          <div class="decision-card">
+            <span>Qualitaetsgrenzen</span>
+            <strong>Scanner, PDF-Vergleich, Materialrechner nur mit echtem Sprung.</strong>
+            <p>Kein Spielzeug. Wenn ein Tool nicht besser als schnelle ChatGPT-/Google-Frage ist, bleibt es raus.</p>
+          </div>
+        </div>
+
+        <div class="office-transfer">
+          <h3>Aus Office-NG uebernehmen</h3>
+          <div class="office-transfer-grid">
+            <div class="office-transfer-item">
+              <strong>Alles Eindeutige sofort anwenden</strong>
+              <span>Wie `update_field`: erkannte Schritte direkt in den Workflow schreiben, nicht nur darueber reden.</span>
+            </div>
+            <div class="office-transfer-item">
+              <strong>Ask nur als Zusatz</strong>
+              <span>Rueckfragen ersetzen keine sicheren Aktionen. Sie klaeren nur Konflikte oder niedrige Confidence.</span>
+            </div>
+            <div class="office-transfer-item">
+              <strong>Preview vor Commit</strong>
+              <span>Wie `show_preview`: Workflow-Plan sichtbar machen, editierbar halten, erst nach Bestaetigung ausfuehren.</span>
+            </div>
+            <div class="office-transfer-item">
+              <strong>Confidence sichtbar machen</strong>
+              <span>0.95 explizit, 0.85 abgeleitet, 0.6 geraten. User-Korrektur hebt auf bestaetigt.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sprint-list" id="decisionText">
+          <div class="sprint-step">
+            <div>
+              <strong>Sprint 1: Workflow Registry</strong>
+              <span>Gemeinsame Registry fuer Tool-Aktionen, Eingangstypen, Ausgangstypen, naechste Schritte, Confidence, Mappe-Speicherregeln.</span>
+            </div>
+          </div>
+          <div class="sprint-step">
+            <div>
+              <strong>Sprint 2: Mappe v2</strong>
+              <span>Parent-ID, Version, Datei-Zustaende, Original/Bearbeitet-Gruppen, aktuelle Version plus Verlauf, Ergebnis automatisch als naechster Input.</span>
+            </div>
+          </div>
+          <div class="sprint-step">
+            <div>
+              <strong>Sprint 3: Concierge-Hub Prototype</strong>
+              <span>Ein Eingabefeld mit Diktat: "Ich muss diese PDF unterschreiben und danach kleiner machen". Daraus entsteht ein editierbarer Workflow-Plan.</span>
+            </div>
+          </div>
+          <div class="sprint-step">
+            <div>
+              <strong>Sprint 4: PDF-Synergie</strong>
+              <span>Signieren, schwaerzen, komprimieren, OCR, Wasserzeichen, Merge/Split und Seiten-Organizer an dieselbe Workflow- und Mappe-Logik anbinden.</span>
+            </div>
+          </div>
+          <div class="sprint-step">
+            <div>
+              <strong>Sprint 5: Problemfrage v2</strong>
+              <span>Keine langen Listen mehr. Fragen muessen Zusammenhaenge erklaeren, Vibe catchen und eine echte Entscheidung verbessern.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section class="lab-board">
+      <div>
+        <div class="lab-controls">
+          <div class="lab-search">
+            <input class="lab-input" id="searchInput" type="search" placeholder="Suchen: PDF, Rechnung, Foto, Datenschutz, Alltag..." />
+            <select class="lab-select" id="categoryFilter" aria-label="Kategorie">
+              <option value="all">Alle Kategorien</option>
+            </select>
+            <select class="lab-select" id="effortFilter" aria-label="Aufwand">
+              <option value="all">Jeder Aufwand</option>
+              <option value="S">S · schnell</option>
+              <option value="M">M · mittel</option>
+              <option value="L">L · gross</option>
+            </select>
+          </div>
+          <div class="lab-filters" aria-label="Statusfilter">
+            <button class="lab-chip active" type="button" data-filter="all">Alle</button>
+            <button class="lab-chip" type="button" data-filter="build">Sofort</button>
+            <button class="lab-chip" type="button" data-filter="shortlist">Gemerkte</button>
+            <button class="lab-chip" type="button" data-filter="later">Spaeter</button>
+            <button class="lab-chip" type="button" data-filter="discard">Raus</button>
+          </div>
+        </div>
+
+        <div class="idea-list" id="ideaList"></div>
+      </div>
+
+      <aside class="lab-side" aria-label="Auswahl und Export">
+        <section class="side-panel">
+          <h2>Build-Queue</h2>
+          <div class="queue-list" id="buildQueue"></div>
+        </section>
+
+        <section class="side-panel">
+          <h2>Diktat</h2>
+          <button class="lab-btn" id="voiceActive" type="button">In aktive Notiz sprechen</button>
+          <div class="voice-status" id="voiceStatus">Noch keine aktive Notiz.</div>
+        </section>
+
+        <section class="side-panel">
+          <h2>Output</h2>
+          <textarea class="output-area" id="outputArea" spellcheck="false"></textarea>
+          <div class="side-actions">
+            <button class="lab-btn primary" id="downloadOutput" type="button">JSON laden</button>
+            <button class="lab-btn" id="selectAllOutput" type="button">Alles markieren</button>
+          </div>
+        </section>
+
+        <section class="side-panel">
+          <h2>Import</h2>
+          <textarea class="import-area" id="importArea" spellcheck="false" placeholder="Vorherigen JSON-Output hier einfuegen..."></textarea>
+          <div class="side-actions">
+            <button class="lab-btn" id="importOutput" type="button">Importieren</button>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/shared/shell.js"></script>
+  <script>
+    const STORAGE_KEY = 'clawbuis-tools-workflow-lab-v1';
+    const LEGACY_STORAGE_KEYS = ['clawbes-tools-workflow-lab-v1'];
+    const DECISIONS = ['build', 'shortlist', 'later', 'discard'];
+    const DECISION_LABELS = {
+      build: 'Sofort bauen',
+      shortlist: 'Merken',
+      later: 'Spaeter',
+      discard: 'Raus'
+    };
+
+    const INTERVIEW_QUESTIONS = [
+      {
+        id: 'q-core-mode',
+        title: 'Was soll der Hauptmodus der Tools-Seite werden?',
+        context: 'Deine Auswahl sagt: Die Tool-Liste bleibt wichtig, aber der eigentliche Sprung ist ein gefuehrter Workflow.',
+        type: 'single',
+        options: [
+          ['problem-first', 'Problem beschreiben -> App baut Workflow', 'User sagt, was erledigt werden soll.'],
+          ['file-first', 'Dateien rein -> App macht Vorschlaege', 'Mappe erkennt Typ und Zustand.'],
+          ['tool-first', 'Tool-Liste bleibt Hauptnavigation', 'Klassischer Einstieg ueber Kacheln.'],
+          ['hybrid', 'Hybrid: Datei, Problem und Tool-Liste', 'Alle drei Einstiege, aber Vorschlaege fuehren weiter.']
+        ]
+      },
+      {
+        id: 'q-result-loop',
+        title: 'Was muss nach jedem erzeugten Ergebnis automatisch passieren?',
+        context: 'Das ist die zentrale Regel fuer alle PDF-, Bild- und Daten-Tools.',
+        type: 'multi',
+        options: [
+          ['save-mappe', 'Ergebnis in Mappe speichern', 'Damit der naechste Schritt ohne neuen Upload geht.'],
+          ['next-actions', 'Naechste Schritte anzeigen', 'Schwaerzen, komprimieren, OCR, sortieren, etc.'],
+          ['new-version', 'Neue Version anlegen', 'Original und Bearbeitungen bleiben verbunden.'],
+          ['download', 'Download klar anbieten', 'Trotz Workflow nie verstecken.']
+        ]
+      },
+      {
+        id: 'q-mappe-versioning',
+        title: 'Wie soll die Mappe Versionen verstaendlich zeigen?',
+        context: 'Dein Export war hier sehr klar: bearbeitete Dateien duerfen nicht als lose Kopien herumliegen.',
+        type: 'single',
+        options: [
+          ['tree', 'Original oben, Versionen darunter', 'Wie ein Dateibaum pro Ursprung.'],
+          ['timeline', 'Timeline pro Datei', 'v1 Original, v2 signiert, v3 geschwaerzt.'],
+          ['current-plus-history', 'Nur aktuelle Datei, Verlauf per Klick', 'Aufgeraeumter, aber mit Zugriff auf alte Versionen.'],
+          ['groups', 'Originale und Bearbeitete getrennt', 'Zwei klare Bereiche in der Mappe.']
+        ]
+      },
+      {
+        id: 'q-file-states',
+        title: 'Welche Datei-Zustaende brauchen wir als erste Badges?',
+        context: 'Diese Badges treiben spaeter die Vorschlagslogik.',
+        type: 'multi',
+        options: [
+          ['signed', 'signiert', 'PDF wurde unterschrieben.'],
+          ['redacted', 'geschwaerzt', 'Sensible Stellen entfernt.'],
+          ['compressed', 'komprimiert', 'Datei wurde kleiner gemacht.'],
+          ['ocr', 'durchsuchbar/OCR', 'Text wurde erkannt.'],
+          ['watermarked', 'Wasserzeichen', 'Dokument wurde markiert.'],
+          ['reordered', 'sortiert/gedreht', 'Seitenstruktur wurde geaendert.']
+        ]
+      },
+      {
+        id: 'q-first-pdf-build',
+        title: 'Welcher PDF-Block hat nach der Vernetzung Prioritaet?',
+        context: 'Das entscheidet den naechsten echten Build-Sprint.',
+        type: 'single',
+        options: [
+          ['organizer', 'Seiten sortieren, drehen, loeschen', 'Hoher Alltagsnutzen, klar lokal machbar.'],
+          ['sign-check', 'Unterschriften- und Datums-Check', 'Prueft vor Versand auf fehlende Stellen.'],
+          ['redact-assistant', 'Schwaerz-Assistent', 'IBAN, Mail, Telefon, Adresse finden.'],
+          ['deckblatt', 'Deckblatt im PDF-Merge', 'Zusatzoption statt neues Tool.'],
+          ['invoice-rename', 'Rechnungs-PDF umbenennen', 'Als Erweiterung im Bulk-Renamer.']
+        ]
+      },
+      {
+        id: 'q-integrated-options',
+        title: 'Welche Ideen sollen als Option in bestehende Tools statt als neue Kachel?',
+        context: 'Das reduziert Kachel-Chaos und macht bestehende Tools staerker.',
+        type: 'multi',
+        options: [
+          ['deckblatt-merge', 'Deckblatt in PDF zusammenfuegen', 'Optionaler erster Schritt im Merge-Tool.'],
+          ['qr-on-pdf', 'QR-Code auf PDF', 'QR erzeugen und direkt auf Dokument platzieren.'],
+          ['fristen-ocr', 'Fristen-Spickzettel nach OCR', 'Briefdaten automatisch oben anzeigen.'],
+          ['list-compare-csv', 'Listenvergleich im Tabellen-Tool', 'Datenabgleich als Modus.'],
+          ['metadata-exif', 'Datei-Metadaten im EXIF-Tool', 'Foto/PDF/Office-Metadaten sichtbar machen.']
+        ]
+      },
+      {
+        id: 'q-quality-gates',
+        title: 'Welche Kandidaten nur bauen, wenn die Qualitaet wirklich stark wird?',
+        context: 'Du hast mehrfach gesagt: nur wenn es wirklich hochwertig funktioniert.',
+        type: 'multi',
+        options: [
+          ['scanner', 'Beleg-Scanner aus Fotos', 'Nur wenn Crop/Qualitaet gut genug ist.'],
+          ['pdf-compare', 'PDF-Vergleich', 'Nur bei sinnvoller Aehnlichkeits-Erkennung.'],
+          ['a4-fixer', 'Druck-Fixer fuer A4', 'Nur wenn es real Druckprobleme loest.'],
+          ['material-calc', 'Materialrechner', 'Nur wenn schneller als ChatGPT/Google.'],
+          ['signature-block', 'Signaturblock-Generator', 'Nur wenn wirklich professionell.']
+        ]
+      },
+      {
+        id: 'q-reject-rules',
+        title: 'Was soll die Tools-Seite konsequent nicht werden?',
+        context: 'Die Reject-Regeln sind fast so wertvoll wie die Build-Liste.',
+        type: 'multi',
+        options: [
+          ['specific-business', 'Keine zu spezifischen Branchen-Apps', 'Handwerker-Spezialzeug spaeter separat.'],
+          ['toy-calculators', 'Keine Spielzeug-Rechner', 'Nur bauen, wenn echter Zeitgewinn da ist.'],
+          ['technical-niche', 'Keine reinen IT-Nischen', 'Hash/JSON nur wenn Zielgruppe klar ist.'],
+          ['duplicates', 'Keine Tools doppelt bauen', 'Schon vorhandene Faehigkeiten integrieren statt neu.']
+        ]
+      },
+      {
+        id: 'q-question-count',
+        title: 'Wie viele Rueckfragen darf die App einem Nutzer stellen?',
+        context: 'Das wird die UX fuer den spaeteren Problemfrage-Modus.',
+        type: 'single',
+        options: [
+          ['one', 'Eine starke Frage', 'Danach direkt Vorschlag.'],
+          ['two-three', 'Zwei bis drei Fragen', 'Kurz klaeren, dann Workflow.'],
+          ['as-needed', 'So viele wie noetig', 'Nur wenn der Plan wirklich besser wird.'],
+          ['skip-if-clear', 'Keine Frage, wenn eindeutig', 'Direkt handeln, nur bei Unsicherheit fragen.']
+        ]
+      },
+      {
+        id: 'q-intent-first',
+        title: 'Welche Nutzerabsicht soll die App zuerst besonders gut erkennen?',
+        context: 'Das ist der erste Trainingsbereich fuer die lokale Workflow-Logik.',
+        type: 'single',
+        options: [
+          ['vertrag', 'Vertrag/PDF unterschreiben und versenden', 'Signatur, Check, Schwaerzen, Komprimieren.'],
+          ['scan', 'Scan/Fotos zu sauberem Dokument', 'Sortieren, drehen, OCR, PDF.'],
+          ['rechnung', 'Rechnungen/Belege sortieren', 'OCR, Namen, Datum, Mappe, ZIP.'],
+          ['daten', 'Listen/Tabellen abgleichen', 'CSV, Diff, Duplikate, Export.'],
+          ['privacy', 'Dateien sicher teilen', 'Metadaten, Schwaerzen, Anonymisieren.']
+        ]
+      },
+      {
+        id: 'q-voice-mode',
+        title: 'Wie soll Spracheingabe in solchen Fragerunden funktionieren?',
+        context: 'Du willst weniger tippen und schneller durchkommen.',
+        type: 'multi',
+        options: [
+          ['one-mic', 'Ein grosser Mikrofon-Button', 'Immer fuer die aktuelle Frage.'],
+          ['per-question', 'Mikrofon direkt am Antwortfeld', 'Wie jetzt im Labor.'],
+          ['transcript-preview', 'Transkript erst pruefen', 'Nicht sofort weiter.'],
+          ['auto-next', 'Nach kurzer Antwort automatisch weiter', 'Sehr schnell, aber riskanter.']
+        ]
+      },
+      {
+        id: 'q-question-quality',
+        title: 'Woran erkennt die App, dass eine Frage gut war?',
+        context: 'Daumen hoch/runter ist der Anfang. Wir koennen die Methode daraus verbessern.',
+        type: 'multi',
+        options: [
+          ['decides-build', 'Die Frage entscheidet wirklich etwas', 'Nicht nur Meinung sammeln.'],
+          ['short', 'Sie ist kurz', 'Keine langen Erklaertexte.'],
+          ['examples', 'Sie gibt konkrete Beispiele', 'Schnelleres Antworten.'],
+          ['real-language', 'Sie spricht Alltagssprache', 'Nicht Entwickler-Sprache.'],
+          ['low-effort', 'Antwort ist mit einem Tap moeglich', 'Freitext nur als Zusatz.']
+        ]
+      },
+      {
+        id: 'q-final-output',
+        title: 'Was soll am Ende einer Fragerunde herauskommen?',
+        context: 'Das bestimmt, wie ich deine Antworten danach direkt in Arbeit uebersetze.',
+        type: 'multi',
+        options: [
+          ['build-order', 'Priorisierte Build-Reihenfolge', 'Was als erstes, zweites, drittes kommt.'],
+          ['workflow-spec', 'Workflow-Spec', 'Regeln, States, Vorschlaege, UI-Verhalten.'],
+          ['tickets', 'Konkrete Umsetzungs-Tickets', 'Direkt baubar.'],
+          ['copy', 'Nutzertexte fuer die App', 'Fragen, Labels, Hinweise.'],
+          ['json', 'JSON fuer Codex', 'Maschinenlesbar fuer naechste Session.']
+        ]
+      },
+      {
+        id: 'q-brand-promise',
+        title: 'Welches Versprechen soll sich die Tools-Seite anfuehlen lassen?',
+        context: 'Das ist der Satz, an dem wir spaeter jede neue Funktion messen.',
+        type: 'single',
+        options: [
+          ['file-through', 'Datei rein, App fuehrt dich durch', 'Workflow statt Tool-Sammlung.'],
+          ['no-account', 'Ohne Account, ohne Upload, ohne Kosten', 'Vertrauen und Freiheit.'],
+          ['daily-problem', 'Alltagsproblem sofort erledigt', 'Nicht technisch, sondern praktisch.'],
+          ['quiet-power', 'Power-User-Tool fuer normale Menschen', 'Stark, aber nicht kompliziert.']
+        ]
+      },
+      {
+        id: 'q-next-sprint',
+        title: 'Was soll nach dieser Fragerunde als erster Sprint gebaut werden?',
+        context: 'Wenn du nur eine Richtung freigibst, wuerde ich daraus die naechste Umsetzungssequenz machen.',
+        type: 'single',
+        options: [
+          ['workflow-registry', 'Workflow-Registry fuer alle Tools', 'Gemeinsame Vorschlagslogik statt Einzel-Hacks.'],
+          ['mappe-versioning', 'Mappe-Versionen und Datei-Zustaende', 'Original, v2, Badges, Verlauf.'],
+          ['pdf-organizer', 'PDF-Seiten sortieren/drehen/loeschen', 'Sofort sichtbarer Nutzerwert.'],
+          ['problem-hub', 'Problemfrage im Hub', 'User sagt Ziel, App schlaegt Workflow vor.'],
+          ['mobile-mode', 'Mobile Schnellmodus', 'Alle Kernflows handy-tauglich machen.']
+        ]
+      }
+    ];
+
+    const IDEAS = [
+      {
+        id: 'pdf-flow-001',
+        title: 'PDF nach Signatur weiterfuehren',
+        category: 'PDF Workflow',
+        lane: 'Signieren',
+        summary: 'Nach dem Unterschreiben fragt die App direkt nach Schwaerzen, Komprimieren, Wasserzeichen oder Versandvorbereitung.',
+        pain: 'Leute laden dieselbe PDF mehrfach in verschiedene Tools.',
+        outcome: 'Ein Dokument laeuft wie eine Aufgabe durch die App.',
+        build: 'Workflow-Graph pro Tool + Ergebnis automatisch in die Mappe.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-002',
+        title: 'PDF-Seiten neu sortieren, drehen und loeschen',
+        category: 'PDF',
+        lane: 'Organisieren',
+        summary: 'Visueller Seiten-Tisch: Seiten verschieben, drehen, entfernen und als neue PDF speichern.',
+        pain: 'Scan-Apps erzeugen falsche Reihenfolgen und gedrehte Seiten.',
+        outcome: 'Aus Chaos-Scans wird in zwei Minuten ein sauberes Dokument.',
+        build: 'pdf.js Preview + pdf-lib Export mit neuer Seitenreihenfolge.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-003',
+        title: 'Anlagenpaket mit Deckblatt',
+        category: 'PDF',
+        lane: 'Bewerbung',
+        summary: 'Mehrere PDFs zusammenfuehren und automatisch ein Deckblatt mit Inhaltsliste erzeugen.',
+        pain: 'Bewerbungen, Angebote und Steuerunterlagen wirken schnell unsortiert.',
+        outcome: 'Ein professionelles Paket mit sauberer Reihenfolge.',
+        build: 'Mappe-Auswahl + Drag-Reihenfolge + automatisch generierte erste Seite.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-004',
+        title: 'Druck-Fixer fuer A4',
+        category: 'PDF',
+        lane: 'Drucken',
+        summary: 'PDFs auf A4 zentrieren, Skalierung reparieren, Raender angleichen und optional mehrere Seiten pro Blatt setzen.',
+        pain: 'Formulare werden abgeschnitten oder drucken winzig.',
+        outcome: 'Druckt beim ersten Versuch korrekt.',
+        build: 'Page-Box-Analyse + neue A4-Seiten mit eingebetteter Originalseite.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-005',
+        title: 'Unterschriften- und Datums-Check',
+        category: 'PDF',
+        lane: 'Pruefen',
+        summary: 'Vor dem Versenden markiert die App moegliche fehlende Unterschriften, Datumsfelder und leere Linien.',
+        pain: 'Vertraege kommen zurueck, weil eine Stelle vergessen wurde.',
+        outcome: 'Weniger peinliche Nacharbeit.',
+        build: 'PDF-Text + einfache Muster fuer Datum, Unterschrift, Ort, Name.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-006',
+        title: 'Schwaerz-Assistent fuer Standarddaten',
+        category: 'Datenschutz',
+        lane: 'Schwaerzen',
+        summary: 'Die App findet E-Mail, Telefonnummer, IBAN, Adresse, Steuer-ID und macht Schwärz-Vorschlaege.',
+        pain: 'Man uebersieht sensible Daten in langen Dokumenten.',
+        outcome: 'Schwaerzen wird sicherer und schneller.',
+        build: 'Textextraktion + Regex-Hits + Klick setzt Rechteck auf Trefferbereich.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-007',
+        title: 'PDF-Formular lokal ausfuellen',
+        category: 'PDF',
+        lane: 'Formular',
+        summary: 'Textfelder, Haken, Datum und Unterschrift auf nicht-ausfuellbare PDFs legen.',
+        pain: 'Viele Behoerden-PDFs sind flach und nicht bequem ausfuellbar.',
+        outcome: 'Jedes Formular wird ausfuellbar.',
+        build: 'Text-Layer mit Drag, Fontgroesse, Checkbox und Export.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-008',
+        title: 'Rechnungs-PDF automatisch umbenennen',
+        category: 'Office',
+        lane: 'Rechnung',
+        summary: 'PDFs nach Datum, Firma, Betrag oder Rechnungsnummer benennen und sortiert herunterladen.',
+        pain: 'Downloads heissen scan001.pdf oder invoice-final-final.pdf.',
+        outcome: 'Ordner werden sofort brauchbar.',
+        build: 'OCR/Text-Scan + Namensvorlagen + Batch-ZIP.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-009',
+        title: 'PDF-Vergleich',
+        category: 'PDF',
+        lane: 'Pruefen',
+        summary: 'Zwei Versionen vergleichen und geaenderte Seiten oder Textstellen markieren.',
+        pain: 'Neue Vertragsversionen werden blind vertraut.',
+        outcome: 'Aenderungen sind sichtbar, bevor man unterschreibt.',
+        build: 'Text-Diff + Seiten-Preview + Highlight-Liste.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      },
+      {
+        id: 'pdf-flow-010',
+        title: 'QR-Code auf PDF platzieren',
+        category: 'PDF',
+        lane: 'Versand',
+        summary: 'QR fuer Link, Zahlung, WLAN oder Kontakt erzeugen und auf ein PDF setzen.',
+        pain: 'Flyer, Angebote und Aushänge brauchen schnell einen QR-Code.',
+        outcome: 'PDF wird direkt druckfertig.',
+        build: 'Bestehenden QR-Generator mit PDF-Wasserzeichen/Overlay koppeln.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'img-001',
+        title: 'Screenshot-Schutz',
+        category: 'Bilder',
+        lane: 'Datenschutz',
+        summary: 'Sensible Stellen auf Screenshots markieren, verpixeln oder schwaerzen.',
+        pain: 'Chats, Tickets und Kontoauszuege werden schnell weitergeschickt.',
+        outcome: 'Sicher teilen, ohne Bildbearbeitung zu oeffnen.',
+        build: 'Canvas-Editor mit Blur/Blackout-Rechtecken und Export.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'img-002',
+        title: 'Beleg-Scanner aus Fotos',
+        category: 'Bilder',
+        lane: 'Rechnung',
+        summary: 'Foto begradigen, zuschneiden, Kontrast verbessern und als PDF speichern.',
+        pain: 'Quittungsfotos sehen schief und unprofessionell aus.',
+        outcome: 'Aus Handyfoto wird abheftbarer Beleg.',
+        build: 'Canvas Crop + Perspective-Korrektur light + PDF-Export.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      },
+      {
+        id: 'img-003',
+        title: 'WhatsApp-zu-Mail-Foto-Fixer',
+        category: 'Bilder',
+        lane: 'Teilen',
+        summary: 'Viele Bilder auf sinnvolle Groesse, JPG und saubere Dateinamen bringen.',
+        pain: 'Fotos sind zu gross, falsch benannt oder HEIC.',
+        outcome: 'Ein ZIP, das jeder oeffnen kann.',
+        build: 'Bestehende Bildkomprimierung + HEIC + Rename als Workflow.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'img-004',
+        title: 'Bildmasse fuer Portale',
+        category: 'Bilder',
+        lane: 'Format',
+        summary: 'Bilder fuer Kleinanzeigen, Shop, Profil, Website oder PDF-Anhang in passende Masse bringen.',
+        pain: 'Portale lehnen Bilder wegen Groesse oder Format ab.',
+        outcome: 'Passende Ausgabe ohne Nachdenken.',
+        build: 'Preset-Auswahl + Resize/Contain/Crop + Batch.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'img-005',
+        title: 'Vorher-Nachher-Vergleich',
+        category: 'Bilder',
+        lane: 'Handwerk',
+        summary: 'Zwei Fotos nebeneinander mit Beschriftung als Social- oder Angebotsbild exportieren.',
+        pain: 'Gute Arbeit wird schlecht praesentiert.',
+        outcome: 'Handwerker bekommen sofort ein brauchbares Referenzbild.',
+        build: 'Canvas Template + Textfelder + Export.',
+        impact: 'mittel',
+        wow: 'hoch',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'img-006',
+        title: 'Farb-Picker aus Foto',
+        category: 'Bilder',
+        lane: 'Alltag',
+        summary: 'Farbe aus Bild anklicken und HEX, RGB, RAL-nahe Notiz und Kontrastwerte kopieren.',
+        pain: 'Man braucht kurz eine Farbe und landet in schweren Design-Tools.',
+        outcome: 'Sofort nutzbarer Farbwert.',
+        build: 'Canvas Pixel-Picker + kleine Palette.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'img-007',
+        title: 'Bilder zu sauberer PDF-Doku',
+        category: 'Bilder',
+        lane: 'Dokumentation',
+        summary: 'Fotos mit Datum, Titel und Kommentar zu einer geordneten PDF-Dokumentation machen.',
+        pain: 'Baustellen-, Schaden- oder Wohnungsfotos liegen lose herum.',
+        outcome: 'Aus Fotos wird ein Bericht.',
+        build: 'Bestehendes Images-to-PDF erweitern um Kommentar/Deckblatt.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'office-001',
+        title: 'Text anonymisieren',
+        category: 'Datenschutz',
+        lane: 'Text',
+        summary: 'Namen, E-Mails, Telefonnummern, IBANs und Adressen in Text markieren oder ersetzen.',
+        pain: 'Man will ChatGPT, Kollegen oder Support etwas zeigen, aber nicht alles preisgeben.',
+        outcome: 'Schnell kopierbarer sicherer Text.',
+        build: 'Regex + manuelle Trefferliste + Kopieren.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'office-002',
+        title: 'Aktenzeichen- und Fristenfinder',
+        category: 'Office',
+        lane: 'Behoerde',
+        summary: 'Text oder PDF rein, Aktenzeichen, Datum, Frist und Kontakt werden extrahiert.',
+        pain: 'Man sucht in Briefen nach dem einen wichtigen Datum.',
+        outcome: 'Die wichtigen Stellen stehen oben.',
+        build: 'Regex-Scanner + Timeline-Box + ICS-Export.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'office-003',
+        title: 'ICS-Termin aus Text',
+        category: 'Alltag',
+        lane: 'Kalender',
+        summary: 'Datum, Uhrzeit, Ort und Titel eingeben oder einfuegen, Kalenderdatei herunterladen.',
+        pain: 'Termine aus Mails/Briefen muessen manuell in Kalender.',
+        outcome: 'Ein Klick in den Kalender.',
+        build: 'Formular + .ics-Datei im Browser generieren.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'office-004',
+        title: 'Briefkopf-Generator',
+        category: 'Office',
+        lane: 'Brief',
+        summary: 'Absender, Empfaenger, Betreff und Datum als saubere PDF-Briefvorlage erzeugen.',
+        pain: 'Viele brauchen nur schnell einen ordentlichen Brief.',
+        outcome: 'Druckbare Grundlage ohne Word.',
+        build: 'Formular + PDF-Generator + LocalStorage fuer eigene Daten.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'office-005',
+        title: 'Kuendigung und Widerruf als PDF',
+        category: 'Alltag',
+        lane: 'Verbraucher',
+        summary: 'Saubere Vorlagen fuer Kuendigung, Widerruf, Ruecktritt oder einfache Anfrage.',
+        pain: 'Leute googeln schlechte Muster und kopieren fehlerhafte Texte.',
+        outcome: 'Schnelle, ordentliche Schreiben ohne Account.',
+        build: 'Vorlagen mit klaren Eingabefeldern, keine Rechtsberatung.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'office-006',
+        title: 'IBAN- und Kontodaten-Checker',
+        category: 'Alltag',
+        lane: 'Finanzen',
+        summary: 'IBAN pruefen, formatieren, maskieren und fuer Rechnung oder Mail kopieren.',
+        pain: 'Zahlendreher passieren schnell.',
+        outcome: 'Weniger Fehler bei Ueberweisungsdaten.',
+        build: 'IBAN-Pruefsumme lokal + Formatierungsoptionen.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'office-007',
+        title: 'Signaturblock-Generator',
+        category: 'Office',
+        lane: 'Mail',
+        summary: 'Aus Kontaktdaten eine saubere E-Mail-Signatur in Text und HTML erzeugen.',
+        pain: 'Kleine Betriebe haben wilde Signaturen.',
+        outcome: 'Professioneller Auftritt in Minuten.',
+        build: 'Formular + Live-Vorschau + Copy HTML/Text.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'data-001',
+        title: 'CSV sauber machen',
+        category: 'Daten',
+        lane: 'Tabellen',
+        summary: 'Trennzeichen erkennen, Spalten trimmen, leere Zeilen entfernen und als CSV/XLSX exportieren.',
+        pain: 'Banken, Shops und Tools liefern kaputte CSVs.',
+        outcome: 'Tabelle laesst sich direkt oeffnen.',
+        build: 'PapaParse oder eigener Parser + SheetJS optional.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'data-002',
+        title: 'Duplikate finden',
+        category: 'Daten',
+        lane: 'Tabellen',
+        summary: 'Listen vergleichen, doppelte Eintraege zeigen, eindeutige Liste exportieren.',
+        pain: 'Kontakt-, Kunden- und Artikel-Listen werden schnell dreckig.',
+        outcome: 'Saubere Liste ohne Excel-Wissen.',
+        build: 'Text/CSV Input + Normalisierung + Diff-Export.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'data-003',
+        title: 'Listen gegeneinander abgleichen',
+        category: 'Daten',
+        lane: 'Vergleich',
+        summary: 'Liste A und B einfuegen und sehen, was fehlt, neu oder gleich ist.',
+        pain: 'Man vergleicht manuell Namen, Nummern oder Rechnungen.',
+        outcome: 'Fehlende Eintraege sind sofort sichtbar.',
+        build: 'Set-Diff mit Normalisierung und Export.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'data-004',
+        title: 'Spalten-Splitter',
+        category: 'Daten',
+        lane: 'Tabellen',
+        summary: 'Vorname/Nachname, Strasse/Hausnummer, PLZ/Ort oder Name/Firma aus einer Spalte trennen.',
+        pain: 'Formulare und Shops exportieren Mischspalten.',
+        outcome: 'Daten werden importierbar.',
+        build: 'Regeln + Vorschau + Rueckgaengig.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'data-005',
+        title: 'JSON lesbar machen',
+        category: 'Daten',
+        lane: 'IT Alltag',
+        summary: 'JSON formatieren, minifizieren, Fehlerstelle zeigen und Pfade kopieren.',
+        pain: 'Auch IT-Leute brauchen das staendig und landen auf Tracking-Seiten.',
+        outcome: 'Sicherer lokaler JSON-Helfer.',
+        build: 'JSON.parse + Tree View + Copy Path.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'data-006',
+        title: 'Text-Diff',
+        category: 'Daten',
+        lane: 'Vergleich',
+        summary: 'Zwei Texte vergleichen und geaenderte Zeilen oder Woerter markieren.',
+        pain: 'Versionen von Angeboten, AGB oder Mails werden schwer vergleichbar.',
+        outcome: 'Aenderungen sofort sichtbar.',
+        build: 'Diff-Algorithmus im Browser + Export.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'daily-001',
+        title: 'WLAN-QR-Code',
+        category: 'Alltag',
+        lane: 'QR',
+        summary: 'WLAN-Name und Passwort eingeben, druckbaren QR-Code erzeugen.',
+        pain: 'Gaeste fragen immer nach dem WLAN.',
+        outcome: 'Ein sauberer Ausdruck fuer Buero, Ferienwohnung oder Werkstatt.',
+        build: 'QR-Generator erweitern um WLAN-Preset + PDF-Export.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'daily-002',
+        title: 'Kontaktkarte als QR und VCF',
+        category: 'Alltag',
+        lane: 'Kontakt',
+        summary: 'Kontaktdaten als QR-Code, vCard-Datei und kleine PDF-Karte exportieren.',
+        pain: 'Visitenkarten und Kontakte muessen schnell digital teilbar sein.',
+        outcome: 'Kontakt landet direkt im Handy.',
+        build: 'VCF-String + QR + PDF-Layout.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'daily-003',
+        title: 'Einheiten- und Materialrechner',
+        category: 'Alltag',
+        lane: 'Handwerk',
+        summary: 'Flaeche, Volumen, Laufmeter, Verschnitt, Farbe, Fliesen oder Kartons ueberschlagen.',
+        pain: 'Man googelt dauernd einzelne Rechner.',
+        outcome: 'Ein schneller Rechner fuer reale Arbeit.',
+        build: 'Preset-Rechner mit lokalem Formular.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'daily-004',
+        title: 'Preis-pro-Einheit-Vergleich',
+        category: 'Alltag',
+        lane: 'Einkauf',
+        summary: 'Packungsgroessen, Mengen, Preise und Rabatte vergleichen.',
+        pain: 'Angebote sind absichtlich schwer vergleichbar.',
+        outcome: 'Sofort sehen, was wirklich guenstiger ist.',
+        build: 'Kleiner Rechner + Verlauf im LocalStorage.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'daily-005',
+        title: 'Zeitzonen- und Meeting-Zettel',
+        category: 'Alltag',
+        lane: 'Zeit',
+        summary: 'Mehrere Orte, Uhrzeiten und ICS-Link fuer Abstimmung erzeugen.',
+        pain: 'Remote-Termine werden falsch verstanden.',
+        outcome: 'Klarer Terminblock fuer Mail oder Chat.',
+        build: 'Intl API + ICS Export.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'daily-006',
+        title: 'Laengenlimit-Fixer',
+        category: 'Alltag',
+        lane: 'Text',
+        summary: 'Text fuer Betreff, Anzeige, Meta-Description, SMS oder Dateinamen auf Limit bringen.',
+        pain: 'Portale schneiden Text ab.',
+        outcome: 'Direkt passende Zeichenlaenge.',
+        build: 'Counter + harte/weiche Grenze + Copy.',
+        impact: 'mittel',
+        wow: 'niedrig',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'workflow-001',
+        title: 'Smart Suggestions nach jedem Ergebnis',
+        category: 'Workflow',
+        lane: 'System',
+        summary: 'Jedes Tool kennt sinnvolle naechste Schritte und zeigt sie nach dem Export an.',
+        pain: 'Einzeltools fuehlen sich wie Sackgassen an.',
+        outcome: 'Die Seite wirkt wie ein Assistent, nicht wie eine Tool-Liste.',
+        build: 'Gemeinsame Workflow-Registry + Ergebnis-Metadaten.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'workflow-002',
+        title: 'Datei-Zustand in der Mappe',
+        category: 'Workflow',
+        lane: 'System',
+        summary: 'Mappe merkt: signiert, geschwaerzt, komprimiert, OCR, Wasserzeichen, Quelle.',
+        pain: 'User wissen nach mehreren Schritten nicht mehr, welche Datei was ist.',
+        outcome: 'Bessere Vorschlaege und weniger Verwirrung.',
+        build: 'Metadata pro Mappe-Datei + Badges + Filter.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'workflow-003',
+        title: 'Ein-Klick-Workflows',
+        category: 'Workflow',
+        lane: 'System',
+        summary: 'Vordefinierte Ketten: Bewerbung bauen, Vertrag unterschreiben, Belege abgeben, Fotos anonymisieren.',
+        pain: 'Leute wissen nicht, welches Tool sie zuerst brauchen.',
+        outcome: 'Die App fuehrt durch reale Aufgaben.',
+        build: 'Workflow-Presets mit Stepper und Mappe-Autoload.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      },
+      {
+        id: 'workflow-004',
+        title: 'Problemfrage statt Toolsuche',
+        category: 'Workflow',
+        lane: 'Hub',
+        summary: 'Hub fragt: Was willst du erledigen? Daraus werden passende Tools und Reihenfolge angeboten.',
+        pain: 'Nutzer kennen Toolnamen nicht.',
+        outcome: 'Schneller Einstieg fuer Nicht-IT-Leute.',
+        build: 'Lokale Entscheidungsbaum-Suche + Tags.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'workflow-005',
+        title: 'Session-Merkliste',
+        category: 'Workflow',
+        lane: 'System',
+        summary: 'User koennen Dateien, Ergebnisse und Schritte fuer spaeter in einer lokalen Sitzung behalten.',
+        pain: 'Nach Tab-Wechsel ist der Arbeitsfluss weg.',
+        outcome: 'Mehr Vertrauen in groessere Aufgaben.',
+        build: 'Mappe erweitern um Aufgaben-Sets und Notizen.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'workflow-006',
+        title: 'Vorher-Nachher-Verlauf pro Datei',
+        category: 'Workflow',
+        lane: 'System',
+        summary: 'Eine Datei zeigt ihre Bearbeitungshistorie: Original, signiert, geschwaerzt, komprimiert.',
+        pain: 'Ergebnisse liegen als lose Downloads herum.',
+        outcome: 'Man kann sauber zur richtigen Version zurueck.',
+        build: 'Parent-ID in Mappe + Timeline-UI.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'mobile-001',
+        title: 'Mobile Schnellmodus',
+        category: 'Mobile',
+        lane: 'UX',
+        summary: 'Grosse Buttons, Sticky Ergebnisleiste und weniger Seitenwechsel fuer Handy-Nutzung.',
+        pain: 'Viele Tools sind auf dem Handy fummelig.',
+        outcome: 'Die Seite wird im echten Alltag nutzbar.',
+        build: 'Mobile UI Audit + gemeinsame Touch-Patterns.',
+        impact: 'hoch',
+        wow: 'mittel',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'mobile-002',
+        title: 'Kamera direkt in Beleg/PDF',
+        category: 'Mobile',
+        lane: 'Kamera',
+        summary: 'Foto aufnehmen, direkt zuschneiden, als PDF speichern und in Mappe behalten.',
+        pain: 'Handy-Foto zu Dokument ist ein haeufiger Alltagsschmerz.',
+        outcome: 'Kein Scanner-App-Download noetig.',
+        build: 'Input capture camera + Canvas + Images-to-PDF.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'security-001',
+        title: 'Datei-Metadaten-Check',
+        category: 'Datenschutz',
+        lane: 'Sicherheit',
+        summary: 'Zeigt versteckte Foto-, PDF- und Office-Metadaten und bietet Entfernen an.',
+        pain: 'Leute wissen nicht, was sie mit Dateien mitschicken.',
+        outcome: 'Sichtbarkeit und Kontrolle vor dem Teilen.',
+        build: 'EXIF + PDF metadata + Office zip properties.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      },
+      {
+        id: 'security-002',
+        title: 'Passwort-Generator mit Merksatz',
+        category: 'Datenschutz',
+        lane: 'Sicherheit',
+        summary: 'Starke Passwoerter oder Passphrases lokal erzeugen und Staerke erklaeren.',
+        pain: 'Passwortseiten sind oft voller Tracker.',
+        outcome: 'Sicherer kleiner Helfer ohne Account.',
+        build: 'crypto.getRandomValues + lokale Regeln.',
+        impact: 'mittel',
+        wow: 'niedrig',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'security-003',
+        title: 'Hash und Checksumme',
+        category: 'Datenschutz',
+        lane: 'IT Alltag',
+        summary: 'SHA-256/MD5 fuer Dateien berechnen und vergleichen.',
+        pain: 'Downloads oder Backups muessen schnell geprueft werden.',
+        outcome: 'IT-Nutzen ohne Terminal.',
+        build: 'WebCrypto Digest + Drag-and-drop.',
+        impact: 'mittel',
+        wow: 'mittel',
+        effort: 'S',
+        cost: '0'
+      },
+      {
+        id: 'business-001',
+        title: 'Angebots-Anhang fuer Handwerker',
+        category: 'Handwerk',
+        lane: 'Angebot',
+        summary: 'Fotos, Leistungsbeschreibung und PDF-Anlagen zu einem sauberen Angebotsanhang verbinden.',
+        pain: 'Kleine Betriebe schicken lose Fotos und PDFs.',
+        outcome: 'Besserer Eindruck beim Kunden.',
+        build: 'Workflow aus Images-to-PDF, PDF-Merge und Deckblatt.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'business-002',
+        title: 'Baustellen-Tagesbericht',
+        category: 'Handwerk',
+        lane: 'Dokumentation',
+        summary: 'Datum, Wetter-Notiz, Mitarbeiter, Fotos und kurze Taetigkeiten als PDF-Bericht.',
+        pain: 'Dokumentation wird zu spaet oder gar nicht gemacht.',
+        outcome: 'Ein Bericht entsteht direkt am Handy.',
+        build: 'Formular + Foto-Upload + PDF-Layout.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'business-003',
+        title: 'Mangelprotokoll',
+        category: 'Handwerk',
+        lane: 'Dokumentation',
+        summary: 'Fotos, Raum, Beschreibung, Prioritaet und Verantwortlicher als PDF-Protokoll.',
+        pain: 'Maengel werden in Chats verstreut.',
+        outcome: 'Klarer Report fuer Kunde oder Team.',
+        build: 'Repeatable item form + PDF Export.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'M',
+        cost: '0'
+      },
+      {
+        id: 'business-004',
+        title: 'Abnahme-Checkliste',
+        category: 'Handwerk',
+        lane: 'Checkliste',
+        summary: 'Projektpunkte abhaken, Fotos anfuegen, Kunde unterschreibt lokal auf dem Geraet.',
+        pain: 'Abnahmen sind unstrukturiert und schlecht dokumentiert.',
+        outcome: 'Sofort unterschriebene PDF.',
+        build: 'Checklist Builder + Signature Pad + PDF.',
+        impact: 'hoch',
+        wow: 'hoch',
+        effort: 'L',
+        cost: '0'
+      }
+    ];
+
+    let state = {
+      decisions: {},
+      notes: {},
+      filter: 'all',
+      category: 'all',
+      effort: 'all',
+      query: '',
+      activeId: null,
+      interview: {
+        index: 0,
+        answers: {},
+        feedback: {}
+      }
+    };
+
+    let recognition = null;
+    let dictationTarget = null;
+    let dictationBase = '';
+
+    function loadState() {
+      try {
+        let raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const legacyKey = LEGACY_STORAGE_KEYS.find(key => localStorage.getItem(key));
+          if (legacyKey) {
+            raw = localStorage.getItem(legacyKey);
+            localStorage.setItem(STORAGE_KEY, raw);
+          }
+        }
+        if (raw) state = Object.assign(state, JSON.parse(raw));
+      } catch (err) {
+        console.warn('State konnte nicht geladen werden', err);
+      }
+      normalizeInterviewState();
+    }
+
+    function normalizeInterviewState() {
+      state.decisions = state.decisions || {};
+      state.notes = state.notes || {};
+      state.interview = state.interview || {};
+      state.interview.index = Number.isFinite(state.interview.index) ? state.interview.index : 0;
+      state.interview.index = Math.max(0, Math.min(INTERVIEW_QUESTIONS.length - 1, state.interview.index));
+      state.interview.answers = state.interview.answers || {};
+      state.interview.feedback = state.interview.feedback || {};
+    }
+
+    function saveState() {
+      normalizeInterviewState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateStats();
+      updateOutput();
+    }
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function escapeHTML(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    function decisionFor(id) {
+      return state.decisions[id] || 'open';
+    }
+
+    function noteFor(id) {
+      return state.notes[id] || '';
+    }
+
+    function categories() {
+      return [...new Set(IDEAS.map(idea => idea.category))].sort((a, b) => a.localeCompare(b, 'de'));
+    }
+
+    function matchesIdea(idea) {
+      const decision = decisionFor(idea.id);
+      if (state.filter !== 'all' && decision !== state.filter) return false;
+      if (state.category !== 'all' && idea.category !== state.category) return false;
+      if (state.effort !== 'all' && idea.effort !== state.effort) return false;
+
+      const haystack = [
+        idea.id,
+        idea.title,
+        idea.category,
+        idea.lane,
+        idea.summary,
+        idea.pain,
+        idea.outcome,
+        idea.build,
+        noteFor(idea.id)
+      ].join(' ').toLowerCase();
+      return !state.query || haystack.includes(state.query.toLowerCase());
+    }
+
+    function metricClass(kind, value) {
+      if (kind === 'impact' && value === 'hoch') return 'impact-high';
+      if (kind === 'wow' && value === 'hoch') return 'wow-high';
+      if (kind === 'cost' && value === '0') return 'cost-zero';
+      return '';
+    }
+
+    function renderIdeas() {
+      const list = byId('ideaList');
+      const visible = IDEAS.filter(matchesIdea);
+      if (visible.length === 0) {
+        list.innerHTML = '<div class="empty-state">Keine Treffer. Filter lockern oder Suchbegriff aendern.</div>';
+        return;
+      }
+
+      list.innerHTML = visible.map(idea => {
+        const decision = decisionFor(idea.id);
+        const actions = DECISIONS.map(decisionName => `
+          <button class="idea-decision ${decision === decisionName ? 'active' : ''}"
+            type="button"
+            data-id="${escapeHTML(idea.id)}"
+            data-decision="${decisionName}">
+            ${escapeHTML(DECISION_LABELS[decisionName])}
+          </button>
+        `).join('');
+
+        return `
+          <article class="idea-card" data-id="${escapeHTML(idea.id)}" data-decision="${escapeHTML(decision)}">
+            <div class="idea-head">
+              <div>
+                <h2 class="idea-title">${escapeHTML(idea.title)} <span class="idea-id">${escapeHTML(idea.id)}</span></h2>
+                <p class="idea-summary">${escapeHTML(idea.summary)}</p>
+              </div>
+              <div class="idea-metrics">
+                <span class="metric">${escapeHTML(idea.category)}</span>
+                <span class="metric">${escapeHTML(idea.lane)}</span>
+                <span class="metric ${metricClass('impact', idea.impact)}">Impact ${escapeHTML(idea.impact)}</span>
+                <span class="metric ${metricClass('wow', idea.wow)}">Wow ${escapeHTML(idea.wow)}</span>
+                <span class="metric">Aufwand ${escapeHTML(idea.effort)}</span>
+                <span class="metric ${metricClass('cost', idea.cost)}">Kosten ${escapeHTML(idea.cost)} EUR</span>
+              </div>
+            </div>
+            <div class="idea-body">
+              <div class="idea-fact"><span>Problem</span><strong>${escapeHTML(idea.pain)}</strong></div>
+              <div class="idea-fact"><span>Nutzen</span><strong>${escapeHTML(idea.outcome)}</strong></div>
+              <div class="idea-fact"><span>Build</span><strong>${escapeHTML(idea.build)}</strong></div>
+            </div>
+            <div class="note-row">
+              <textarea class="note-box" data-note="${escapeHTML(idea.id)}" placeholder="Samirs Notiz zu dieser Idee...">${escapeHTML(noteFor(idea.id))}</textarea>
+              <button class="voice-btn" type="button" data-voice="${escapeHTML(idea.id)}">Sprechen</button>
+            </div>
+            <div class="idea-actions">${actions}</div>
+          </article>
+        `;
+      }).join('');
+
+      bindIdeaEvents();
+      updateVoiceButtons();
+    }
+
+    function bindIdeaEvents() {
+      document.querySelectorAll('.idea-decision').forEach(button => {
+        button.addEventListener('click', () => {
+          const id = button.dataset.id;
+          const next = button.dataset.decision;
+          state.decisions[id] = decisionFor(id) === next ? 'open' : next;
+          state.activeId = id;
+          saveState();
+          renderIdeas();
+          renderQueue();
+        });
+      });
+
+      document.querySelectorAll('.note-box').forEach(box => {
+        box.addEventListener('focus', () => {
+          state.activeId = box.dataset.note;
+          updateVoiceStatus();
+        });
+        box.addEventListener('input', () => {
+          state.notes[box.dataset.note] = box.value.trim();
+          state.activeId = box.dataset.note;
+          saveState();
+          renderQueue();
+          updateVoiceStatus();
+        });
+      });
+
+      document.querySelectorAll('[data-voice]').forEach(button => {
+        button.addEventListener('click', () => startDictation(button.dataset.voice));
+      });
+    }
+
+    function renderQueue() {
+      const queue = byId('buildQueue');
+      const chosen = IDEAS.filter(idea => decisionFor(idea.id) === 'build');
+      if (chosen.length === 0) {
+        queue.innerHTML = '<div class="empty-state">Noch kein Sofort-Kandidat.</div>';
+        return;
+      }
+      queue.innerHTML = chosen.map((idea, index) => `
+        <div class="queue-item">
+          <strong>${index + 1}. ${escapeHTML(idea.title)}</strong>
+          <span>${escapeHTML(idea.category)} · Aufwand ${escapeHTML(idea.effort)} · ${escapeHTML(noteFor(idea.id) || idea.outcome)}</span>
+        </div>
+      `).join('');
+    }
+
+    function updateStats() {
+      const total = IDEAS.length;
+      const build = IDEAS.filter(idea => decisionFor(idea.id) === 'build').length;
+      const shortlist = IDEAS.filter(idea => decisionFor(idea.id) === 'shortlist').length;
+      const notes = Object.values(state.notes).filter(Boolean).length;
+      byId('statTotal').textContent = total;
+      byId('statBuild').textContent = build;
+      byId('statShortlist').textContent = shortlist;
+      byId('statNotes').textContent = notes;
+    }
+
+    function questionAnswer(id) {
+      const answer = state.interview.answers[id] || {};
+      return {
+        selected: Array.isArray(answer.selected) ? answer.selected : [],
+        text: answer.text || ''
+      };
+    }
+
+    function isQuestionAnswered(question) {
+      const answer = questionAnswer(question.id);
+      return answer.selected.length > 0 || answer.text.trim().length > 0;
+    }
+
+    function renderInterview() {
+      normalizeInterviewState();
+      const index = state.interview.index;
+      const question = INTERVIEW_QUESTIONS[index];
+      const answer = questionAnswer(question.id);
+      const feedback = state.interview.feedback[question.id] || '';
+      const answered = INTERVIEW_QUESTIONS.filter(isQuestionAnswered).length;
+      const good = Object.values(state.interview.feedback).filter(value => value === 'up').length;
+      const bad = Object.values(state.interview.feedback).filter(value => value === 'down').length;
+
+      byId('questionCounter').textContent = `Frage ${index + 1} / ${INTERVIEW_QUESTIONS.length}`;
+      byId('answeredCounter').textContent = `${answered} beantwortet`;
+      byId('interviewAnswered').textContent = answered;
+      byId('interviewGood').textContent = good;
+      byId('interviewBad').textContent = bad;
+      byId('interviewBarFill').style.width = `${Math.round(((index + 1) / INTERVIEW_QUESTIONS.length) * 100)}%`;
+
+      const options = question.options.map(([value, label, hint]) => {
+        const active = answer.selected.includes(value);
+        return `
+          <button class="option-btn ${active ? 'active' : ''}" type="button" data-option="${escapeHTML(value)}">
+            <strong>${escapeHTML(label)}</strong>
+            <span>${escapeHTML(hint)}</span>
+          </button>
+        `;
+      }).join('');
+
+      byId('questionCard').innerHTML = `
+        <div>
+          <h3>${escapeHTML(question.title)}</h3>
+          <div class="question-context">${escapeHTML(question.context)}</div>
+        </div>
+        <div class="option-grid">${options}</div>
+        <div class="interview-text-row">
+          <textarea class="interview-text" id="interviewText" placeholder="Freie Antwort, Ergaenzung oder Widerspruch...">${escapeHTML(answer.text)}</textarea>
+          <button class="voice-btn" id="interviewVoice" type="button">Sprechen</button>
+        </div>
+        <div class="question-feedback">
+          <span class="voice-status">War diese Frage hilfreich?</span>
+          <button class="thumb-btn ${feedback === 'up' ? 'active' : ''}" type="button" data-thumb="up" aria-label="Frage hilfreich">+</button>
+          <button class="thumb-btn ${feedback === 'down' ? 'active' : ''}" type="button" data-thumb="down" aria-label="Frage nicht hilfreich">-</button>
+        </div>
+        <div class="interview-nav">
+          <div class="interview-nav-left">
+            <button class="lab-btn" id="prevQuestion" type="button">Zurueck</button>
+            <button class="lab-btn subtle" id="skipQuestion" type="button">Ueberspringen</button>
+          </div>
+          <div class="interview-nav-right">
+            <button class="lab-btn primary" id="nextQuestion" type="button">${index === INTERVIEW_QUESTIONS.length - 1 ? 'Abschliessen' : 'Naechste Frage'}</button>
+          </div>
+        </div>
+      `;
+
+      byId('prevQuestion').disabled = index === 0;
+      byId('interviewVoice').disabled = !speechApi();
+      bindInterviewEvents(question);
+      updateOutput();
+    }
+
+    function bindInterviewEvents(question) {
+      document.querySelectorAll('[data-option]').forEach(button => {
+        button.addEventListener('click', () => {
+          const answer = questionAnswer(question.id);
+          const value = button.dataset.option;
+          if (question.type === 'single') {
+            answer.selected = answer.selected.includes(value) ? [] : [value];
+          } else if (answer.selected.includes(value)) {
+            answer.selected = answer.selected.filter(item => item !== value);
+          } else {
+            answer.selected.push(value);
+          }
+          state.interview.answers[question.id] = answer;
+          saveState();
+          renderInterview();
+        });
+      });
+
+      byId('interviewText').addEventListener('input', event => {
+        const answer = questionAnswer(question.id);
+        answer.text = event.target.value.trim();
+        state.interview.answers[question.id] = answer;
+        saveState();
+      });
+
+      document.querySelectorAll('[data-thumb]').forEach(button => {
+        button.addEventListener('click', () => {
+          const value = button.dataset.thumb;
+          state.interview.feedback[question.id] = state.interview.feedback[question.id] === value ? '' : value;
+          saveState();
+          renderInterview();
+        });
+      });
+
+      byId('prevQuestion').addEventListener('click', () => {
+        state.interview.index = Math.max(0, state.interview.index - 1);
+        saveState();
+        renderInterview();
+      });
+      byId('skipQuestion').addEventListener('click', () => {
+        state.interview.index = Math.min(INTERVIEW_QUESTIONS.length - 1, state.interview.index + 1);
+        saveState();
+        renderInterview();
+      });
+      byId('nextQuestion').addEventListener('click', () => {
+        if (state.interview.index >= INTERVIEW_QUESTIONS.length - 1) {
+          updateOutput();
+          byId('outputArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
+          Shell.Toast.show('Fragerunde im Output aktualisiert.');
+          return;
+        }
+        state.interview.index += 1;
+        saveState();
+        renderInterview();
+      });
+      byId('interviewVoice').addEventListener('click', () => startInterviewDictation(question.id));
+    }
+
+    function startInterviewDictation(questionId) {
+      const Speech = speechApi();
+      if (!Speech) {
+        Shell.Toast.show('Diktat wird in diesem Browser nicht unterstuetzt.', true);
+        return;
+      }
+      const target = byId('interviewText');
+      if (!target) return;
+      if (recognition) recognition.abort();
+
+      const base = target.value.trim();
+      recognition = new Speech();
+      recognition.lang = 'de-DE';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.onstart = () => {
+        const status = document.querySelector('.question-feedback .voice-status');
+        if (status) status.textContent = 'Hoere zu...';
+      };
+      recognition.onerror = event => {
+        Shell.Toast.show(`Diktat-Fehler: ${event.error}`, true);
+        recognition = null;
+      };
+      recognition.onresult = event => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join(' ')
+          .trim();
+        target.value = [base, transcript].filter(Boolean).join(' ');
+        const answer = questionAnswer(questionId);
+        answer.text = target.value.trim();
+        state.interview.answers[questionId] = answer;
+        saveState();
+      };
+      recognition.onend = () => {
+        const status = document.querySelector('.question-feedback .voice-status');
+        if (status) status.textContent = 'Diktat beendet. War diese Frage hilfreich?';
+        recognition = null;
+      };
+      recognition.start();
+    }
+
+    function exportState() {
+      const ideas = IDEAS.map(idea => ({
+        id: idea.id,
+        title: idea.title,
+        category: idea.category,
+        lane: idea.lane,
+        impact: idea.impact,
+        wow: idea.wow,
+        effort: idea.effort,
+        cost: idea.cost,
+        decision: decisionFor(idea.id),
+        note: noteFor(idea.id),
+        pain: idea.pain,
+        outcome: idea.outcome,
+        build: idea.build
+      })).filter(idea => idea.decision !== 'open' || idea.note);
+
+      const interviewAnswers = INTERVIEW_QUESTIONS.map(question => ({
+        id: question.id,
+        question: question.title,
+        type: question.type,
+        selected: questionAnswer(question.id).selected,
+        selectedLabels: questionAnswer(question.id).selected.map(value => {
+          const option = question.options.find(item => item[0] === value);
+          return option ? option[1] : value;
+        }),
+        text: questionAnswer(question.id).text,
+        feedback: state.interview.feedback[question.id] || ''
+      })).filter(row => row.selected.length > 0 || row.text || row.feedback);
+
+      return {
+          source: 'CLAWBUIS Tools Workflow-Labor',
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        analysis: {
+          sourceFile: 'clawbuis-tools-workflow-lab-2026-05-04.json',
+          conclusion: 'Vernetzung, Mappe-Versionen und problemgefuehrte Workflows sind wichtiger als weitere Einzelkacheln.',
+          buildClusters: [
+            'Workflow-Registry und Smart Suggestions',
+            'Mappe-Zustaende, Versionen und Verlauf',
+            'PDF-Kernflows: organisieren, pruefen, schwaerzen, zusammenfuehren',
+            'Optionen in bestehende Tools statt neue isolierte Kacheln',
+            'Mobile und Sprache als eigener UX-Standard'
+          ],
+          rejectRules: [
+            'zu spezifisch fuer diese Tools-Seite',
+            'schon vorhanden',
+            'zu technisch fuer die Zielgruppe',
+            'kein echter Vorteil gegenueber kurzer ChatGPT/Google-Frage'
+          ],
+          officeNgTransfer: [
+            'update_field-Prinzip: alles Eindeutige sofort als Workflow-Schritt oder Datei-Zustand anwenden',
+            'ask-Prinzip: Rueckfragen nur zusaetzlich bei Konflikt, Unsicherheit oder niedriger Confidence',
+            'show_preview-Prinzip: Workflow-Plan sichtbar und editierbar halten, bevor er ausgefuehrt wird',
+            'Confidence-Prinzip: explizit 0.95, abgeleitet 0.85, geraten 0.6, User-Bestaetigung 1.0'
+          ]
+        },
+        totals: {
+          allIdeas: IDEAS.length,
+          exportedIdeas: ideas.length,
+          build: ideas.filter(idea => idea.decision === 'build').length,
+          shortlist: ideas.filter(idea => idea.decision === 'shortlist').length,
+          later: ideas.filter(idea => idea.decision === 'later').length,
+          discard: ideas.filter(idea => idea.decision === 'discard').length,
+          notes: ideas.filter(idea => idea.note).length,
+          interviewAnswered: interviewAnswers.filter(row => row.selected.length > 0 || row.text).length,
+          interviewGoodQuestions: interviewAnswers.filter(row => row.feedback === 'up').length,
+          interviewBadQuestions: interviewAnswers.filter(row => row.feedback === 'down').length
+        },
+        ideas,
+        interview: {
+          currentIndex: state.interview.index,
+          totalQuestions: INTERVIEW_QUESTIONS.length,
+          answers: interviewAnswers
+        }
+      };
+    }
+
+    function updateOutput() {
+      byId('outputArea').value = JSON.stringify(exportState(), null, 2);
+    }
+
+    async function copyOutput() {
+      updateOutput();
+      const text = byId('outputArea').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        Shell.Toast.show('Output kopiert.');
+      } catch (err) {
+        byId('outputArea').select();
+        document.execCommand('copy');
+        Shell.Toast.show('Output markiert und kopiert.');
+      }
+    }
+
+    function downloadOutput() {
+      updateOutput();
+      const blob = new Blob([byId('outputArea').value], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `clawbuis-tools-workflow-lab-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function importOutput() {
+      const raw = byId('importArea').value.trim();
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        const rows = Array.isArray(parsed.ideas) ? parsed.ideas : [];
+        rows.forEach(row => {
+          if (!row.id) return;
+          if (DECISIONS.includes(row.decision)) state.decisions[row.id] = row.decision;
+          if (typeof row.note === 'string') state.notes[row.id] = row.note;
+        });
+        if (parsed.interview && Array.isArray(parsed.interview.answers)) {
+          parsed.interview.answers.forEach(row => {
+            if (!row.id) return;
+            state.interview.answers[row.id] = {
+              selected: Array.isArray(row.selected) ? row.selected : [],
+              text: typeof row.text === 'string' ? row.text : ''
+            };
+            if (row.feedback === 'up' || row.feedback === 'down') {
+              state.interview.feedback[row.id] = row.feedback;
+            }
+          });
+          if (Number.isFinite(parsed.interview.currentIndex)) {
+            state.interview.index = parsed.interview.currentIndex;
+          }
+        }
+        saveState();
+        renderIdeas();
+        renderQueue();
+        renderInterview();
+        Shell.Toast.show('Import uebernommen.');
+      } catch (err) {
+        Shell.Toast.show('Import ist kein gueltiges JSON.', true);
+      }
+    }
+
+    function setupFilters() {
+      const select = byId('categoryFilter');
+      categories().forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        select.appendChild(option);
+      });
+
+      byId('searchInput').value = state.query;
+      byId('categoryFilter').value = state.category;
+      byId('effortFilter').value = state.effort;
+
+      byId('searchInput').addEventListener('input', event => {
+        state.query = event.target.value.trim();
+        saveState();
+        renderIdeas();
+      });
+      byId('categoryFilter').addEventListener('change', event => {
+        state.category = event.target.value;
+        saveState();
+        renderIdeas();
+      });
+      byId('effortFilter').addEventListener('change', event => {
+        state.effort = event.target.value;
+        saveState();
+        renderIdeas();
+      });
+      document.querySelectorAll('[data-filter]').forEach(button => {
+        button.classList.toggle('active', button.dataset.filter === state.filter);
+        button.addEventListener('click', () => {
+          state.filter = button.dataset.filter;
+          document.querySelectorAll('[data-filter]').forEach(item => item.classList.toggle('active', item === button));
+          saveState();
+          renderIdeas();
+        });
+      });
+    }
+
+    function speechApi() {
+      return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+    }
+
+    function updateVoiceButtons() {
+      const available = !!speechApi();
+      document.querySelectorAll('.voice-btn').forEach(button => {
+        button.disabled = !available;
+        button.title = available ? 'Browser-Diktat starten' : 'Browser unterstuetzt SpeechRecognition nicht';
+      });
+      byId('voiceActive').disabled = !available;
+      updateVoiceStatus();
+    }
+
+    function updateVoiceStatus(text) {
+      if (text) {
+        byId('voiceStatus').textContent = text;
+        return;
+      }
+      const idea = IDEAS.find(item => item.id === state.activeId);
+      byId('voiceStatus').textContent = idea
+        ? `Aktive Notiz: ${idea.title}`
+        : 'Noch keine aktive Notiz.';
+    }
+
+    function startDictation(id) {
+      const Speech = speechApi();
+      if (!Speech) {
+        Shell.Toast.show('Diktat wird in diesem Browser nicht unterstuetzt.', true);
+        return;
+      }
+      if (recognition) recognition.abort();
+      state.activeId = id || state.activeId;
+      const target = document.querySelector(`[data-note="${CSS.escape(state.activeId)}"]`);
+      if (!target) {
+        Shell.Toast.show('Erst eine Notiz auswaehlen.', true);
+        return;
+      }
+
+      dictationTarget = target;
+      dictationBase = target.value.trim();
+      recognition = new Speech();
+      recognition.lang = 'de-DE';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => updateVoiceStatus('Hoere zu...');
+      recognition.onerror = event => {
+        updateVoiceStatus(`Diktat-Fehler: ${event.error}`);
+        recognition = null;
+      };
+      recognition.onresult = event => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join(' ')
+          .trim();
+        dictationTarget.value = [dictationBase, transcript].filter(Boolean).join(' ');
+        state.notes[state.activeId] = dictationTarget.value.trim();
+        saveState();
+      };
+      recognition.onend = () => {
+        updateVoiceStatus('Diktat beendet.');
+        recognition = null;
+        renderQueue();
+      };
+      recognition.start();
+    }
+
+    function setupActions() {
+      byId('refreshOutput').addEventListener('click', () => {
+        updateOutput();
+        Shell.Toast.show('Output aktualisiert.');
+      });
+      byId('copyOutput').addEventListener('click', copyOutput);
+      byId('downloadOutput').addEventListener('click', downloadOutput);
+      byId('selectAllOutput').addEventListener('click', () => {
+        byId('outputArea').focus();
+        byId('outputArea').select();
+      });
+      byId('importOutput').addEventListener('click', importOutput);
+      byId('voiceActive').addEventListener('click', () => startDictation(state.activeId));
+      byId('startInterviewTop').addEventListener('click', () => {
+        byId('interviewPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const text = byId('interviewText');
+        if (text) setTimeout(() => text.focus(), 350);
+      });
+      byId('copyDecision').addEventListener('click', async () => {
+        const decision = [
+          'CLAWBUIS Entscheidung',
+          '',
+          'North Star: Dateien rein. Ziel aussprechen. CLAWBUIS baut einen sichtbaren, editierbaren Workflow und fuehrt den Nutzer durch.',
+          '',
+          'Sprint 1: Workflow Registry',
+          'Sprint 2: Mappe v2 mit Originalen, Bearbeitungen, Versionen und Verlauf',
+          'Sprint 3: Concierge-Hub Prototype mit Diktat und Confidence',
+          'Sprint 4: PDF-Synergie ueber Signieren, Schwaerzen, Komprimieren, OCR, Wasserzeichen, Merge/Split und Organizer',
+          'Sprint 5: Problemfrage v2 mit besseren Rueckfragen',
+          '',
+          'Office-NG Transfer: update_field fuer alles Eindeutige, ask nur zusaetzlich, show_preview vor Commit, Confidence sichtbar machen.'
+        ].join('\n');
+        try {
+          await navigator.clipboard.writeText(decision);
+          Shell.Toast.show('Entscheidung kopiert.');
+        } catch (err) {
+          Shell.Toast.show('Kopieren im Browser blockiert.', true);
+        }
+      });
+      byId('resetInterview').addEventListener('click', () => {
+        if (!confirm('Fragerunde wirklich zuruecksetzen?')) return;
+        state.interview = { index: 0, answers: {}, feedback: {} };
+        saveState();
+        renderInterview();
+        Shell.Toast.show('Fragerunde zurueckgesetzt.');
+      });
+      byId('resetState').addEventListener('click', () => {
+        if (!confirm('Auswahl und Notizen wirklich loeschen?')) return;
+        state.decisions = {};
+        state.notes = {};
+        state.activeId = null;
+        saveState();
+        renderIdeas();
+        renderQueue();
+        Shell.Toast.show('Workflow-Labor zurueckgesetzt.');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      Shell.init({ tag: 'WORKFLOW-LABOR', tour: false, toolName: 'Workflow-Labor' });
+      loadState();
+      setupFilters();
+      setupActions();
+      renderIdeas();
+      renderQueue();
+      renderInterview();
+      updateStats();
+      updateOutput();
+      updateVoiceButtons();
+    });
+  </script>
+</body>
+</html>

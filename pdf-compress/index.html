@@ -233,6 +233,16 @@
         $('savingsPct').textContent = pct > 0 ? `−${pct}%` : '0%';
         $('savingsBytes').textContent = `${fmtBytes(state.file.size)} → ${fmtBytes(state.outBlob.size)}`;
         $('result').classList.add('active');
+        Shell.showWorkflowNextSteps({
+          blob: state.outBlob,
+          filename: state.file.name.replace(/\.pdf$/i, '_komprimiert.pdf'),
+          type: 'application/pdf',
+          sourceTool: 'pdf-compress',
+          container: $('result'),
+          preferredTools: ['pdf-sign', 'pdf-redact', 'pdf-watermark', 'pdf-ocr'],
+          title: 'Komprimiert. Was als Naechstes?',
+          description: 'Die kleinere PDF liegt in deiner Mappe. Du kannst den Workflow direkt fortsetzen.'
+        });
       } catch (e) {
         console.error(e);
         Shell.Toast.show('Komprimierung fehlgeschlagen', true);

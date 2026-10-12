@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 76">
+  <defs>
+    <linearGradient id="clawGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="50%" stop-color="#d4b483"/>
+      <stop offset="100%" stop-color="#c29b62"/>
+    </linearGradient>
+    <radialGradient id="clawCore">
+      <stop offset="0%" stop-color="#ffd700" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#c29b62" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="clawCoreBlur">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <g fill="none" stroke="url(#clawGrad)" stroke-linecap="round">
+    <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.2"/>
+    <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.4"/>
+    <path d="M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3" stroke-width="2.6"/>
+    <path d="M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4" stroke-width="2.4"/>
+    <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2"/>
+  </g>
+
+  <path d="M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54"
+        fill="none" stroke="#c29b62" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <circle cx="32" cy="50" r="8" fill="url(#clawCore)" filter="url(#clawCoreBlur)" opacity="0.6"/>
+  <circle cx="32" cy="50" r="2.8" fill="#ffd700" opacity="0.85"/>
+  <circle cx="32" cy="50" r="1.2" fill="#fffde8" opacity="0.9"/>
+</svg>

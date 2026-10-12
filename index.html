@@ -11,7 +11,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://tools.clawbuis.com" />
   <link rel="canonical" href="https://tools.clawbuis.com/" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 76'%3E%3Cg fill='none' stroke='%230a0a0a' stroke-linecap='round'%3E%3Cpath d='M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10' stroke-width='2.2'/%3E%3Cpath d='M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4' stroke-width='2.4'/%3E%3Cpath d='M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3' stroke-width='2.6'/%3E%3Cpath d='M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4' stroke-width='2.4'/%3E%3Cpath d='M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12' stroke-width='2'/%3E%3C/g%3E%3Ccircle cx='32' cy='50' r='2.4' fill='%2315803d'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml" href="/shared/clawmark-logo.svg" />
 
   <link rel="stylesheet" href="/shared/tokens.css" />
   <link rel="stylesheet" href="/shared/shell.css" />
@@ -46,14 +46,116 @@
     <!-- Drop-Zone-Hero — Haupt-Element des Hubs. Lädt direkt in die Mappe. -->
     <section class="hub-dropzone-hero" id="hubDropzone" aria-label="Dateien in die Mappe hochladen">
       <input type="file" id="hubFileInput" multiple class="hidden" />
+      <canvas class="hub-agent-canvas" id="hubAgentCanvas" aria-hidden="true"></canvas>
       <svg class="hub-dropzone-hero-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
         <polyline points="17 8 12 3 7 8"/>
         <line x1="12" y1="3" x2="12" y2="15"/>
       </svg>
-      <h2 id="hubDropzoneHeading">Wirf deine Dateien hier rein</h2>
-      <p id="hubDropzoneSub">Lade alles hoch — wähle dann was du damit machen willst. Alles bleibt 100 % in deinem Browser.</p>
+      <h2 id="hubDropzoneHeading">Dateien rein.</h2>
+      <p id="hubDropzoneSub">Datei + Ziel reichen. Alles bleibt lokal.</p>
       <div class="hub-dropzone-hint">PDF · Bilder · Video · Word · Tabellen</div>
+      <div class="hub-agent-file-strip" id="hubFilePresence">
+        <span>Keine Dateien in der Mappe</span>
+      </div>
+      <div class="hub-flow-visual" id="hubFlowVisual" aria-hidden="true">
+        <div class="hub-flow-node" data-flow-node="file">
+          <span class="hub-flow-index">01</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+            <path d="M14 2v5h5"/>
+          </svg>
+          <strong>Datei</strong>
+        </div>
+        <span class="hub-flow-link"></span>
+        <div class="hub-flow-node" data-flow-node="intent">
+          <span class="hub-flow-index">02</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/>
+            <path d="M8 9h8M8 13h5"/>
+          </svg>
+          <strong>Wunsch</strong>
+        </div>
+        <span class="hub-flow-link"></span>
+        <div class="hub-flow-node" data-flow-node="plan">
+          <span class="hub-flow-index">03</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6h16M4 12h16M4 18h16"/>
+            <path d="M7 6v12M17 6v12"/>
+          </svg>
+          <strong>Weg</strong>
+        </div>
+        <span class="hub-flow-summary" id="hubFlowSummary">Bereit</span>
+      </div>
+    </section>
+
+    <!-- Arbeitsauftrag — kein Tool-Suchfeld, sondern Ziel -> editierbarer Workflow. -->
+    <section class="hub-concierge is-collapsed" id="hubConcierge" aria-label="KI-Wegmodus">
+      <div class="hub-ai-entry">
+        <div class="hub-ai-entry-copy">
+          <span>Optionaler KI-Modus</span>
+          <strong>CLAWBUIS baut dir einen Weg durch die Tools.</strong>
+          <small>Wenn du nicht suchen willst: Wunsch schreiben, Weg pruefen, starten.</small>
+        </div>
+        <button type="button" id="hubAiToggle" aria-expanded="false">KI-Modus oeffnen</button>
+      </div>
+      <div class="hub-concierge-copy">
+        <div class="hub-concierge-statusbar">
+          <span class="hub-concierge-eyebrow">Wunsch</span>
+          <span class="hub-agent-mode" id="hubAgentMode">Lokal bereit</span>
+        </div>
+        <h2>Was soll draus werden?</h2>
+        <p>Kein Tool suchen. Sag den Ausgang. CLAWBUIS nimmt den Weg.</p>
+      </div>
+      <div class="hub-concierge-workbench">
+        <div class="hub-agent-dock" id="hubAgentDock" aria-live="polite">
+          <div class="hub-agent-stages" id="hubAgentStages" aria-label="Arbeitsstatus">
+            <span class="hub-agent-stage" data-agent-stage="file">Datei</span>
+            <span class="hub-agent-stage" data-agent-stage="intent">Wunsch</span>
+            <span class="hub-agent-stage" data-agent-stage="plan">Weg</span>
+          </div>
+          <div class="hub-agent-files-panel">
+            <div class="hub-agent-panel-head">
+              <span>Mappe</span>
+              <button type="button" id="hubAgentAddFiles">Dateien waehlen</button>
+            </div>
+            <div class="hub-agent-files" id="hubAgentFiles">
+              <span class="hub-agent-file-empty">Noch keine Dateien</span>
+            </div>
+          </div>
+          <div class="hub-agent-action" id="hubAgentAction">
+            <span class="hub-agent-action-kicker">Naechster Schritt</span>
+            <strong>Datei rein oder Ziel schreiben.</strong>
+          </div>
+        </div>
+        <div class="hub-outcome-board" id="hubOutcomeBoard" aria-label="Schnelle Alltagsziele"></div>
+        <div class="hub-chat-thread" id="hubChatThread" aria-live="polite">
+          <div class="hub-chat-message assistant">
+            <span>CLAWBUIS</span>
+            <p>Leg etwas hin oder sag direkt, was am Ende rauskommen soll.</p>
+          </div>
+        </div>
+        <label class="hub-intent-field" for="hubIntentInput">
+          <span>In deinen Worten</span>
+          <textarea id="hubIntentInput" rows="2" placeholder="z.B. Erst unterschreiben, dann auslesen und danach kleiner fuer E-Mail machen"></textarea>
+        </label>
+        <div class="hub-intent-actions">
+          <button type="button" class="hub-intent-build" id="hubIntentBuild" disabled>Weg bauen</button>
+          <span id="hubIntentState">Noch kein Weg.</span>
+        </div>
+        <div class="hub-capability-strip" id="hubCapabilityStrip" aria-label="Moegliche Ziele"></div>
+        <details class="hub-intent-examples">
+          <summary>Beispiele</summary>
+          <div class="hub-intent-chips" aria-label="Schnelle Ziele">
+            <button type="button" data-intent="PDFs zusammenfuegen">PDFs zusammenfuegen</button>
+            <button type="button" data-intent="Vertrag schwaerzen">Schwaerzen</button>
+            <button type="button" data-intent="Datei kleiner machen">Kleiner machen</button>
+            <button type="button" data-intent="Unterschrift auf PDF setzen">Signieren</button>
+            <button type="button" data-intent="PDF auslesen und durchsuchbar machen">Auslesen</button>
+          </div>
+        </details>
+        <div class="hub-concierge-results" id="hubConciergeResults" aria-live="polite"></div>
+      </div>
     </section>
 
     <!-- Quick-Jump zu allen Apps — schließt die Lücke zwischen Drop-Zone und
@@ -279,7 +381,7 @@
           <span class="hub-section-index">03</span>
           <h2 class="hub-section-title">Bild-Editor</h2>
         </div>
-        <span class="hub-section-subtitle">KI-Funktionen die im Browser laufen — keine Cloud nötig.</span>
+        <span class="hub-section-subtitle">Bild-Funktionen direkt im Browser — keine Cloud nötig.</span>
       </div>
       <div class="hub-tile-grid">
         <a class="hub-tile" href="/bg-remove">
@@ -287,7 +389,7 @@
           <div class="hub-tile-content">
             <svg class="hub-tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/><circle cx="12" cy="11" r="3"/><path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
             <h4>Hintergrund entfernen</h4>
-            <p>Person/Objekt freistellen · KI-Modell läuft im Browser.</p>
+            <p>Person oder Objekt freistellen. Verarbeitung laeuft im Browser.</p>
             <span class="hub-tile-cta">Öffnen →</span>
           </div>
         </a>
@@ -375,28 +477,150 @@
   </main>
 
   <script src="/shared/shell.js"></script>
+  <script src="/shared/workflow-registry.js"></script>
+  <script src="/shared/workflow-router.js"></script>
+  <script src="/shared/workflow-agent.js"></script>
   <script>
     // Tool-Slug → Accept-Pattern Mapping (für Counter + Auto-Load-Routing)
-    const TOOL_ACCEPTS = {
-      'pdf-merger':       ['application/pdf'],
-      'pdf-splitter':     ['application/pdf'],
-      'pdf-redact':       ['application/pdf'],
-      'pdf-to-word':      ['application/pdf'],
-      'pdf-compress':     ['application/pdf'],
-      'pdf-watermark':    ['application/pdf'],
-      'pdf-sign':         ['application/pdf'],
-      'pdf-ocr':          ['application/pdf'],
-      'images-compress':  ['image/*'],
-      'images-to-pdf':    ['image/jpeg', 'image/png', 'image/webp'],
-      'heic-zu-jpg':      ['image/*'],
-      'exif-strip':       ['image/*'],
-      'exif-rename':      ['image/*'],
-      'docx-zu-pdf':      ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      'video-compress':   ['video/*'],
-      'video-zu-gif':     ['video/*'],
-      'bg-remove':        ['image/*'],
-      'csv-edit':         ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+    const WORKFLOW_REGISTRY = window.CLAWBUIS_WORKFLOW_REGISTRY || {
+      'pdf-merger': {
+        label: 'PDFs zusammenfuegen',
+        accepts: ['application/pdf'],
+        keywords: ['zusammen', 'zusammenfuegen', 'merge', 'mergen', 'kombinieren', 'eine pdf'],
+        problem: 'Mehrere PDFs werden eine saubere Datei.',
+        priority: 92
+      },
+      'pdf-splitter': {
+        label: 'PDF teilen',
+        accepts: ['application/pdf'],
+        keywords: ['teilen', 'splitten', 'seiten', 'einzelseiten', 'trennen'],
+        problem: 'Eine PDF wird in einzelne Seiten oder Bereiche getrennt.',
+        priority: 78
+      },
+      'pdf-compress': {
+        label: 'PDF kleiner machen',
+        accepts: ['application/pdf'],
+        keywords: ['kleiner', 'komprimieren', 'mail', 'email', 'whatsapp', 'zu gross', 'groesse'],
+        problem: 'PDF wird mailtauglich kleiner.',
+        priority: 88
+      },
+      'pdf-redact': {
+        label: 'PDF schwaerzen',
+        accepts: ['application/pdf'],
+        keywords: ['schwaerzen', 'schwärzen', 'zensieren', 'anonym', 'daten weg', 'verbergen'],
+        problem: 'Sensible Stellen dauerhaft unkenntlich machen.',
+        priority: 86
+      },
+      'pdf-watermark': {
+        label: 'Wasserzeichen setzen',
+        accepts: ['application/pdf'],
+        keywords: ['wasserzeichen', 'vertraulich', 'draft', 'entwurf', 'logo'],
+        problem: 'Jede Seite bekommt sichtbare Kennzeichnung.',
+        priority: 74
+      },
+      'pdf-sign': {
+        label: 'PDF signieren',
+        accepts: ['application/pdf'],
+        keywords: ['signieren', 'unterschrift', 'unterschreiben', 'signatur'],
+        problem: 'Unterschrift auf PDF platzieren.',
+        priority: 82
+      },
+      'pdf-ocr': {
+        label: 'PDF durchsuchbar machen',
+        accepts: ['application/pdf'],
+        keywords: ['ocr', 'durchsuchbar', 'text erkennen', 'suchen', 'kopieren', 'scan'],
+        problem: 'Scans werden suchbar und kopierbar.',
+        priority: 80
+      },
+      'pdf-to-word': {
+        label: 'PDF zu Word',
+        accepts: ['application/pdf'],
+        keywords: ['word', 'bearbeiten', 'docx', 'text raus', 'in word'],
+        problem: 'PDF-Inhalt in bearbeitbares Word holen.',
+        priority: 70
+      },
+      'heic-zu-jpg': {
+        label: 'iPhone-Foto zu JPG',
+        accepts: ['image/*'],
+        keywords: ['iphone', 'heic', 'heif', 'jpg', 'jpeg', 'foto umwandeln'],
+        problem: 'iPhone-Bilder lesbar weitergeben.',
+        priority: 84
+      },
+      'images-compress': {
+        label: 'Bilder kleiner machen',
+        accepts: ['image/*'],
+        keywords: ['bilder kleiner', 'foto kleiner', 'komprimieren', 'mail', 'whatsapp', 'bild groesse'],
+        problem: 'Viele Bilder werden leichter versendbar.',
+        priority: 82
+      },
+      'images-to-pdf': {
+        label: 'Bilder zu PDF',
+        accepts: ['image/jpeg', 'image/png', 'image/webp'],
+        keywords: ['bilder zu pdf', 'scan pdf', 'fotos pdf', 'belege pdf'],
+        problem: 'Fotos oder Scans werden eine PDF.',
+        priority: 72
+      },
+      'exif-strip': {
+        label: 'Foto-Daten entfernen',
+        accepts: ['image/*'],
+        keywords: ['metadaten', 'standort', 'exif', 'gps', 'daten entfernen'],
+        problem: 'Standort und Kameradaten vor Upload entfernen.',
+        priority: 76
+      },
+      'exif-rename': {
+        label: 'Dateien umbenennen',
+        accepts: ['*/*'],
+        keywords: ['umbenennen', 'nummerieren', 'sortieren', 'dateinamen', 'bulk rename'],
+        problem: 'Viele Dateien bekommen saubere Namen.',
+        priority: 68
+      },
+      'docx-zu-pdf': {
+        label: 'Word zu PDF',
+        accepts: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        keywords: ['word zu pdf', 'docx zu pdf', 'dokument pdf'],
+        problem: 'Word-Dokument wird PDF.',
+        priority: 66
+      },
+      'csv-edit': {
+        label: 'Tabelle bearbeiten',
+        accepts: ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        keywords: ['csv', 'excel', 'xlsx', 'tabelle', 'liste', 'sortieren', 'filtern'],
+        problem: 'Tabellen schnell pruefen, sortieren und bereinigen.',
+        priority: 64
+      },
+      'video-compress': {
+        label: 'Video kleiner machen',
+        accepts: ['video/*'],
+        keywords: ['video kleiner', 'video komprimieren', 'mp4 kleiner', 'whatsapp video'],
+        problem: 'Video wird versendbar kleiner.',
+        priority: 72
+      },
+      'video-zu-gif': {
+        label: 'Video zu GIF',
+        accepts: ['video/*'],
+        keywords: ['gif', 'video zu gif', 'bewegtes bild'],
+        problem: 'Kurzer Clip wird GIF.',
+        priority: 58
+      },
+      'bg-remove': {
+        label: 'Hintergrund entfernen',
+        accepts: ['image/*'],
+        keywords: ['hintergrund', 'freistellen', 'background', 'objekt freistellen'],
+        problem: 'Motiv freistellen und weiterverwenden.',
+        priority: 62
+      },
+      'qr-code': {
+        label: 'QR-Code erstellen',
+        accepts: [],
+        keywords: ['qr', 'qr code', 'link als qr', 'wifi qr', 'vcard'],
+        problem: 'Aus Link, Kontakt oder WLAN wird ein QR-Code.',
+        priority: 52
+      }
     };
+
+    const TOOL_ACCEPTS = Object.fromEntries(
+      Object.entries(WORKFLOW_REGISTRY).map(([slug, cfg]) => [slug, cfg.accepts || []])
+    );
 
     const KIND_ICON_SVG = {
       image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`,
@@ -426,6 +650,162 @@
       const libraryClearBtn = document.getElementById('hubLibraryClear');
       const heading = document.getElementById('hubDropzoneHeading');
       const sub = document.getElementById('hubDropzoneSub');
+      const intentInput = document.getElementById('hubIntentInput');
+      const intentBuildBtn = document.getElementById('hubIntentBuild');
+      const intentState = document.getElementById('hubIntentState');
+      const conciergeResults = document.getElementById('hubConciergeResults');
+      const filePresence = document.getElementById('hubFilePresence');
+      const capabilityStrip = document.getElementById('hubCapabilityStrip');
+      const agentMode = document.getElementById('hubAgentMode');
+      const agentCanvas = document.getElementById('hubAgentCanvas');
+      const flowVisual = document.getElementById('hubFlowVisual');
+      const flowSummary = document.getElementById('hubFlowSummary');
+      const agentDock = document.getElementById('hubAgentDock');
+      const agentStages = document.getElementById('hubAgentStages');
+      const agentFiles = document.getElementById('hubAgentFiles');
+      const agentAction = document.getElementById('hubAgentAction');
+      const agentAddFiles = document.getElementById('hubAgentAddFiles');
+      const outcomeBoard = document.getElementById('hubOutcomeBoard');
+      const aiToggle = document.getElementById('hubAiToggle');
+      const manualToggle = document.getElementById('hubManualToggle');
+      const intentChips = document.querySelectorAll('[data-intent]');
+      let latestMappeFiles = [];
+      let renderConcierge = () => {};
+      let workflowBuildToken = 0;
+
+      initAgentCanvas();
+
+      function initAgentCanvas() {
+        if (!agentCanvas || !agentCanvas.getContext) return;
+        const ctx = agentCanvas.getContext('2d');
+        if (!ctx) return;
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let width = 0;
+        let height = 0;
+        let frame = 0;
+
+        function resize() {
+          const rect = agentCanvas.getBoundingClientRect();
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          width = Math.max(1, Math.floor(rect.width));
+          height = Math.max(1, Math.floor(rect.height));
+          agentCanvas.width = Math.floor(width * dpr);
+          agentCanvas.height = Math.floor(height * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function draw(time) {
+          if (!width || !height) resize();
+          ctx.clearRect(0, 0, width, height);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(10, 10, 10, 0.055)';
+          for (let x = 18; x < width; x += 28) {
+            ctx.beginPath();
+            ctx.moveTo(x, 12);
+            ctx.lineTo(x, height - 12);
+            ctx.stroke();
+          }
+          for (let y = 16; y < height; y += 28) {
+            ctx.beginPath();
+            ctx.moveTo(12, y);
+            ctx.lineTo(width - 12, y);
+            ctx.stroke();
+          }
+
+          const startX = Math.max(80, width * 0.48);
+          const midX = Math.max(startX + 80, width * 0.68);
+          const endX = Math.max(midX + 80, width * 0.86);
+          const y = height * 0.46;
+          ctx.strokeStyle = 'rgba(21, 128, 61, 0.28)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(startX, y);
+          ctx.bezierCurveTo(midX - 90, y - 54, midX - 34, y + 52, midX, y);
+          ctx.bezierCurveTo(midX + 48, y - 44, endX - 58, y + 42, endX, y);
+          ctx.stroke();
+
+          const pulse = reduceMotion ? 0.72 : ((time || 0) / 1800) % 1;
+          const px = startX + (endX - startX) * pulse;
+          const py = y + Math.sin(pulse * Math.PI * 2) * 18;
+          ctx.fillStyle = 'rgba(21, 128, 61, 0.88)';
+          ctx.beginPath();
+          ctx.arc(px, py, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(194, 155, 98, 0.75)';
+          ctx.beginPath();
+          ctx.arc(endX, y, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (!reduceMotion) frame = requestAnimationFrame(draw);
+        }
+
+        resize();
+        window.addEventListener('resize', resize);
+        frame = requestAnimationFrame(draw);
+        window.addEventListener('pagehide', () => cancelAnimationFrame(frame), { once: true });
+      }
+
+      agentAddFiles?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setAiOpen(true, false);
+        fileInput.click();
+      });
+
+      function setAiOpen(open, focus = false) {
+        const concierge = document.getElementById('hubConcierge');
+        if (!concierge) return;
+        concierge.classList.toggle('is-collapsed', !open);
+        aiToggle?.setAttribute('aria-expanded', String(open));
+        if (aiToggle) aiToggle.textContent = open ? 'KI-Modus schliessen' : 'KI-Modus oeffnen';
+        if (focus && open) {
+          requestAnimationFrame(() => intentInput?.focus());
+        }
+      }
+
+      aiToggle?.addEventListener('click', () => {
+        const concierge = document.getElementById('hubConcierge');
+        const nextOpen = concierge ? concierge.classList.contains('is-collapsed') : true;
+        setAiOpen(nextOpen, nextOpen);
+      });
+
+      manualToggle?.addEventListener('click', () => {
+        const expanded = !document.body.classList.contains('manual-tools-expanded');
+        document.body.classList.toggle('manual-tools-expanded', expanded);
+        manualToggle.setAttribute('aria-expanded', String(expanded));
+        manualToggle.textContent = expanded ? 'Werkzeuge einklappen' : 'Alle Werkzeuge anzeigen';
+      });
+
+      intentChips.forEach(btn => {
+        btn.addEventListener('click', () => {
+          intentInput.value = btn.getAttribute('data-intent') || '';
+          renderConcierge(latestMappeFiles, { ai: false });
+          intentInput.focus();
+        });
+      });
+      intentInput.addEventListener('input', () => renderConcierge(latestMappeFiles, { ai: false }));
+      intentBuildBtn.addEventListener('click', () => {
+        if (String(intentInput.value || '').trim().length < 2) {
+          intentInput.focus();
+          return;
+        }
+        renderConcierge(latestMappeFiles, { ai: true });
+      });
+      intentInput.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (!intentBuildBtn.disabled) renderConcierge(latestMappeFiles, { ai: true });
+        }
+      });
+
+      if (window.WorkflowAgent && WorkflowAgent.getStatus) {
+        WorkflowAgent.getStatus().then(status => {
+          if (!agentMode) return;
+          agentMode.textContent = status.keyConfigured
+            ? `Smart bereit`
+            : 'Lokal bereit';
+          agentMode.classList.toggle('is-ai', !!status.keyConfigured);
+        }).catch(() => {});
+      }
 
       // Drop-Zone — direct upload to Mappe
       ['dragenter', 'dragover'].forEach(ev => {
@@ -484,9 +864,12 @@
       Shell.whenMappeReady((Mappe) => {
         async function refresh() {
           const files = await Mappe.listFiles({});
+          latestMappeFiles = files;
+          document.body.classList.toggle('hub-has-files', files.length > 0);
           renderLibrary(files);
           updateToolCounters(files);
           updateDropzoneCopy(files);
+          renderConcierge(files);
         }
 
         function renderLibrary(files) {
@@ -599,7 +982,7 @@
             if (existing) existing.remove();
             tile.classList.remove('has-mappe-match');
             tile.removeAttribute('data-mappe-ids');
-            if (!accepts || files.length === 0) return;
+            if (!accepts || accepts.length === 0 || files.length === 0) return;
             const matches = files.filter(f => Mappe.typeMatches(f.type, accepts));
             if (matches.length === 0) return;
             const counter = document.createElement('span');
@@ -613,12 +996,767 @@
 
         function updateDropzoneCopy(files) {
           if (files.length === 0) {
-            heading.textContent = 'Wirf deine Dateien hier rein';
-            sub.textContent = 'Lade alles hoch — wähle dann was du damit machen willst. Alles bleibt 100 % in deinem Browser.';
+            heading.textContent = 'Dateien rein.';
+            sub.textContent = 'Datei + Ziel reichen. Alles bleibt lokal.';
           } else {
-            heading.textContent = 'Mehr Dateien hinzufügen';
-            sub.textContent = 'Lege weitere Dateien rein — sie kommen zu deiner Mappe dazu.';
+            heading.textContent = 'Mappe bereit.';
+            sub.textContent = 'Sag nur noch, was passieren soll.';
           }
+        }
+
+        let currentWorkflowPlan = null;
+
+        function updateFlowVisual(files, hasIntent, plan) {
+          if (!flowVisual) return;
+          const fileNode = flowVisual.querySelector('[data-flow-node="file"]');
+          const intentNode = flowVisual.querySelector('[data-flow-node="intent"]');
+          const planNode = flowVisual.querySelector('[data-flow-node="plan"]');
+          const stepCount = plan && plan.steps ? plan.steps.length : 0;
+          const hasFiles = files.length > 0;
+          fileNode && fileNode.classList.toggle('is-active', hasFiles);
+          intentNode && intentNode.classList.toggle('is-active', !!hasIntent);
+          planNode && planNode.classList.toggle('is-active', stepCount > 0);
+          flowVisual.classList.toggle('has-files', hasFiles);
+          flowVisual.classList.toggle('has-intent', !!hasIntent);
+          flowVisual.classList.toggle('has-plan', stepCount > 0);
+          if (flowSummary) {
+            flowSummary.textContent = stepCount
+              ? `${stepCount} Schritt(e)`
+              : (hasIntent ? 'Plant' : (hasFiles ? 'Mappe bereit' : 'Bereit'));
+          }
+        }
+
+        function renderAgentDock(files, hasIntent, plan) {
+          if (!agentDock || !agentFiles || !agentAction) return;
+          const stepCount = plan && Array.isArray(plan.steps) ? plan.steps.length : 0;
+          const hasFiles = files.length > 0;
+          agentDock.classList.toggle('has-files', hasFiles);
+          agentDock.classList.toggle('has-intent', !!hasIntent);
+          agentDock.classList.toggle('has-plan', stepCount > 0);
+          updateAgentStages(hasFiles, hasIntent, stepCount > 0);
+          renderAgentFiles(files);
+          renderAgentAction(files, hasIntent, plan);
+        }
+
+        function updateAgentStages(hasFiles, hasIntent, hasPlan) {
+          if (!agentStages) return;
+          const states = { file: hasFiles, intent: hasIntent, plan: hasPlan };
+          agentStages.querySelectorAll('[data-agent-stage]').forEach(stage => {
+            const key = stage.getAttribute('data-agent-stage');
+            stage.classList.toggle('is-active', !!states[key]);
+          });
+        }
+
+        function renderAgentFiles(files) {
+          agentFiles.replaceChildren();
+          if (!files.length) {
+            const empty = document.createElement('button');
+            empty.type = 'button';
+            empty.className = 'hub-agent-file-empty';
+            empty.textContent = 'Dateien hier reinziehen oder waehlen';
+            empty.addEventListener('click', () => fileInput.click());
+            agentFiles.appendChild(empty);
+            return;
+          }
+
+          const grouped = files.reduce((acc, file) => {
+            const kind = describeKind(file);
+            if (!acc[kind]) acc[kind] = [];
+            acc[kind].push(file);
+            return acc;
+          }, {});
+          Object.entries(grouped).forEach(([kind, groupFiles]) => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'hub-agent-file-card';
+            card.setAttribute('data-kind', kind.toLowerCase());
+            card.addEventListener('click', () => {
+              if (window.Shell?.MappeUI?.openMappeModal) window.Shell.MappeUI.openMappeModal();
+            });
+
+            const icon = document.createElement('span');
+            icon.className = 'hub-agent-file-icon';
+            const first = groupFiles[0] || {};
+            const key = Mappe.getKindIcon ? Mappe.getKindIcon(first.type, first.name) : 'file';
+            icon.appendChild(Shell.parseSVG(KIND_ICON_SVG[key] || KIND_ICON_SVG.file));
+            card.appendChild(icon);
+
+            const text = document.createElement('span');
+            text.className = 'hub-agent-file-text';
+            const title = document.createElement('strong');
+            title.textContent = `${groupFiles.length} ${kind}`;
+            const names = document.createElement('small');
+            const visibleNames = groupFiles.slice(0, 2).map(f => f.name);
+            names.textContent = groupFiles.length > 2
+              ? `${visibleNames.join(' · ')} · +${groupFiles.length - 2}`
+              : visibleNames.join(' · ');
+            text.appendChild(title);
+            text.appendChild(names);
+            card.appendChild(text);
+            agentFiles.appendChild(card);
+          });
+        }
+
+        function renderAgentAction(files, hasIntent, plan) {
+          agentAction.replaceChildren();
+          const stepCount = plan && Array.isArray(plan.steps) ? plan.steps.length : 0;
+          const actionKicker = document.createElement('span');
+          actionKicker.className = 'hub-agent-action-kicker';
+          actionKicker.textContent = 'Naechster Schritt';
+          agentAction.appendChild(actionKicker);
+
+          const title = document.createElement('strong');
+          const text = document.createElement('small');
+          const actions = document.createElement('div');
+          actions.className = 'hub-agent-action-buttons';
+
+          if (stepCount > 0) {
+            const firstNeedsChoice = !!(plan.steps && plan.steps[0] && plan.steps[0].requiresChoice);
+            title.textContent = firstNeedsChoice
+              ? `${stepCount} Schritt(e) bereit. Auswahl noetig.`
+              : `${stepCount} Schritt(e) bereit.`;
+            text.textContent = firstNeedsChoice
+              ? 'Beim Start frage ich, welche Datei das erste Werkzeug nehmen soll.'
+              : 'Pruefen, sortieren, starten.';
+            actions.appendChild(agentActionButton(firstNeedsChoice ? 'Mit Auswahl starten' : 'Weg starten', () => startWorkflowPlan(plan), true));
+            actions.appendChild(agentActionButton('Plan ansehen', () => {
+              document.querySelector('.hub-workflow-plan')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }));
+          } else if (hasIntent) {
+            title.textContent = files.length ? 'Wunsch erkannt.' : 'Wunsch erkannt. Datei fehlt vielleicht.';
+            text.textContent = files.length ? 'Ich baue daraus den Weg.' : 'Ich plane vor und markiere fehlende Inputs.';
+            actions.appendChild(agentActionButton('Weg bauen', () => renderConcierge(files, { ai: true }), true));
+            actions.appendChild(agentActionButton('Dateien waehlen', () => fileInput.click()));
+          } else if (files.length) {
+            title.textContent = 'Dateien erkannt.';
+            text.textContent = 'Sag dein Ziel oder nutze einen schnellen Start.';
+            actions.appendChild(agentActionButton('Ziel sagen', () => intentInput.focus(), true));
+            capabilityIntents(files).slice(0, 3).forEach(([label, intent]) => {
+              actions.appendChild(agentActionButton(label, () => {
+                intentInput.value = intent;
+                renderConcierge(files, { ai: false });
+                intentInput.focus();
+              }));
+            });
+          } else {
+            title.textContent = 'Bereit.';
+            text.textContent = 'Dateien reinziehen oder direkt ein Ziel beschreiben.';
+            actions.appendChild(agentActionButton('Dateien waehlen', () => fileInput.click(), true));
+            actions.appendChild(agentActionButton('Ziel sagen', () => intentInput.focus()));
+          }
+
+          agentAction.appendChild(title);
+          agentAction.appendChild(text);
+          agentAction.appendChild(actions);
+        }
+
+        function agentActionButton(label, onClick, primary = false) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = primary ? 'hub-agent-action-btn primary' : 'hub-agent-action-btn';
+          btn.textContent = label;
+          btn.addEventListener('click', onClick);
+          return btn;
+        }
+
+        renderConcierge = async function(files, options = {}) {
+          while (conciergeResults.firstChild) conciergeResults.removeChild(conciergeResults.firstChild);
+          const rawIntent = String(intentInput.value || '').trim();
+          const hasIntent = rawIntent.length > 1;
+          updateIntentState(hasIntent, files);
+          renderFilePresence(files);
+          renderCapabilityStrip(files, hasIntent);
+          renderAgentDock(files, hasIntent, currentWorkflowPlan);
+          renderOutcomeBoard(files, hasIntent, currentWorkflowPlan);
+          conciergeResults.classList.toggle('is-active', hasIntent);
+          conciergeResults.classList.toggle('is-idle', !hasIntent);
+
+          if (!hasIntent) {
+            currentWorkflowPlan = null;
+            updateFlowVisual(files, false, null);
+            renderAgentDock(files, false, null);
+            renderOutcomeBoard(files, false, null);
+            renderIdleConcierge(files);
+            return;
+          }
+
+          setAiOpen(true, false);
+          updateFlowVisual(files, true, currentWorkflowPlan);
+          const buildId = ++workflowBuildToken;
+          if (options.ai) {
+            updateFlowVisual(files, true, null);
+            renderPlanningState(files);
+          }
+
+          if (window.WorkflowAgent) {
+            currentWorkflowPlan = await WorkflowAgent.buildPlan(rawIntent, files, {
+              registry: WORKFLOW_REGISTRY,
+              Mappe,
+              ai: !!options.ai
+            });
+            if (buildId !== workflowBuildToken) return;
+            while (conciergeResults.firstChild) conciergeResults.removeChild(conciergeResults.firstChild);
+            updateFlowVisual(files, true, currentWorkflowPlan);
+            renderAgentDock(files, true, currentWorkflowPlan);
+            renderOutcomeBoard(files, true, currentWorkflowPlan);
+            renderWorkflowPlan(currentWorkflowPlan, files);
+            return;
+          }
+
+          if (window.WorkflowRouter) {
+            currentWorkflowPlan = WorkflowRouter.buildPlan(rawIntent, files, {
+              registry: WORKFLOW_REGISTRY,
+              Mappe
+            });
+            updateFlowVisual(files, true, currentWorkflowPlan);
+            renderAgentDock(files, true, currentWorkflowPlan);
+            renderOutcomeBoard(files, true, currentWorkflowPlan);
+            renderWorkflowPlan(currentWorkflowPlan, files);
+            return;
+          }
+
+          const intent = normalizeIntent(intentInput.value);
+          const matches = getWorkflowMatches(intent, files, Mappe).slice(0, 4);
+          renderLegacyMatches(matches, files);
+        };
+
+        function updateIntentState(hasIntent, files) {
+          intentBuildBtn.disabled = !hasIntent;
+          const count = files.length || 0;
+          intentState.textContent = hasIntent
+            ? (count ? `${count} Datei(en) bereit.` : 'Weg wird lokal geplant.')
+            : (count ? `${count} Datei(en) bereit. Sag, was rauskommen soll.` : 'Noch kein Weg.');
+        }
+
+        function describeKind(file) {
+          const type = String(file.type || '');
+          const name = String(file.name || '').toLowerCase();
+          if (type === 'application/pdf' || name.endsWith('.pdf')) return 'PDF';
+          if (type.startsWith('image/')) return 'Bild';
+          if (type.startsWith('video/')) return 'Video';
+          if (type.includes('sheet') || type.includes('excel') || /\.(csv|xlsx|xls)$/i.test(name)) return 'Tabelle';
+          if (type.includes('word') || /\.(docx|doc)$/i.test(name)) return 'Word';
+          return 'Datei';
+        }
+
+        function renderFilePresence(files) {
+          if (!filePresence) return;
+          filePresence.replaceChildren();
+          if (!files.length) {
+            filePresence.appendChild(Object.assign(document.createElement('span'), { textContent: 'Keine Dateien in der Mappe' }));
+            return;
+          }
+          const groups = files.reduce((acc, file) => {
+            const kind = describeKind(file);
+            acc[kind] = (acc[kind] || 0) + 1;
+            return acc;
+          }, {});
+          Object.entries(groups).forEach(([kind, count]) => {
+            const chip = document.createElement('span');
+            chip.textContent = `${count} ${kind}`;
+            filePresence.appendChild(chip);
+          });
+        }
+
+        function capabilityIntents(files) {
+          const kinds = new Set(files.map(describeKind));
+          const items = [];
+          if (kinds.has('PDF')) {
+            items.push(['Text holen', 'das auslesen']);
+            items.push(['Unterschreiben', 'unterschreiben']);
+            items.push(['Verschicken', 'kleiner fuer E-Mail machen']);
+          }
+          if (kinds.has('Bild')) {
+            items.push(['Verschicken', 'bilder kleiner machen']);
+            items.push(['Daten weg', 'foto daten entfernen']);
+            items.push(['Als PDF', 'bilder zu pdf machen']);
+          }
+          if (kinds.has('Video')) items.push(['Verschicken', 'video kleiner machen']);
+          if (!items.length) {
+            items.push(['Auslesen', 'das auslesen']);
+            items.push(['Kleiner machen', 'kleiner machen']);
+            items.push(['Zusammenfuegen', 'zusammenfuegen']);
+          }
+          return items.slice(0, 4);
+        }
+
+        function outcomeCards(files) {
+          const kinds = new Set(files.map(describeKind));
+          const hasFiles = files.length > 0;
+          const pdfCount = files.filter(f => describeKind(f) === 'PDF').length;
+          const cards = [];
+          const add = (key, label, hint, intent, icon) => {
+            if (!cards.some(card => card.key === key)) cards.push({ key, label, hint, intent, icon });
+          };
+
+          if (!hasFiles) {
+            add('send', 'Verschicken', 'macht passend', 'kleiner fuer E-Mail machen', 'send');
+            add('sign', 'Unterschreiben', 'PDF fertig machen', 'unterschreiben', 'pen');
+            add('read', 'Text holen', 'Scan wird lesbar', 'auslesen', 'search');
+            add('bundle', 'Ein Paket', 'Sachen zusammen', 'PDFs zusammenfuegen', 'stack');
+            return cards;
+          }
+
+          if (kinds.has('PDF')) {
+            add('send', 'Verschicken', 'kleiner fuer Mail', 'kleiner fuer E-Mail machen', 'send');
+            add('sign', 'Unterschreiben', 'Signatur drauf', 'unterschreiben', 'pen');
+            add('read', 'Text holen', 'durchsuchbar', 'auslesen', 'search');
+            if (pdfCount > 1) add('bundle', 'Eine Datei', 'PDFs zusammen', 'PDFs zusammenfuegen', 'stack');
+            else add('hide', 'Verbergen', 'sensibles weg', 'schwaerzen', 'shield');
+          }
+          if (kinds.has('Bild')) {
+            add('send-images', 'Verschicken', 'Bilder kleiner', 'bilder kleiner machen', 'send');
+            add('pdf-images', 'Als PDF', 'Fotos buendeln', 'bilder zu pdf machen', 'stack');
+            add('clean-images', 'Daten weg', 'Standort raus', 'metadaten entfernen', 'shield');
+            add('cut-images', 'Freistellen', 'Hintergrund weg', 'hintergrund entfernen', 'spark');
+          }
+          if (kinds.has('Video')) {
+            add('video-send', 'Verschicken', 'Video kleiner', 'video kleiner machen', 'send');
+            add('video-gif', 'GIF bauen', 'kurzer Loop', 'video zu gif machen', 'spark');
+          }
+          if (!cards.length) {
+            add('rename', 'Aufraeumen', 'Namen ordnen', 'dateien umbenennen', 'stack');
+            add('send-any', 'Verschicken', 'kleiner machen', 'kleiner machen', 'send');
+          }
+          return cards.slice(0, 4);
+        }
+
+        const OUTCOME_ICON_SVG = {
+          send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/></svg>',
+          pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg>',
+          search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/><path d="M8 11h6"/></svg>',
+          stack: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>',
+          shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4 6v6c0 5 3.4 8.8 8 10 4.6-1.2 8-5 8-10V6l-8-4Z"/><path d="M9 12h6"/></svg>',
+          spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/><path d="m19 15 .8 2.7L22 18l-2.2.7L19 21l-.8-2.3L16 18l2.2-.3L19 15Z"/></svg>'
+        };
+
+        function renderOutcomeBoard(files, hasIntent, plan) {
+          if (!outcomeBoard) return;
+          const hasPlan = !!(plan && Array.isArray(plan.steps) && plan.steps.length);
+          outcomeBoard.replaceChildren();
+          outcomeBoard.classList.toggle('is-hidden', hasPlan);
+          outcomeBoard.classList.toggle('has-files', files.length > 0);
+          if (hasPlan) return;
+
+          outcomeCards(files).forEach(card => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'hub-outcome-card';
+            btn.setAttribute('data-outcome', card.key);
+            btn.innerHTML = `
+              <span class="hub-outcome-icon">${OUTCOME_ICON_SVG[card.icon] || OUTCOME_ICON_SVG.spark}</span>
+              <span class="hub-outcome-text"><strong>${card.label}</strong><small>${card.hint}</small></span>
+            `;
+            btn.addEventListener('click', () => {
+              intentInput.value = card.intent;
+              renderConcierge(files, { ai: false });
+              intentInput.focus();
+            });
+            outcomeBoard.appendChild(btn);
+          });
+        }
+
+        function renderCapabilityStrip(files, hasIntent) {
+          if (!capabilityStrip) return;
+          capabilityStrip.replaceChildren();
+          if (hasIntent) {
+            capabilityStrip.classList.add('is-quiet');
+            return;
+          }
+          capabilityStrip.classList.remove('is-quiet');
+          capabilityIntents(files).forEach(([label, intent]) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+              intentInput.value = intent;
+              renderConcierge(files, { ai: false });
+              intentInput.focus();
+            });
+            capabilityStrip.appendChild(btn);
+          });
+        }
+
+        function renderPlanningState(files) {
+          while (conciergeResults.firstChild) conciergeResults.removeChild(conciergeResults.firstChild);
+          const thinking = document.createElement('div');
+          thinking.className = 'hub-concierge-empty hub-agent-thinking';
+          const title = document.createElement('strong');
+          title.textContent = 'CLAWBUIS baut den Weg.';
+          const text = document.createElement('span');
+          text.textContent = files.length
+            ? 'Smart-Planung sieht nur Ziel und Dateiarten. Deine Dateien bleiben in deinem Browser.'
+            : 'Ohne passende Datei plane ich den Ablauf und markiere fehlende Inputs.';
+          thinking.appendChild(title);
+          thinking.appendChild(text);
+          conciergeResults.appendChild(thinking);
+        }
+
+        function renderIdleConcierge(files) {
+          const idle = document.createElement('div');
+          idle.className = 'hub-concierge-empty hub-concierge-idle';
+          const title = document.createElement('strong');
+          title.textContent = files.length
+            ? 'Wunsch fehlt.'
+            : 'Wunsch startet den Weg.';
+          const text = document.createElement('span');
+          text.textContent = files.length
+            ? 'Zum Beispiel: "auslesen und kleiner machen".'
+            : 'Upload ist optional. Der Weg startet erst mit deinem Ziel.';
+          idle.appendChild(title);
+          idle.appendChild(text);
+          conciergeResults.appendChild(idle);
+        }
+
+        function renderLegacyMatches(matches, files) {
+          if (matches.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'hub-concierge-empty';
+            empty.textContent = files.length
+              ? 'Schreib ein Ziel rein, dann sortiere ich die passenden naechsten Schritte.'
+              : 'Wirf Dateien rein oder beschreib dein Ziel. Danach schlage ich den richtigen Weg vor.';
+            conciergeResults.appendChild(empty);
+            return;
+          }
+
+          matches.forEach(match => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'hub-concierge-result';
+            btn.setAttribute('data-tool', match.slug);
+
+            const text = document.createElement('span');
+            text.className = 'hub-concierge-result-text';
+            const title = document.createElement('strong');
+            title.textContent = match.cfg.label;
+            const desc = document.createElement('small');
+            desc.textContent = match.cfg.problem;
+            text.appendChild(title);
+            text.appendChild(desc);
+            btn.appendChild(text);
+
+            const meta = document.createElement('span');
+            meta.className = 'hub-concierge-result-meta';
+            meta.textContent = match.fileIds.length ? `${match.fileIds.length} aus Mappe` : `${match.confidence}% sicher`;
+            btn.appendChild(meta);
+
+            btn.addEventListener('click', () => openTool(match.slug, match.fileIds));
+            conciergeResults.appendChild(btn);
+          });
+        }
+
+        function renderWorkflowPlan(plan, files) {
+          const hasIntent = String(intentInput.value || '').trim().length > 1;
+          if (!hasIntent) {
+            renderIdleConcierge(files);
+            return;
+          }
+          updateFlowVisual(files, true, plan);
+          renderAgentDock(files, true, plan);
+          renderOutcomeBoard(files, true, plan);
+          if (agentMode && plan.aiError) {
+            agentMode.textContent = 'Lokal · Smart pruefen';
+            agentMode.classList.remove('is-ai');
+          } else if (agentMode && !plan.localOnly) {
+            agentMode.textContent = 'Smart aktiv';
+            agentMode.classList.add('is-ai');
+          }
+          conciergeResults.appendChild(buildConversation(plan, files));
+
+          const card = document.createElement('div');
+          card.className = 'hub-workflow-plan';
+          card.setAttribute('data-confidence', String(plan.confidence || 0));
+
+          const head = document.createElement('div');
+          head.className = 'hub-workflow-head';
+          const copy = document.createElement('div');
+          copy.className = 'hub-workflow-copy';
+          const eyebrow = document.createElement('span');
+          eyebrow.className = 'hub-workflow-eyebrow';
+          eyebrow.textContent = plan.localOnly ? 'Lokal gebaut · keine KI-Kosten' : 'Smart geplant · Dateien bleiben lokal';
+          const title = document.createElement('strong');
+          title.textContent = plan.steps.length > 1 ? 'Weg zum Bestaetigen' : 'Naechster sinnvoller Schritt';
+          const summary = document.createElement('p');
+          summary.textContent = plan.assistantMessage || plan.summary;
+          copy.appendChild(eyebrow);
+          copy.appendChild(title);
+          copy.appendChild(summary);
+          head.appendChild(copy);
+
+          const confidence = document.createElement('div');
+          confidence.className = 'hub-workflow-confidence';
+          confidence.innerHTML = `<span>${Math.round((plan.confidence || 0) * 100)}%</span><small>Confidence</small>`;
+          head.appendChild(confidence);
+          card.appendChild(head);
+
+          if (plan.questions && plan.questions.length) {
+            const questions = document.createElement('div');
+            questions.className = 'hub-workflow-questions';
+            plan.questions.forEach(q => {
+              const qEl = document.createElement('div');
+              qEl.className = 'hub-workflow-question';
+              qEl.textContent = q.text;
+              questions.appendChild(qEl);
+            });
+            card.appendChild(questions);
+          }
+
+          const details = document.createElement('details');
+          details.className = 'hub-workflow-details';
+          details.open = true;
+          const summaryToggle = document.createElement('summary');
+          summaryToggle.textContent = plan.steps.length
+            ? 'Plan ansehen und bearbeiten'
+            : 'Plan klaeren';
+          details.appendChild(summaryToggle);
+
+          if (plan.steps.length === 0) {
+            const emptyPlan = document.createElement('div');
+            emptyPlan.className = 'hub-workflow-empty';
+            emptyPlan.textContent = 'Noch nicht eindeutig genug. Versuch z.B. "PDF auslesen", "kleiner machen" oder "unterschreiben".';
+            details.appendChild(emptyPlan);
+          } else {
+            const list = document.createElement('ol');
+            list.className = 'hub-workflow-steps';
+            plan.steps.forEach((step, idx) => list.appendChild(buildWorkflowStep(step, idx, plan, files)));
+            details.appendChild(list);
+          }
+
+          details.appendChild(buildWorkflowEditor(plan, files));
+          card.appendChild(details);
+          conciergeResults.appendChild(card);
+        }
+
+        function buildConversation(plan, files) {
+          const thread = document.createElement('div');
+          thread.className = 'hub-chat-thread hub-chat-thread-result';
+          const user = document.createElement('div');
+          user.className = 'hub-chat-message user';
+          const userLabel = document.createElement('span');
+          userLabel.textContent = 'Du';
+          const userText = document.createElement('p');
+          userText.textContent = String(intentInput.value || '').trim();
+          user.appendChild(userLabel);
+          user.appendChild(userText);
+          thread.appendChild(user);
+
+          const assistant = document.createElement('div');
+          assistant.className = 'hub-chat-message assistant';
+          const assistantLabel = document.createElement('span');
+          assistantLabel.textContent = 'CLAWBUIS';
+          const assistantText = document.createElement('p');
+          assistantText.textContent = plan.steps.length
+            ? `${plan.localOnly ? 'Lokal' : 'Smart'} habe ich ${plan.steps.length} Schritt(e) erkannt. Pruef kurz die Reihenfolge, dann starte ich den ersten Schritt.`
+            : 'Das ist noch zu offen. Ich stelle erst eine kurze Rueckfrage statt blind ein Tool zu starten.';
+          assistant.appendChild(assistantLabel);
+          assistant.appendChild(assistantText);
+          thread.appendChild(assistant);
+          return thread;
+        }
+
+        function buildWorkflowStep(step, idx, plan, files) {
+          const li = document.createElement('li');
+          li.className = 'hub-workflow-step';
+          li.setAttribute('data-tool', step.tool);
+          li.setAttribute('data-step-id', step.id);
+
+          const number = document.createElement('span');
+          number.className = 'hub-workflow-step-number';
+          number.textContent = String(idx + 1).padStart(2, '0');
+          li.appendChild(number);
+
+          const body = document.createElement('div');
+          body.className = 'hub-workflow-step-body';
+          const name = document.createElement('strong');
+          name.textContent = step.label;
+          const detail = document.createElement('small');
+          const fileText = step.requiresChoice && step.fileIds.length > 1
+            ? `${step.fileIds.length} Dateien bereit - Auswahl beim Start`
+            : (step.fileIds.length
+              ? `${step.fileIds.length} Datei(en) aus Mappe`
+              : (step.requiresFile ? 'braucht noch passende Datei' : 'ohne Datei moeglich'));
+          detail.textContent = `${step.problem || ''} · ${fileText} · ${Math.round(step.confidence * 100)}%`;
+          const reason = document.createElement('em');
+          reason.textContent = step.reason || 'lokal abgeleitet';
+          body.appendChild(name);
+          body.appendChild(detail);
+          body.appendChild(reason);
+          li.appendChild(body);
+
+          const controls = document.createElement('div');
+          controls.className = 'hub-workflow-step-controls';
+          controls.appendChild(stepControl('↑', 'Nach oben', () => moveWorkflowStep(plan, idx, -1, files), idx === 0));
+          controls.appendChild(stepControl('↓', 'Nach unten', () => moveWorkflowStep(plan, idx, 1, files), idx === plan.steps.length - 1));
+          controls.appendChild(stepControl('×', 'Entfernen', () => removeWorkflowStep(plan, idx, files), false));
+          li.appendChild(controls);
+          return li;
+        }
+
+        function stepControl(label, title, onClick, disabled) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'hub-workflow-step-control';
+          btn.title = title;
+          btn.setAttribute('aria-label', title);
+          btn.textContent = label;
+          btn.disabled = !!disabled;
+          btn.addEventListener('click', onClick);
+          return btn;
+        }
+
+        function buildWorkflowEditor(plan, files) {
+          const editor = document.createElement('div');
+          editor.className = 'hub-workflow-editor';
+
+          const addWrap = document.createElement('div');
+          addWrap.className = 'hub-workflow-add';
+          const select = document.createElement('select');
+          select.setAttribute('aria-label', 'Schritt hinzufuegen');
+          Object.entries(WORKFLOW_REGISTRY).forEach(([slug, cfg]) => {
+            const opt = document.createElement('option');
+            opt.value = slug;
+            opt.textContent = cfg.label;
+            select.appendChild(opt);
+          });
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.textContent = 'Schritt hinzufuegen';
+          addBtn.addEventListener('click', () => {
+            addWorkflowStep(plan, select.value, files);
+          });
+          addWrap.appendChild(select);
+          addWrap.appendChild(addBtn);
+          editor.appendChild(addWrap);
+
+          const actions = document.createElement('div');
+          actions.className = 'hub-workflow-actions';
+          const first = plan.steps[0];
+          const openBtn = document.createElement('button');
+          openBtn.type = 'button';
+          openBtn.className = 'hub-concierge-result hub-workflow-start';
+          if (first) openBtn.setAttribute('data-tool', first.tool);
+          openBtn.disabled = !first;
+          const startLabel = first && first.requiresChoice ? 'Mit Dateiauswahl starten' : 'Weg starten';
+          const startHint = first && first.requiresChoice
+            ? 'Ich frage zuerst, welche Datei in dieses Werkzeug soll.'
+            : 'Ich fuehre dich Schritt fuer Schritt durch.';
+          openBtn.innerHTML = `<span class="hub-concierge-result-text"><strong>${startLabel}</strong><small>${startHint}</small></span><span class="hub-concierge-result-meta">Start</span>`;
+          openBtn.addEventListener('click', () => startWorkflowPlan(plan));
+          actions.appendChild(openBtn);
+          editor.appendChild(actions);
+          return editor;
+        }
+
+        function moveWorkflowStep(plan, idx, dir, files) {
+          const next = idx + dir;
+          if (next < 0 || next >= plan.steps.length) return;
+          const tmp = plan.steps[idx];
+          plan.steps[idx] = plan.steps[next];
+          plan.steps[next] = tmp;
+          repaintWorkflow(plan, files);
+        }
+
+        function removeWorkflowStep(plan, idx, files) {
+          plan.steps.splice(idx, 1);
+          plan.summary = plan.steps.length
+            ? `Weg angepasst: ${plan.steps.length} Schritt(e).`
+            : 'Alle Schritte entfernt. Fuege einen Schritt hinzu oder beschreibe dein Ziel neu.';
+          repaintWorkflow(plan, files);
+        }
+
+        function addWorkflowStep(plan, slug, files) {
+          const cfg = WORKFLOW_REGISTRY[slug];
+          if (!cfg) return;
+          const fileIds = cfg.accepts && cfg.accepts.length
+            ? files.filter(f => cfg.accepts.includes('*/*') || Mappe.typeMatches(f.type, cfg.accepts)).map(f => f.id)
+            : [];
+          plan.steps.push({
+            id: `manual_${Date.now()}_${slug}`,
+            tool: slug,
+            label: cfg.label,
+            shortLabel: cfg.shortLabel || cfg.label,
+            problem: cfg.problem,
+            confidence: 1,
+            reason: 'Manuell hinzugefuegt',
+            fileIds,
+            requiresChoice: cfg.mode === 'single' && fileIds.length > 1,
+            requiresFile: (cfg.accepts || []).length > 0 && fileIds.length === 0,
+            source: 'manual'
+          });
+          plan.summary = `Weg angepasst: ${plan.steps.length} Schritt(e).`;
+          repaintWorkflow(plan, files);
+        }
+
+        function repaintWorkflow(plan, files) {
+          while (conciergeResults.firstChild) conciergeResults.removeChild(conciergeResults.firstChild);
+          renderWorkflowPlan(plan, files);
+        }
+
+        function startWorkflowPlan(plan) {
+          if (!plan || !plan.steps || !plan.steps[0]) return;
+          const safePlan = window.WorkflowRouter && WorkflowRouter.clonePlan ? WorkflowRouter.clonePlan(plan) : JSON.parse(JSON.stringify(plan));
+          safePlan.status = 'confirmed';
+          safePlan.confirmedAt = Date.now();
+          safePlan.currentStepIndex = 0;
+          safePlan.steps.forEach((step, idx) => {
+            step.status = idx === 0 ? 'ready' : 'draft';
+          });
+          if (window.Shell && Shell.Workflow && Shell.Workflow.saveActive) {
+            Shell.Workflow.saveActive(safePlan);
+          } else {
+            try { sessionStorage.setItem('clawbuis-active-workflow', JSON.stringify(safePlan)); } catch {}
+          }
+          const first = safePlan.steps[0];
+          Shell.Toast.show(safePlan.steps.length > 1 ? 'Weg gespeichert · erster Schritt startet' : 'Schritt startet');
+          setTimeout(() => openTool(first.tool, first.fileIds || []), 220);
+        }
+
+        function openTool(slug, fileIds) {
+          const url = new URL('/' + slug + '/', window.location.origin);
+          if (fileIds && fileIds.length) {
+            url.searchParams.set('from', 'mappe');
+            url.searchParams.set('ids', fileIds.join(','));
+          }
+          window.location.href = url.toString();
+        }
+
+        function normalizeIntent(value) {
+          return String(value || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/ä/g, 'ae')
+            .replace(/ö/g, 'oe')
+            .replace(/ü/g, 'ue')
+            .replace(/ß/g, 'ss');
+        }
+
+        function getWorkflowMatches(intent, files, MappeApi) {
+          const hasIntent = intent.trim().length > 1;
+          return Object.entries(WORKFLOW_REGISTRY)
+            .map(([slug, cfg]) => {
+              const accepts = cfg.accepts || [];
+              const fileMatches = accepts.length
+                ? files.filter(f => MappeApi.typeMatches(f.type, accepts))
+                : [];
+              const keywordHits = hasIntent
+                ? (cfg.keywords || []).filter(k => intent.includes(normalizeIntent(k))).length
+                : 0;
+              const score = (cfg.priority || 0)
+                + (keywordHits * 35)
+                + (fileMatches.length ? 28 : 0)
+                + Math.min(fileMatches.length * 8, 24)
+                - (!hasIntent && !fileMatches.length ? 120 : 0);
+              return {
+                slug,
+                cfg,
+                score,
+                fileIds: fileMatches.map(f => f.id),
+                confidence: Math.max(58, Math.min(98, Math.round(score)))
+              };
+            })
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score);
         }
 
         // Library "Alles löschen" button
@@ -665,6 +1803,51 @@
         } else {
           window.addEventListener('pageshow', (e) => { if (e.persisted) refresh(); });
         }
+
+        window.__CLAWBUIS_TOOLS_QA__ = {
+          async resetMappe() {
+            await Mappe.clearAll();
+            await refresh();
+            return { fileCount: 0 };
+          },
+          async seedPdfMappe() {
+            await Mappe.clearAll();
+            const bytes = new Uint8Array([37,80,68,70,45,49,46,55,10,37,10]);
+            await Mappe.addFile(new File([bytes], 'angebot.pdf', { type: 'application/pdf' }), 'qa');
+            await Mappe.addFile(new File([bytes], 'rechnung.pdf', { type: 'application/pdf' }), 'qa');
+            await refresh();
+            return Mappe.listFiles({});
+          },
+          async runHubChecks() {
+            const files = await Mappe.listFiles({});
+            await renderConcierge(files, { ai: false });
+            const merger = document.querySelector('a[href="/pdf-merger"]');
+            const conciergeTop = document.querySelector('.hub-workflow-step') || document.querySelector('.hub-concierge-result');
+            return {
+              fileCount: files.length,
+              libraryVisible: library.classList.contains('has-files'),
+              mergerIds: merger ? merger.getAttribute('data-mappe-ids') : null,
+              conciergeTopTool: conciergeTop ? conciergeTop.getAttribute('data-tool') : null,
+              planStepTools: Array.from(document.querySelectorAll('.hub-workflow-step')).map(el => el.getAttribute('data-tool')),
+              planStepCount: document.querySelectorAll('.hub-workflow-step').length,
+              noAiCalls: true,
+              overflowX: document.documentElement.scrollWidth - window.innerWidth
+            };
+          },
+          async buildWorkflowForIntent(text) {
+            intentInput.value = text || '';
+            const files = await Mappe.listFiles({});
+            await renderConcierge(files, { ai: true });
+            return {
+              topTool: document.querySelector('.hub-workflow-step')?.getAttribute('data-tool') || null,
+              stepTools: Array.from(document.querySelectorAll('.hub-workflow-step')).map(el => el.getAttribute('data-tool')),
+              stepCount: document.querySelectorAll('.hub-workflow-step').length,
+              confidence: document.querySelector('.hub-workflow-plan')?.getAttribute('data-confidence') || null,
+              question: document.querySelector('.hub-workflow-question')?.textContent || null,
+              startTool: document.querySelector('.hub-workflow-start')?.getAttribute('data-tool') || null
+            };
+          }
+        };
       });
     });
   </script>

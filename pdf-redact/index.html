@@ -116,7 +116,7 @@
       { target: "#btnProcess", fallback: "#dropzone", title: "Endgültig schwärzen", text: "Klicke erst zum Schluss auf Anwenden. Dann werden die Stellen fest ins neue PDF geschrieben und sind nicht wiederherstellbar.", side: "left" }
     ];
 
-    const state = { file: null, buffer: null, pages: [], rects: [], outBlob: null };
+    const state = { file: null, buffer: null, pages: [], rects: [], outBlob: null, outName: null };
     const $ = id => document.getElementById(id);
     const dropzone = $('dropzone'), fileInput = $('fileInput');
 
@@ -309,9 +309,22 @@
         newDoc.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
         const bytes = await newDoc.save();
         state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+        state.outName = /\.pdf$/i.test(state.file.name)
+          ? state.file.name.replace(/\.pdf$/i, '_geschwaerzt.pdf')
+          : state.file.name + '_geschwaerzt.pdf';
         const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
         $('resultInfo').textContent = `${total} Seiten · ${state.rects.length} Schwärzungen · ${sizeMB} MB`;
         $('result').classList.add('active');
+        Shell.showWorkflowNextSteps({
+          blob: state.outBlob,
+          filename: state.outName,
+          type: 'application/pdf',
+          sourceTool: 'pdf-redact',
+          container: $('result'),
+          preferredTools: ['pdf-compress', 'pdf-sign', 'pdf-watermark', 'pdf-ocr'],
+          title: 'Geschwärzt. Was als Nächstes?',
+          description: 'Die geschwärzte PDF liegt in deiner Mappe. Du kannst direkt weiterarbeiten.'
+        });
       } catch (e) {
         console.error(e);
         Shell.Toast.show('Fehler beim Schwärzen', true);
@@ -327,12 +340,12 @@
       const url = URL.createObjectURL(state.outBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = state.file.name.replace(/\.pdf$/i, '_geschwaerzt.pdf');
+      a.download = state.outName || state.file.name.replace(/\.pdf$/i, '_geschwaerzt.pdf');
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
     $('btnReset').addEventListener('click', () => {
-      state.file = null; state.buffer = null; state.pages = []; state.rects = []; state.outBlob = null;
+      state.file = null; state.buffer = null; state.pages = []; state.rects = []; state.outBlob = null; state.outName = null;
       $('emptyView').style.display = 'block';
       $('editorView').style.display = 'none';
       $('result').classList.remove('active');

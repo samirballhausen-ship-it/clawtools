@@ -6,7 +6,7 @@ Test-Klassen (laut SESSION-BRIEFING-datei-mappe-v2.md Phase 6):
 
 User-Story (8):
   A: Hub leer -> Drop-Zone prominent (>=180px), kein Library-Grid
-  B: 1 PDF hochladen -> Library-Grid mit 1 Card, "PDF mergen" Counter zeigt (1)
+  B: 1 PDF hochladen -> Library-Grid mit 1 File-Chip, "PDF mergen" Counter zeigt (1)
   C: Klick "PDF mergen" -> Tool oeffnet mit PDF im Queue + Banner
   D: x im Tool entfernen -> Tool-State -1, Mappe unveraendert (counter konstant)
   E: Reload Tool-Page mit URL-IDs -> File noch geladen
@@ -110,8 +110,8 @@ async def run_tests():
                    empty_hub["dropzoneH"] >= 180, str(empty_hub))
             expect("A: Library-Grid hidden bei leerer Mappe",
                    empty_hub["libraryHidden"] is True, str(empty_hub))
-            expect("A: Drop-Zone heading 'Wirf deine Dateien hier rein'",
-                   "Wirf" in empty_hub["heading"], str(empty_hub))
+            expect("A: Drop-Zone heading 'Dateien rein.'",
+                   "Dateien rein" in empty_hub["heading"], str(empty_hub))
 
             # ─── Test B: 1 PDF hochladen -> Library + Counter ──────────────
             await page.evaluate("""async () => {
@@ -128,19 +128,19 @@ async def run_tests():
             after_b = await page.evaluate("""() => {
                 const tile = document.querySelector('.hub-tile[href=\"/pdf-merger\"]');
                 return {
-                    libraryCardCount: document.querySelectorAll('.hub-library-card').length,
+                    libraryCardCount: document.querySelectorAll('.mg-file').length,
                     pdfMergerCounterText: tile?.querySelector('.hub-tile-counter')?.textContent || '',
                     hasMatchClass: tile?.classList.contains('has-mappe-match'),
-                    libraryCardName: document.querySelector('.hub-library-card-name')?.textContent
+                    libraryCardName: document.querySelector('.mg-file-name')?.textContent
                 };
             }""")
-            expect("B: Library zeigt 1 Card",
+            expect("B: Library zeigt 1 File-Chip",
                    after_b["libraryCardCount"] == 1, str(after_b))
             expect("B: pdf-merger Counter sichtbar",
                    "1" in after_b["pdfMergerCounterText"], str(after_b))
             expect("B: pdf-merger has-mappe-match class",
                    after_b["hasMatchClass"] is True, str(after_b))
-            expect("B: Library-Card name = test.pdf",
+            expect("B: File-Chip name = test.pdf",
                    after_b["libraryCardName"] == "test.pdf", str(after_b))
 
             # ─── Test C: Klick "PDF mergen" -> Tool mit File + Banner ──────
@@ -240,13 +240,13 @@ async def run_tests():
                 timeout=3000)
             cross_tab = await page2.evaluate("""() => ({
                 libraryVisible: document.getElementById('hubLibrary').classList.contains('has-files'),
-                cardCount: document.querySelectorAll('.hub-library-card').length,
-                cardName: document.querySelector('.hub-library-card-name')?.textContent
+                cardCount: document.querySelectorAll('.mg-file').length,
+                cardName: document.querySelector('.mg-file-name')?.textContent
             })""")
             expect("G: Cross-Tab Library updated live (BroadcastChannel)",
                    cross_tab["libraryVisible"] and cross_tab["cardCount"] == 1,
                    str(cross_tab))
-            expect("G: Cross-Tab File-Card name korrekt",
+            expect("G: Cross-Tab File-Chip name korrekt",
                    cross_tab["cardName"] == "cross-tab.pdf", str(cross_tab))
             await page2.close()
 
@@ -272,7 +272,7 @@ async def run_tests():
             await page.wait_for_timeout(400)  # let Hub-JS register onChange listeners
             ids = await page.evaluate(SEED_3_FILES_JS)
             await page.wait_for_function(
-                "() => document.querySelectorAll('.hub-library-card').length === 3",
+                "() => document.querySelectorAll('.mg-file').length === 3",
                 timeout=3000)
             # Navigate to a tool with auto-load
             await page.click('a.hub-tile[href="/pdf-merger"]')
@@ -285,13 +285,13 @@ async def run_tests():
             await page.wait_for_function("() => window.Mappe && window.Mappe.UI", timeout=5000)
             await page.wait_for_timeout(800)  # give Hub-JS time to refresh after navigation
             p1 = await page.evaluate("""async () => ({
-                hubCardCount: document.querySelectorAll('.hub-library-card').length,
+                hubCardCount: document.querySelectorAll('.mg-file').length,
                 mappeCount: (await Mappe.listFiles({})).length,
                 names: (await Mappe.listFiles({})).map(f => f.name).sort()
             })""")
             expect("P1: 3 Files -> Tool -> zurueck Hub: Mappe behaelt alle 3",
                    p1["mappeCount"] == 3, str(p1))
-            expect("P1: Hub-Library rendert alle 3 Cards (nach Tool-Use)",
+            expect("P1: Hub-Library rendert alle 3 File-Chips (nach Tool-Use)",
                    p1["hubCardCount"] == 3, str(p1))
             expect("P1: Filenames intakt (foto.jpg, lebenslauf.pdf, vertrag.pdf)",
                    p1["names"] == ["foto.jpg", "lebenslauf.pdf", "vertrag.pdf"], str(p1["names"]))
@@ -318,7 +318,7 @@ async def run_tests():
                 "async () => (await window.Mappe.listFiles({})).length === 3",
                 timeout=3000)
             await page.wait_for_function(
-                "() => document.querySelectorAll('.hub-library-card').length === 3",
+                "() => document.querySelectorAll('.mg-file').length === 3",
                 timeout=3000)
             await page.reload(wait_until="networkidle")
             await page.wait_for_function("() => window.Mappe && window.Mappe.UI", timeout=5000)
@@ -326,10 +326,10 @@ async def run_tests():
                 "async () => (await window.Mappe.listFiles({})).length === 3",
                 timeout=3000)
             await page.wait_for_function(
-                "() => document.querySelectorAll('.hub-library-card').length === 3",
+                "() => document.querySelectorAll('.mg-file').length === 3",
                 timeout=3000)
             p2 = await page.evaluate("""() => ({
-                cardCount: document.querySelectorAll('.hub-library-card').length
+                cardCount: document.querySelectorAll('.mg-file').length
             })""")
             expect("P2: Reload (F5) -> alle 3 Files noch da",
                    p2["cardCount"] == 3, str(p2))
@@ -346,10 +346,10 @@ async def run_tests():
                 "async () => (await window.Mappe.listFiles({})).length === 3",
                 timeout=3000)
             await page.wait_for_function(
-                "() => document.querySelectorAll('.hub-library-card').length === 3",
+                "() => document.querySelectorAll('.mg-file').length === 3",
                 timeout=3000)
             p3 = await page.evaluate("""() => ({
-                cardCount: document.querySelectorAll('.hub-library-card').length
+                cardCount: document.querySelectorAll('.mg-file').length
             })""")
             expect("P3: SW Cache-Clear -> IndexedDB ueberlebt, alle 3 Files da",
                    p3["cardCount"] == 3, str(p3))
@@ -376,15 +376,15 @@ async def run_tests():
                 "async () => (await window.Mappe.listFiles({})).length === 3",
                 timeout=3000)
             await page.wait_for_function(
-                "() => document.querySelectorAll('.hub-library-card').length === 3",
+                "() => document.querySelectorAll('.mg-file').length === 3",
                 timeout=3000)
             # Hover one card to make remove button visible (mobile = always visible)
-            await page.click(".hub-library-card .hub-library-card-remove")
+            await page.click(".mg-file .mg-file-remove")
             await page.wait_for_function(
-                "() => document.querySelectorAll('.hub-library-card').length === 2",
+                "() => document.querySelectorAll('.mg-file').length === 2",
                 timeout=2000)
             p5 = await page.evaluate("""() => ({
-                cardCount: document.querySelectorAll('.hub-library-card').length
+                cardCount: document.querySelectorAll('.mg-file').length
             })""")
             expect("P5: x auf 1 Card -> 1 weg, 2 bleiben",
                    p5["cardCount"] == 2, str(p5))

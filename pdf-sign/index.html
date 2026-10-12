@@ -164,7 +164,7 @@
       { target: "#btnProcess", fallback: "#dropzone", title: "Signiertes PDF speichern", text: "Wenn alles sitzt, erstellst du eine neue PDF-Datei. Das Original bleibt unverändert.", side: "left" }
     ];
 
-    const state = { file: null, buffer: null, pages: [], placed: [], outBlob: null, sigDataUrl: null };
+    const state = { file: null, buffer: null, pages: [], placed: [], outBlob: null, outName: null, sigDataUrl: null };
     const $ = id => document.getElementById(id);
     const dropzone = $('dropzone'), fileInput = $('fileInput');
 
@@ -500,9 +500,22 @@
         pdf.setProducer('CLAWBUIS Tools — tools.clawbuis.com');
         const bytes = await pdf.save();
         state.outBlob = new Blob([bytes], { type: 'application/pdf' });
+        state.outName = /\.pdf$/i.test(state.file.name)
+          ? state.file.name.replace(/\.pdf$/i, '_signiert.pdf')
+          : state.file.name + '_signiert.pdf';
         const sizeMB = (state.outBlob.size / (1024 * 1024)).toFixed(2);
         $('resultInfo').textContent = `${state.placed.length} Unterschriften platziert · ${sizeMB} MB`;
         $('result').classList.add('active');
+        Shell.showWorkflowNextSteps({
+          blob: state.outBlob,
+          filename: state.outName,
+          type: 'application/pdf',
+          sourceTool: 'pdf-sign',
+          container: $('result'),
+          preferredTools: ['pdf-redact', 'pdf-compress', 'pdf-watermark', 'pdf-ocr'],
+          title: 'Signiert. Was als Nächstes?',
+          description: 'Die signierte PDF liegt in deiner Mappe. Starte direkt den nächsten sinnvollen Schritt.'
+        });
       } catch (e) {
         console.error(e);
         Shell.Toast.show('Fehler', true);
@@ -517,13 +530,13 @@
       const url = URL.createObjectURL(state.outBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = state.file.name.replace(/\.pdf$/i, '_signiert.pdf');
+      a.download = state.outName || state.file.name.replace(/\.pdf$/i, '_signiert.pdf');
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
     $('btnReset').addEventListener('click', () => {
       state.file = null; state.buffer = null; state.pages = []; state.placed = [];
-      state.outBlob = null; state.sigDataUrl = null;
+      state.outBlob = null; state.outName = null; state.sigDataUrl = null;
       $('emptyView').style.display = 'block';
       $('editorView').style.display = 'none';
       $('result').classList.remove('active');

@@ -16,6 +16,37 @@
   // Hardcoded constants — never user-derived.
   // ────────────────────────────────────────────────
   const BRAND_LOGO_SVG = `<svg viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <linearGradient id="clawGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#2dd4bf"/>
+        <stop offset="50%" stop-color="#d4b483"/>
+        <stop offset="100%" stop-color="#c29b62"/>
+      </linearGradient>
+      <radialGradient id="clawCore">
+        <stop offset="0%" stop-color="#ffd700" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#c29b62" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="clawCoreBlur">
+        <feGaussianBlur stdDeviation="3"/>
+      </filter>
+    </defs>
+    <g fill="none" stroke="url(#clawGrad)" stroke-linecap="round">
+      <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.2"/>
+      <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.4"/>
+      <path d="M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3" stroke-width="2.6"/>
+      <path d="M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4" stroke-width="2.4"/>
+      <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2"/>
+    </g>
+    <path d="M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54"
+          fill="none" stroke="#c29b62" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    <circle cx="32" cy="50" r="8" fill="url(#clawCore)" filter="url(#clawCoreBlur)" opacity="0.6"/>
+    <circle cx="32" cy="50" r="2.8" fill="#ffd700" opacity="0.85"/>
+    <circle cx="32" cy="50" r="1.2" fill="#fffde8" opacity="0.9"/>
+  </svg>`;
+
+  const BRAND_LOGO_LIGHT = BRAND_LOGO_SVG;
+
+  const OFFICE_LOGO_SVG = `<svg viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <g fill="none" stroke="#0a0a0a" stroke-linecap="round">
       <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.2"/>
       <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.4"/>
@@ -24,21 +55,9 @@
       <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2"/>
     </g>
     <path d="M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54"
-          fill="none" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" opacity="0.55"/>
-    <circle cx="32" cy="50" r="2.4" fill="#15803d"/>
-  </svg>`;
-
-  const BRAND_LOGO_LIGHT = `<svg viewBox="0 0 64 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <g fill="none" stroke="rgba(255,255,255,0.95)" stroke-linecap="round">
-      <path d="M 20 52 C 16 44, 9 34, 7 24 C 5 16, 7 10, 11 10" stroke-width="2.2"/>
-      <path d="M 23 46 C 21 36, 18 22, 19 12 C 20 6, 22 2, 25 4" stroke-width="2.4"/>
-      <path d="M 30 44 C 29 32, 30 18, 32 6 C 33 1, 35 0, 36 3" stroke-width="2.6"/>
-      <path d="M 38 46 C 40 36, 43 22, 44 12 C 45 6, 43 2, 40 4" stroke-width="2.4"/>
-      <path d="M 44 52 C 48 44, 55 34, 57 24 C 59 16, 57 12, 53 12" stroke-width="2"/>
-    </g>
-    <path d="M 18 54 C 20 60, 26 64, 32 64 C 38 64, 44 60, 46 54"
-          fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
-    <circle cx="32" cy="50" r="2.4" fill="#2dd4bf" opacity="0.95"/>
+          fill="none" stroke="#0a0a0a" stroke-width="1.5" stroke-linecap="round" opacity="0.48"/>
+    <circle cx="32" cy="50" r="4.2" fill="#15803d" opacity="0.95"/>
+    <circle cx="32" cy="50" r="1.45" fill="#c29b62" opacity="0.9"/>
   </svg>`;
 
   const PRIVACY_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
@@ -122,13 +141,14 @@
     if (document.querySelector('.app-header')) return;
 
     const inner = el('div', { class: 'app-header-inner' });
+    const isOfficeHeader = String(tag || '').toUpperCase() === 'TOOLS';
 
     // Brand
     const brand = el('a', {
       class: 'brand', attrs: { href: '/', 'aria-label': 'CLAWBUIS Tools — zur Übersicht' }
     });
-    const logo = el('span', { class: 'brand-logo' });
-    logo.appendChild(parseSVG(BRAND_LOGO_SVG));
+    const logo = el('span', { class: isOfficeHeader ? 'brand-logo brand-logo-office' : 'brand-logo' });
+    logo.appendChild(parseSVG(isOfficeHeader ? OFFICE_LOGO_SVG : BRAND_LOGO_SVG));
     const text = el('div', { class: 'brand-text' });
     text.appendChild(el('span', { class: 'brand-name', text: 'CLAWBUIS' }));
     if (tag) text.appendChild(el('span', { class: 'brand-tag', text: tag }));
@@ -960,7 +980,13 @@
     const main = document.querySelector('.app-main');
     if (!main) return;
     if (main.querySelector('.mappe-autoload-banner')) return; // already injected
-    const target = main.querySelector('.work-grid') || main.querySelector('.card') || main.children[0];
+    const directTarget = Array.from(main.children).find(child =>
+      child.id === 'emptyView' ||
+      child.id === 'editorView' ||
+      child.classList.contains('work-grid') ||
+      child.classList.contains('card')
+    );
+    const target = directTarget || main.querySelector('.work-grid') || main.querySelector('.card') || main.children[0];
     if (!target) return;
 
     const banner = el('div', { class: 'mappe-autoload-banner', attrs: { role: 'status' } });
@@ -973,7 +999,8 @@
     text.appendChild(strong);
     text.appendChild(el('small', { text: 'Du kannst einzelne mit × entfernen — sie bleiben in deiner Mappe für später.' }));
     banner.appendChild(text);
-    main.insertBefore(banner, target);
+    const parent = target.parentElement || main;
+    parent.insertBefore(banner, target);
   }
 
   // ────────────────────────────────────────────────
@@ -993,6 +1020,395 @@
   // Idempotent: Mehrfach-Trigger vom Observer bauen Button NICHT doppelt
   // (early-return wenn .card-head-reset schon existiert).
   // ─────────────────────────────────────────────────────────────
+  const WORKFLOW_TOOL_LABELS = {
+    'pdf-redact': 'Sensible Stellen schwärzen',
+    'pdf-compress': 'Kleiner für E-Mail',
+    'pdf-watermark': 'Wasserzeichen ergänzen',
+    'pdf-sign': 'Noch einmal unterschreiben',
+    'pdf-ocr': 'Text durchsuchbar machen',
+    'pdf-to-word': 'In Word weiterbearbeiten',
+    'pdf-splitter': 'Seiten herausziehen',
+    'pdf-merger': 'Mit anderen PDFs verbinden',
+    'images-compress': 'Bilder kleiner machen',
+    'images-to-pdf': 'Als PDF sammeln',
+    'exif-strip': 'Foto-Daten entfernen',
+    'exif-rename': 'Sauber umbenennen',
+    'docx-zu-pdf': 'In PDF umwandeln',
+    'csv-edit': 'Tabelle aufräumen',
+    'video-compress': 'Video kleiner machen',
+    'video-zu-gif': 'Als GIF exportieren',
+    'bg-remove': 'Hintergrund entfernen'
+  };
+
+  const WORKFLOW_TOOL_DESCRIPTIONS = {
+    'pdf-redact': 'Namen, Adressen, Kontonummern oder Preise dauerhaft abdecken.',
+    'pdf-compress': 'Gut nach Signatur oder Scan, bevor du die Datei verschickst.',
+    'pdf-watermark': 'Entwurf, vertraulich, Kopie oder Kundennummer aufdrucken.',
+    'pdf-sign': 'Wenn noch eine zweite sichtbare Unterschrift fehlt.',
+    'pdf-ocr': 'Scans und fotografierte PDFs danach schneller durchsuchen.',
+    'pdf-to-word': 'Text herausziehen, wenn danach noch formuliert werden muss.',
+    'pdf-splitter': 'Nur einzelne Seiten weitergeben oder speichern.',
+    'pdf-merger': 'Mit Anlagen, Ausweisen oder Zusatzseiten zusammenfügen.'
+  };
+
+  const WORKFLOW_STORAGE_KEY = 'clawbuis-active-workflow';
+
+  function toWorkflowFile(blob, filename, type) {
+    const safeName = filename || 'ergebnis';
+    const safeType = type || blob.type || 'application/octet-stream';
+    try {
+      return new File([blob], safeName, { type: safeType, lastModified: Date.now() });
+    } catch (e) {
+      blob.name = safeName;
+      blob.lastModified = Date.now();
+      return blob;
+    }
+  }
+
+  async function waitForMappeCore(timeoutMs = 4000) {
+    const start = Date.now();
+    while ((!global.Mappe || typeof global.Mappe.addFile !== 'function') && Date.now() - start < timeoutMs) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return global.Mappe && typeof global.Mappe.addFile === 'function' ? global.Mappe : null;
+  }
+
+  function workflowUrl(tool, fileIds) {
+    const url = new URL('/' + tool + '/', window.location.origin);
+    const ids = Array.isArray(fileIds) ? fileIds.filter(Boolean) : (fileIds ? [fileIds] : []);
+    if (ids.length) {
+      url.searchParams.set('from', 'mappe');
+      url.searchParams.set('ids', ids.join(','));
+    }
+    return url.toString();
+  }
+
+  function readActiveWorkflow() {
+    try {
+      const raw = sessionStorage.getItem(WORKFLOW_STORAGE_KEY);
+      if (!raw) return null;
+      const plan = JSON.parse(raw);
+      if (!plan || !Array.isArray(plan.steps)) return null;
+      return plan;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveActiveWorkflow(plan) {
+    if (!plan || !Array.isArray(plan.steps)) return false;
+    try {
+      sessionStorage.setItem(WORKFLOW_STORAGE_KEY, JSON.stringify(plan));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function clearActiveWorkflow() {
+    try { sessionStorage.removeItem(WORKFLOW_STORAGE_KEY); } catch (e) {}
+  }
+
+  function currentToolSlug() {
+    return String(window.location.pathname || '').split('/').filter(Boolean)[0] || 'hub';
+  }
+
+  function findWorkflowStepIndex(plan, sourceTool) {
+    if (!plan || !Array.isArray(plan.steps)) return -1;
+    const tool = sourceTool || currentToolSlug();
+    const current = Number.isInteger(plan.currentStepIndex) ? plan.currentStepIndex : -1;
+    if (current >= 0 && plan.steps[current] && plan.steps[current].tool === tool && plan.steps[current].status !== 'done') {
+      return current;
+    }
+    return plan.steps.findIndex(step => step && step.tool === tool && step.status !== 'done');
+  }
+
+  async function ensureWorkflowRegistry() {
+    if (global.CLAWBUIS_WORKFLOW_REGISTRY) return global.CLAWBUIS_WORKFLOW_REGISTRY;
+    try {
+      await loadScript('/shared/workflow-registry.js');
+    } catch (e) {
+      console.warn('[workflow] registry load failed:', e);
+    }
+    return global.CLAWBUIS_WORKFLOW_REGISTRY || {};
+  }
+
+  function fallbackTypeMatches(type, accepts) {
+    if (!accepts || accepts.length === 0) return false;
+    if (accepts.includes('*/*')) return true;
+    return accepts.some(pattern => {
+      if (pattern.endsWith('/*')) return String(type || '').startsWith(pattern.slice(0, -1));
+      return String(type || '') === pattern;
+    });
+  }
+
+  function stepAcceptsFile(step, fileInfo, registry) {
+    if (!step || !fileInfo) return false;
+    const cfg = registry[step.tool] || {};
+    const accepts = cfg.accepts || step.accepts || [];
+    if (!accepts.length) return true;
+    if (global.Mappe && typeof global.Mappe.typeMatches === 'function') return global.Mappe.typeMatches(fileInfo.type, accepts);
+    return fallbackTypeMatches(fileInfo.type, accepts);
+  }
+
+  function uniqueIds(values) {
+    const seen = new Set();
+    return (values || [])
+      .map(v => parseInt(v, 10))
+      .filter(v => !isNaN(v) && !seen.has(v) && seen.add(v));
+  }
+
+  async function getMappeMetaByIds(mappe, ids) {
+    if (!mappe || typeof mappe.listFiles !== 'function') return [];
+    const wanted = new Set(uniqueIds(ids));
+    if (!wanted.size) return [];
+    try {
+      const files = await mappe.listFiles({});
+      return files.filter(file => wanted.has(file.id));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function resolveWorkflowHandoff(nextStep, outputFileId, outputFileInfo, opts, mappe, registry) {
+    if (outputFileId && stepAcceptsFile(nextStep, outputFileInfo, registry)) {
+      return {
+        ids: [outputFileId],
+        mode: 'output',
+        sub: 'Mit der gerade gespeicherten Ergebnisdatei starten.'
+      };
+    }
+
+    const parsed = parseMappeUrlParams();
+    const candidateIds = uniqueIds([
+      ...(opts.inputFileIds || []),
+      ...(parsed.ids || []),
+      ...((nextStep && nextStep.fileIds) || [])
+    ]);
+    const metas = await getMappeMetaByIds(mappe, candidateIds);
+    const accepted = metas.filter(meta => stepAcceptsFile(nextStep, meta, registry)).map(meta => meta.id);
+    if (accepted.length) {
+      return {
+        ids: accepted,
+        mode: 'original',
+        sub: accepted.length === 1
+          ? 'Mit der bereits geladenen Datei weiterarbeiten.'
+          : 'Mit den passenden Dateien aus der Mappe weiterarbeiten.'
+      };
+    }
+
+    return {
+      ids: [],
+      mode: 'manual',
+      sub: 'Werkzeug oeffnen und die passende Datei dort einfuegen.'
+    };
+  }
+
+  async function buildActiveWorkflowHandoff(fileId, fileInfo, sourceTool, opts, mappe) {
+    const plan = readActiveWorkflow();
+    if (!plan || plan.status === 'done') return null;
+
+    const idx = findWorkflowStepIndex(plan, sourceTool);
+    if (idx < 0) return null;
+
+    const registry = await ensureWorkflowRegistry();
+    const step = plan.steps[idx];
+    step.status = 'done';
+    step.completedAt = Date.now();
+    step.outputFileId = fileId || null;
+    step.outputName = fileInfo ? fileInfo.name : null;
+
+    const nextIdx = plan.steps.findIndex((candidate, candidateIdx) => candidateIdx > idx && candidate && candidate.status !== 'done');
+    if (nextIdx < 0) {
+      plan.status = 'done';
+      plan.completedAt = Date.now();
+      plan.currentStepIndex = plan.steps.length;
+      saveActiveWorkflow(plan);
+      return { kind: 'done', plan, step, stepIndex: idx };
+    }
+
+    const nextStep = plan.steps[nextIdx];
+    const handoff = await resolveWorkflowHandoff(nextStep, fileId, fileInfo, opts, mappe, registry);
+    nextStep.fileIds = handoff.ids;
+    nextStep.handoffMode = handoff.mode;
+    nextStep.status = 'ready';
+    plan.status = 'running';
+    plan.currentStepIndex = nextIdx;
+    plan.updatedAt = Date.now();
+    saveActiveWorkflow(plan);
+
+    return { kind: 'next', plan, step, stepIndex: idx, nextStep, nextIndex: nextIdx, handoff };
+  }
+
+  function workflowStepLabel(step) {
+    if (!step) return 'Workflow';
+    return step.label || WORKFLOW_TOOL_LABELS[step.tool] || (global.Suggestions && global.Suggestions.prettyToolName(step.tool)) || step.tool;
+  }
+
+  function renderWorkflowHandoffCard(container, handoff) {
+    const old = container.querySelector('.workflow-next');
+    if (old) old.remove();
+
+    const card = el('div', { class: 'workflow-next is-active-workflow' });
+    const head = el('div', { class: 'workflow-next-head' });
+    const icon = el('span', { class: 'workflow-next-icon', attrs: { 'aria-hidden': 'true' } });
+    icon.appendChild(parseSVG('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4 5h7a4 4 0 0 1 4 4v10"/><path d="M8 13h7"/><path d="m12 9 4 4-4 4"/><path d="M4 19h4"/></svg>'));
+    head.appendChild(icon);
+
+    const headText = el('div', { class: 'workflow-next-copy' });
+    if (handoff.kind === 'done') {
+      headText.appendChild(el('strong', { text: 'Workflow abgeschlossen' }));
+      headText.appendChild(el('span', { text: 'Der letzte Schritt ist erledigt und das Ergebnis liegt in deiner Mappe.' }));
+    } else {
+      headText.appendChild(el('strong', { text: `Naechster Workflow-Schritt: ${workflowStepLabel(handoff.nextStep)}` }));
+      headText.appendChild(el('span', { text: `${workflowStepLabel(handoff.step)} ist erledigt. Der naechste Schritt ist vorbereitet.` }));
+    }
+    head.appendChild(headText);
+    card.appendChild(head);
+
+    const progress = el('div', { class: 'workflow-next-progress' });
+    const total = handoff.plan.steps.length;
+    const done = handoff.plan.steps.filter(step => step.status === 'done').length;
+    progress.appendChild(el('span', { text: `${done} / ${total} erledigt` }));
+    progress.appendChild(el('span', { text: handoff.kind === 'done' ? 'Fertig' : `Schritt ${handoff.nextIndex + 1}` }));
+    card.appendChild(progress);
+
+    const actionWrap = el('div', { class: 'workflow-next-actions' });
+    if (handoff.kind === 'done') {
+      const hub = el('a', { class: 'workflow-next-action primary', attrs: { href: '/' } });
+      hub.appendChild(el('span', { class: 'workflow-next-action-title', text: 'Zur Mappe' }));
+      hub.appendChild(el('span', { class: 'workflow-next-action-sub', text: 'Alle Dateien und Ergebnisse im Hub ansehen.' }));
+      actionWrap.appendChild(hub);
+    } else {
+      const a = el('a', {
+        class: 'workflow-next-action primary' + (handoff.handoff.mode === 'manual' ? ' manual' : ''),
+        attrs: { href: workflowUrl(handoff.nextStep.tool, handoff.handoff.ids) }
+      });
+      a.appendChild(el('span', { class: 'workflow-next-action-title', text: workflowStepLabel(handoff.nextStep) }));
+      a.appendChild(el('span', { class: 'workflow-next-action-sub', text: handoff.handoff.sub }));
+      actionWrap.appendChild(a);
+    }
+
+    const hubLink = el('a', { class: 'workflow-next-action', attrs: { href: '/' } });
+    hubLink.appendChild(el('span', { class: 'workflow-next-action-title', text: 'Workflow im Hub ansehen' }));
+    hubLink.appendChild(el('span', { class: 'workflow-next-action-sub', text: 'Zurueck zur Mappe und zum Plan.' }));
+    actionWrap.appendChild(hubLink);
+    card.appendChild(actionWrap);
+    container.appendChild(card);
+  }
+
+  function collectWorkflowSuggestions(fileInfo, sourceTool, preferredTools) {
+    const seen = new Set();
+    const actions = [];
+    const add = (tool, primary) => {
+      if (!tool || tool === sourceTool || seen.has(tool)) return;
+      seen.add(tool);
+      actions.push({ tool, primary: !!primary });
+    };
+
+    (preferredTools || []).forEach((tool, idx) => add(tool, idx === 0));
+
+    if (global.Suggestions) {
+      try {
+        const typeKey = global.Suggestions.getTypeKey(fileInfo);
+        const inferred = global.Suggestions.getSuggestionsFor(typeKey, [fileInfo]) || [];
+        inferred.forEach(s => add(s.tool, actions.length === 0 && s.primary));
+      } catch (e) {
+        console.warn('[workflow] suggestion inference failed:', e);
+      }
+    }
+
+    return actions.slice(0, 5);
+  }
+
+  async function showWorkflowNextSteps(opts = {}) {
+    const blob = opts.blob;
+    const container = typeof opts.container === 'string'
+      ? document.querySelector(opts.container)
+      : (opts.container || document.querySelector('.result.active') || document.querySelector('.result'));
+    if (!container) return null;
+    if (!blob) {
+      const mappe = await waitForMappeCore(opts.timeoutMs || 4000);
+      const activeHandoff = await buildActiveWorkflowHandoff(null, null, opts.sourceTool, opts, mappe);
+      if (activeHandoff) renderWorkflowHandoffCard(container, activeHandoff);
+      return null;
+    }
+
+    const type = opts.type || blob.type || 'application/octet-stream';
+    const filename = opts.filename || 'ergebnis.pdf';
+    const workflowFile = toWorkflowFile(blob, filename, type);
+    const mappe = await waitForMappeCore(opts.timeoutMs || 4000);
+    if (!mappe) return null;
+
+    let fileId = null;
+    try {
+      const existing = await mappe.listFiles({});
+      const dup = existing.find(f => f.name === filename && f.size === workflowFile.size);
+      fileId = dup ? dup.id : await mappe.addFile(workflowFile, opts.sourceTool || 'workflow-result');
+    } catch (e) {
+      console.warn('[workflow] save output failed:', e);
+      return null;
+    }
+    if (!fileId) return null;
+
+    const old = container.querySelector('.workflow-next');
+    if (old) old.remove();
+
+    const fileInfo = {
+      id: fileId,
+      name: filename,
+      type,
+      size: workflowFile.size,
+      addedAt: Date.now(),
+      sourceTool: opts.sourceTool || 'workflow-result'
+    };
+
+    const activeHandoff = await buildActiveWorkflowHandoff(fileId, fileInfo, opts.sourceTool, opts, mappe);
+    if (activeHandoff) {
+      renderWorkflowHandoffCard(container, activeHandoff);
+      return fileId;
+    }
+
+    const actions = collectWorkflowSuggestions(fileInfo, opts.sourceTool, opts.preferredTools);
+    if (actions.length === 0) return fileId;
+
+    const card = el('div', { class: 'workflow-next' });
+    const head = el('div', { class: 'workflow-next-head' });
+    const icon = el('span', { class: 'workflow-next-icon', attrs: { 'aria-hidden': 'true' } });
+    icon.appendChild(parseSVG('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h7a4 4 0 0 1 4 4v8"/><path d="M4 18h7a4 4 0 0 0 4-4V6"/><path d="M18 9l3 3-3 3"/></svg>'));
+    head.appendChild(icon);
+    const headText = el('div', { class: 'workflow-next-copy' });
+    headText.appendChild(el('strong', { text: opts.title || 'Weiterarbeiten mit dieser Datei' }));
+    headText.appendChild(el('span', { text: opts.description || 'Das Ergebnis liegt jetzt in deiner Mappe. Du kannst direkt den naechsten Schritt starten.' }));
+    head.appendChild(headText);
+    card.appendChild(head);
+
+    const actionWrap = el('div', { class: 'workflow-next-actions' });
+    actions.forEach((action, idx) => {
+      const a = el('a', {
+        class: 'workflow-next-action' + (idx === 0 || action.primary ? ' primary' : ''),
+        attrs: { href: workflowUrl(action.tool, fileId) }
+      });
+      a.appendChild(el('span', {
+        class: 'workflow-next-action-title',
+        text: (opts.toolLabels && opts.toolLabels[action.tool]) ||
+          WORKFLOW_TOOL_LABELS[action.tool] ||
+          (global.Suggestions && global.Suggestions.prettyToolName(action.tool)) ||
+          action.tool
+      }));
+      a.appendChild(el('span', {
+        class: 'workflow-next-action-sub',
+        text: (opts.toolDescriptions && opts.toolDescriptions[action.tool]) ||
+          WORKFLOW_TOOL_DESCRIPTIONS[action.tool] ||
+          'Mit genau dieser Datei weiterarbeiten.'
+      }));
+      actionWrap.appendChild(a);
+    });
+    card.appendChild(actionWrap);
+    container.appendChild(card);
+    return fileId;
+  }
+
   function setupAutoReset() {
     const editor = document.getElementById('editorView');
     if (!editor) return; // Tool ohne editorView-Pattern (z.B. pdf-merger) — skip
@@ -1204,10 +1620,19 @@
     });
   }
 
+  const Workflow = {
+    getActive: readActiveWorkflow,
+    saveActive: saveActiveWorkflow,
+    clearActive: clearActiveWorkflow,
+    currentTool: currentToolSlug
+  };
+
   global.Shell = {
     init, Toast, Tour, parseSVG, el,
     whenMappeReady, saveToMappe,
     onMappeAutoLoad, parseMappeUrlParams, injectMappeAutoLoadBanner,
+    showWorkflowNextSteps,
+    Workflow,
     onBFCacheRestore,
     // BUG-IPHONE-001 / DNG: Cross-Tool-Format-Helpers
     isHeic, classifyImageFile, handleHeicIfNeeded,

@@ -266,6 +266,16 @@
 
         // Snippet wird durch showPage() gesetzt (siehe oben renderPageTabs+showPage)
         $('result').classList.add('active');
+        Shell.showWorkflowNextSteps({
+          blob: new Blob([state.allText], { type: 'text/plain;charset=utf-8' }),
+          filename: state.file.name.replace(/\.pdf$/i, '_text.txt'),
+          type: 'text/plain',
+          sourceTool: 'pdf-ocr',
+          container: $('result'),
+          preferredTools: ['pdf-to-word', 'pdf-redact', 'pdf-compress'],
+          title: 'Text ausgelesen. Was als Naechstes?',
+          description: 'Der erkannte Text liegt in deiner Mappe. Wenn der geplante naechste Schritt eine PDF braucht, nutze ich die Originaldatei weiter.'
+        });
       } catch (e) {
         console.error(e);
         Shell.Toast.show('OCR fehlgeschlagen', true);

@@ -262,48 +262,291 @@ async def run_tests():
             # Cleanup
             await page.evaluate("() => Mappe.clearAll()")
 
-            # ─── Test 13e: Hub-Panel hidden when empty ───
+            # ─── Test 13e: Hub v2 library hidden when empty ───
             await page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="networkidle")
             await page.wait_for_function("() => window.Mappe && window.Mappe.UI", timeout=5000)
             await page.evaluate("() => Mappe.clearAll()")
             # Give panel render a tick
             await page.wait_for_timeout(200)
             panel_empty = await page.evaluate("""() => ({
-                visible: document.getElementById('hubMappePanel').classList.contains('has-files'),
-                expanded: document.getElementById('hubMappePanel').classList.contains('expanded')
+                visible: document.getElementById('hubLibrary').classList.contains('has-files'),
+                hasConcierge: !!document.getElementById('hubConcierge'),
+                overflowX: document.documentElement.scrollWidth - window.innerWidth
             })""")
-            expect("Hub-Panel hidden when empty", panel_empty["visible"] is False, str(panel_empty))
+            expect("Hub v2 library hidden when empty", panel_empty["visible"] is False, str(panel_empty))
+            expect("Hub v2 concierge visible", panel_empty["hasConcierge"] is True, str(panel_empty))
+            expect("Hub v2 no horizontal overflow empty", panel_empty["overflowX"] <= 1, str(panel_empty))
 
-            # ─── Test 13f: Hub-Panel visible after addFile ───
+            # ─── Test 13f: Hub v2 library visible after addFile ───
             await page.evaluate("""async () => {
                 const blob = new Blob(['hub panel test'], { type: 'application/pdf' });
                 const file = new File([blob], 'panel-test.pdf', { type: 'application/pdf' });
                 await Mappe.addFile(file, 'hub');
             }""")
             await page.wait_for_function(
-                "() => document.getElementById('hubMappePanel').classList.contains('has-files')",
+                "() => document.getElementById('hubLibrary').classList.contains('has-files')",
                 timeout=2000)
             panel_visible = await page.evaluate("""() => ({
-                visible: document.getElementById('hubMappePanel').classList.contains('has-files'),
-                summary: document.getElementById('hubMappeSummary').textContent,
-                cardCount: document.querySelectorAll('.hub-mappe-card').length,
-                firstCardName: document.querySelector('.hub-mappe-card-name')?.textContent
+                visible: document.getElementById('hubLibrary').classList.contains('has-files'),
+                summary: document.getElementById('hubLibraryCount').textContent,
+                cardCount: document.querySelectorAll('.mg-group').length,
+                firstCardName: document.querySelector('.mg-group-title')?.textContent,
+                counter: document.querySelector('a[href="/pdf-merger"] .hub-tile-counter')?.textContent || '',
+                ids: document.querySelector('a[href="/pdf-merger"]')?.getAttribute('data-mappe-ids') || ''
             })""")
-            expect("Hub-Panel visible after add", panel_visible["visible"] is True, str(panel_visible))
-            expect("Hub-Panel summary correct", "1 Datei" in panel_visible["summary"], str(panel_visible))
-            expect("Hub-Panel card rendered", panel_visible["cardCount"] == 1, str(panel_visible))
-            expect("Hub-Panel card name correct",
-                   panel_visible["firstCardName"] == "panel-test.pdf",
-                   str(panel_visible))
+            expect("Hub v2 library visible after add", panel_visible["visible"] is True, str(panel_visible))
+            expect("Hub v2 library count correct", panel_visible["summary"] == "1", str(panel_visible))
+            expect("Hub v2 grouped card rendered", panel_visible["cardCount"] >= 1, str(panel_visible))
+            expect("Hub v2 PDF counter rendered", "1 aus Mappe" in panel_visible["counter"], str(panel_visible))
+            expect("Hub v2 PDF ids set", len(panel_visible["ids"]) > 0, str(panel_visible))
 
-            # ─── Test 13g: Click Hub-Panel head → expand body ───
-            await page.click("#hubMappeHead")
+            idle_workflow = await page.evaluate("""() => ({
+                stepCount: document.querySelectorAll('.hub-workflow-step').length,
+                startVisible: !!document.querySelector('.hub-workflow-start'),
+                idleText: document.querySelector('.hub-concierge-empty')?.textContent || '',
+                buildDisabled: document.getElementById('hubIntentBuild')?.disabled === true
+            })""")
+            expect("Hub Workflow bleibt ohne Eingabe idle",
+                   idle_workflow["stepCount"] == 0 and idle_workflow["startVisible"] is False,
+                   str(idle_workflow))
+            expect("Hub Workflow zeigt Wunsch-Hinweis statt Vorschlag",
+                   "Wunsch" in idle_workflow["idleText"] and idle_workflow["buildDisabled"] is True,
+                   str(idle_workflow))
+
+            # ─── Test 13g: Hub v2 concierge ranks intent ───
+            await page.evaluate("() => document.getElementById('hubConcierge')?.classList.remove('is-collapsed')")
+            await page.fill("#hubIntentInput", "Ich will das PDF unterschreiben")
+            await page.wait_for_timeout(150)
+            concierge = await page.evaluate("""() => ({
+                firstTool: document.querySelector('.hub-concierge-result')?.getAttribute('data-tool'),
+                firstText: document.querySelector('.hub-concierge-result')?.textContent || '',
+                resultCount: document.querySelectorAll('.hub-concierge-result').length,
+                chatBubbles: document.querySelectorAll('.hub-chat-thread-result .hub-chat-message').length
+            })""")
+            expect("Hub v2 concierge ranks sign tool", concierge["firstTool"] == "pdf-sign", str(concierge))
+            expect("Hub v2 concierge renders results", concierge["resultCount"] >= 1, str(concierge))
+            expect("Hub v2 concierge rendert Chat-Antwort nach Eingabe", concierge["chatBubbles"] == 2, str(concierge))
+
+            # ─── Test 13g.2: Workflow-Builder erkennt Synonyme + Multi-Step ───
+            ocr_flow = await page.evaluate("""async () => (
+                await window.__CLAWBUIS_TOOLS_QA__.buildWorkflowForIntent('das muss ich dann noch auslesen')
+            )""")
+            expect("Workflow-Builder erkennt 'auslesen' als OCR",
+                   ocr_flow["topTool"] == "pdf-ocr",
+                   str(ocr_flow))
+
+            compress_flow = await page.evaluate("""async () => (
+                await window.__CLAWBUIS_TOOLS_QA__.buildWorkflowForIntent('ich moechte das noch runter machen')
+            )""")
+            expect("Workflow-Builder erkennt 'runter machen' als komprimieren",
+                   compress_flow["topTool"] == "pdf-compress",
+                   str(compress_flow))
+
+            multi_flow = await page.evaluate("""async () => (
+                await window.__CLAWBUIS_TOOLS_QA__.buildWorkflowForIntent('erst unterschreiben, dann auslesen und danach kleiner fuer email machen')
+            )""")
+            expect("Workflow-Builder baut Multi-Step Workflow",
+                   multi_flow["stepTools"][:3] == ["pdf-sign", "pdf-ocr", "pdf-compress"],
+                   str(multi_flow))
+
+            await page.click(".hub-workflow-step[data-tool='pdf-ocr'] .hub-workflow-step-control[aria-label='Entfernen']")
+            edited_flow = await page.evaluate("""() => ({
+                stepTools: Array.from(document.querySelectorAll('.hub-workflow-step')).map(el => el.getAttribute('data-tool')),
+                startTool: document.querySelector('.hub-workflow-start')?.getAttribute('data-tool')
+            })""")
+            expect("Workflow-Builder erlaubt Schritt entfernen",
+                   edited_flow["stepTools"] == ["pdf-sign", "pdf-compress"] and edited_flow["startTool"] == "pdf-sign",
+                   str(edited_flow))
+
+            no_file_family_flow = await page.evaluate("""async () => {
+                await Mappe.clearAll();
+                const imageFlow = await window.__CLAWBUIS_TOOLS_QA__.buildWorkflowForIntent('bilder runter machen');
+                const videoFlow = await window.__CLAWBUIS_TOOLS_QA__.buildWorkflowForIntent('video runter machen');
+                return { imageFlow, videoFlow };
+            }""")
+            expect("Workflow-Builder trennt Bild-Intent von PDF-Kompression",
+                   no_file_family_flow["imageFlow"]["topTool"] == "images-compress",
+                   str(no_file_family_flow))
+            expect("Workflow-Builder trennt Video-Intent von PDF-Kompression",
+                   no_file_family_flow["videoFlow"]["topTool"] == "video-compress",
+                   str(no_file_family_flow))
+
+            implicit_pdf_flow = await page.evaluate("""async () => (
+                await window.__CLAWBUIS_TOOLS_QA__.buildWorkflowForIntent('das auslesen und runter machen')
+            )""")
+            expect("Workflow-Builder erkennt impliziten PDF-Intent aus OCR + runter",
+                   implicit_pdf_flow["stepTools"][:2] == ["pdf-ocr", "pdf-compress"] and "images-compress" not in implicit_pdf_flow["stepTools"],
+                   str(implicit_pdf_flow))
+
+            workflow_runner_flow = await page.evaluate("""async () => {
+                await Mappe.clearAll();
+                const pdfBytes = new Uint8Array([37,80,68,70,45,49,46,55,10,37,10]);
+                const originalId = await Mappe.addFile(new File([pdfBytes], 'vertrag.pdf', { type: 'application/pdf' }), 'qa');
+                sessionStorage.setItem('clawbuis-active-workflow', JSON.stringify({
+                  id: 'wf_qa_runner',
+                  status: 'running',
+                  currentStepIndex: 0,
+                  steps: [
+                    { id: 's1', tool: 'pdf-sign', label: 'PDF signieren', status: 'ready', fileIds: [originalId] },
+                    { id: 's2', tool: 'pdf-ocr', label: 'PDF auslesen', status: 'draft', fileIds: [originalId] },
+                    { id: 's3', tool: 'pdf-compress', label: 'PDF kleiner machen', status: 'draft', fileIds: [originalId] }
+                  ]
+                }));
+                const host = document.createElement('div');
+                document.body.appendChild(host);
+                const savedId = await Shell.showWorkflowNextSteps({
+                  blob: new Blob([pdfBytes], { type: 'application/pdf' }),
+                  filename: 'vertrag_signiert.pdf',
+                  type: 'application/pdf',
+                  sourceTool: 'pdf-sign',
+                  container: host,
+                  preferredTools: ['pdf-redact', 'pdf-compress']
+                });
+                const plan = JSON.parse(sessionStorage.getItem('clawbuis-active-workflow'));
+                const primary = host.querySelector('.workflow-next-action.primary');
+                return {
+                  savedId,
+                  title: host.querySelector('.workflow-next-copy strong')?.textContent || '',
+                  href: primary?.getAttribute('href') || '',
+                  currentStepIndex: plan.currentStepIndex,
+                  statuses: plan.steps.map(step => step.status),
+                  nextFileIds: plan.steps[1].fileIds,
+                  actionText: primary?.textContent || ''
+                };
+            }""")
+            expect("Workflow-Runner zeigt geplanten naechsten Schritt statt Standardvorschlag",
+                   "Workflow-Schritt" in workflow_runner_flow["title"] and "/pdf-ocr/?from=mappe&ids=" in workflow_runner_flow["href"],
+                   str(workflow_runner_flow))
+            expect("Workflow-Runner uebergibt Ergebnisdatei an naechsten Schritt",
+                   workflow_runner_flow["nextFileIds"] == [workflow_runner_flow["savedId"]] and workflow_runner_flow["currentStepIndex"] == 1,
+                   str(workflow_runner_flow))
+
+            workflow_fallback_flow = await page.evaluate("""async () => {
+                await Mappe.clearAll();
+                const pdfBytes = new Uint8Array([37,80,68,70,45,49,46,55,10,37,10]);
+                const originalId = await Mappe.addFile(new File([pdfBytes], 'scan.pdf', { type: 'application/pdf' }), 'qa');
+                sessionStorage.setItem('clawbuis-active-workflow', JSON.stringify({
+                  id: 'wf_qa_fallback',
+                  status: 'running',
+                  currentStepIndex: 0,
+                  steps: [
+                    { id: 's1', tool: 'pdf-ocr', label: 'PDF auslesen', status: 'ready', fileIds: [originalId] },
+                    { id: 's2', tool: 'pdf-compress', label: 'PDF kleiner machen', status: 'draft', fileIds: [originalId] }
+                  ]
+                }));
+                const host = document.createElement('div');
+                document.body.appendChild(host);
+                const textId = await Shell.showWorkflowNextSteps({
+                  blob: new Blob(['erkannter text'], { type: 'text/plain' }),
+                  filename: 'scan_text.txt',
+                  type: 'text/plain',
+                  sourceTool: 'pdf-ocr',
+                  container: host,
+                  inputFileIds: [originalId]
+                });
+                const plan = JSON.parse(sessionStorage.getItem('clawbuis-active-workflow'));
+                const primary = host.querySelector('.workflow-next-action.primary');
+                sessionStorage.removeItem('clawbuis-active-workflow');
+                return {
+                  originalId,
+                  textId,
+                  href: primary?.getAttribute('href') || '',
+                  nextFileIds: plan.steps[1].fileIds,
+                  sub: primary?.querySelector('.workflow-next-action-sub')?.textContent || ''
+                };
+            }""")
+            expect("Workflow-Runner nutzt Originaldatei wenn Ergebnisformat nicht passt",
+                   workflow_fallback_flow["nextFileIds"] == [workflow_fallback_flow["originalId"]] and
+                   f"/pdf-compress/?from=mappe&ids={workflow_fallback_flow['originalId']}" in workflow_fallback_flow["href"],
+                   str(workflow_fallback_flow))
+
+            workflow_manual_flow = await page.evaluate("""async () => {
+                sessionStorage.setItem('clawbuis-active-workflow', JSON.stringify({
+                  id: 'wf_qa_manual',
+                  status: 'running',
+                  currentStepIndex: 0,
+                  steps: [
+                    { id: 's1', tool: 'pdf-redact', label: 'PDF schwaerzen', status: 'ready', fileIds: [] },
+                    { id: 's2', tool: 'pdf-sign', label: 'PDF signieren', status: 'draft', fileIds: [] }
+                  ]
+                }));
+                const host = document.createElement('div');
+                document.body.appendChild(host);
+                await Shell.showWorkflowNextSteps({
+                  sourceTool: 'pdf-redact',
+                  container: host
+                });
+                const plan = JSON.parse(sessionStorage.getItem('clawbuis-active-workflow'));
+                const primary = host.querySelector('.workflow-next-action.primary');
+                sessionStorage.removeItem('clawbuis-active-workflow');
+                return {
+                  href: primary?.getAttribute('href') || '',
+                  className: primary?.className || '',
+                  nextFileIds: plan.steps[1].fileIds,
+                  currentStepIndex: plan.currentStepIndex
+                };
+            }""")
+            expect("Workflow-Runner kann naechsten Schritt ohne Auto-Datei manuell oeffnen",
+                   workflow_manual_flow["href"].endswith("/pdf-sign/") and
+                   "manual" in workflow_manual_flow["className"] and
+                   workflow_manual_flow["nextFileIds"] == [] and
+                   workflow_manual_flow["currentStepIndex"] == 1,
+                   str(workflow_manual_flow))
+
+            # ─── Test 13h: Concierge → pdf-sign → real editor load ───
+            await page.evaluate("""async () => {
+                await Mappe.clearAll();
+                function makePdfBytes() {
+                  const enc = new TextEncoder();
+                  const stream = 'BT /F1 18 Tf 40 180 Td (CLAWBUIS Signatur-Test) Tj ET';
+                  const objs = [
+                    '1 0 obj\\n<< /Type /Catalog /Pages 2 0 R >>\\nendobj\\n',
+                    '2 0 obj\\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\\nendobj\\n',
+                    '3 0 obj\\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 240] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\\nendobj\\n',
+                    '4 0 obj\\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\\nendobj\\n',
+                    `5 0 obj\\n<< /Length ${enc.encode(stream).length} >>\\nstream\\n${stream}\\nendstream\\nendobj\\n`
+                  ];
+                  let pdf = '%PDF-1.4\\n';
+                  const offsets = [];
+                  for (const obj of objs) {
+                    offsets.push(enc.encode(pdf).length);
+                    pdf += obj;
+                  }
+                  const xrefOffset = enc.encode(pdf).length;
+                  pdf += `xref\\n0 ${objs.length + 1}\\n0000000000 65535 f \\n`;
+                  pdf += offsets.map(n => `${String(n).padStart(10, '0')} 00000 n \\n`).join('');
+                  pdf += `trailer\\n<< /Size ${objs.length + 1} /Root 1 0 R >>\\nstartxref\\n${xrefOffset}\\n%%EOF\\n`;
+                  return enc.encode(pdf);
+                }
+                const file = new File([makePdfBytes()], 'vertrag-signaturtest.pdf', { type: 'application/pdf' });
+                await Mappe.addFile(file, 'hub');
+            }""")
             await page.wait_for_function(
-                "() => document.getElementById('hubMappePanel').classList.contains('expanded')",
-                timeout=1500)
-            expanded = await page.evaluate(
-                "() => document.getElementById('hubMappePanel').classList.contains('expanded')")
-            expect("Hub-Panel head click expands", expanded is True, "")
+                "() => document.getElementById('hubLibrary').classList.contains('has-files')",
+                timeout=2000)
+            await page.evaluate("() => document.getElementById('hubConcierge')?.classList.remove('is-collapsed')")
+            await page.fill("#hubIntentInput", "unterschreiben")
+            await page.wait_for_timeout(150)
+            await page.click('.hub-concierge-result[data-tool="pdf-sign"]')
+            await page.wait_for_url("**/pdf-sign/**from=mappe**", timeout=4000)
+            await page.wait_for_function(
+                "() => document.getElementById('editorView') && getComputedStyle(document.getElementById('editorView')).display !== 'none'",
+                timeout=6000)
+            sign_flow = await page.evaluate("""() => ({
+                fileName: document.getElementById('fileName')?.textContent || '',
+                pageCanvases: document.querySelectorAll('.page-canvas').length,
+                pickerVisible: !!document.querySelector('.mappe-picker-backdrop'),
+                overflowX: document.documentElement.scrollWidth - window.innerWidth
+            })""")
+            expect("Hub v2 concierge opens pdf-sign with Mappe PDF",
+                   sign_flow["fileName"] == "vertrag-signaturtest.pdf" and sign_flow["pageCanvases"] == 1,
+                   str(sign_flow))
+            expect("Hub v2 pdf-sign single-file flow needs no picker",
+                   sign_flow["pickerVisible"] is False,
+                   str(sign_flow))
+            expect("Hub v2 pdf-sign flow has no horizontal overflow",
+                   sign_flow["overflowX"] <= 1,
+                   str(sign_flow))
 
             # Cleanup
             await page.evaluate("() => Mappe.clearAll()")
